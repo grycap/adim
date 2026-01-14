@@ -17,4 +17,4 @@ COPY . /app
 EXPOSE 8080
 ENV WORKERS=4
 
-CMD gunicorn -w $WORKERS -b 0.0.0.0:8080 -k uvicorn.workers.UvicornWorker 'awm.__main__:create_app()'
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8080", "-k", "uvicorn.workers.UvicornWorker", "awm.__main__:create_app()"]
