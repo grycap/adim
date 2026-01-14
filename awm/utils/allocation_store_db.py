@@ -44,10 +44,10 @@ class AllocationStoreDB(AllocationStore):
         """Creates de database."""
         if not db.table_exists("allocations"):
             if db.db_type == DataBase.MYSQL:
-                db.execute("CREATE TABLE allocations (id VARCHAR(255) PRIMARY KEY, data TEXT, "
+                db.execute("CREATE TABLE IF NOT EXISTS allocations (id VARCHAR(255) PRIMARY KEY, data TEXT, "
                            "owner VARCHAR(255), created TIMESTAMP)")
             elif db.db_type == DataBase.SQLITE:
-                db.execute("CREATE TABLE allocations (id TEXT PRIMARY KEY, data TEXT, "
+                db.execute("CREATE TABLE IF NOT EXISTS allocations (id TEXT PRIMARY KEY, data TEXT, "
                            "owner VARCHAR(255), created TIMESTAMP)")
             elif db.db_type == DataBase.MONGO:
                 db.connection.create_collection("allocations")
