@@ -32,7 +32,8 @@ from . import return_error
 
 
 router = APIRouter()
-IM_URL = os.getenv("IM_URL", "http://localhost:8800")
+#IM_URL = os.getenv("IM_URL", "http://localhost:8800")
+IM_URL = os.getenv("IM_URL", "https://appsgrycap.i3m.upv.es/im-dev")
 DB_URL = os.getenv("DB_URL", "file:///tmp/awm.db")
 
 
@@ -125,6 +126,9 @@ def _get_deployment(deployment_id: str, user_info: dict, request: Request,
                         if not success:
                             msg = Error(description=state_info)
                             return msg, 400
+                        success, cont_msg = client.get_infra_property(deployment_id, "contmsg")
+                        if success:
+                            dep_info.message = cont_msg
                         dep_info.status = state_info['state']
             except Exception as ex:
                 msg = Error(id="400", description=str(ex))
@@ -236,10 +240,7 @@ def list_deployments(
 def get_deployment(deployment_id,
                    request: Request,
                    user_info=Depends(authenticate)):
-    """Get information about an existing deployment
-
-    :rtype: DeploymentInfo
-    """
+    """Get information about an existing deployment"""
     deployment, status_code = _get_deployment(deployment_id, user_info, request)
     return Response(content=deployment.model_dump_json(exclude_unset=True, by_alias=True),
                     status_code=status_code, media_type="application/json")
@@ -248,7 +249,7 @@ def get_deployment(deployment_id,
 # DELETE /deployment/{deployment_id}
 @router.delete("/deployment/{deployment_id}",
                summary="Tear down an existing deployment",
-               responses={204: {"description": "Accepted"},
+               responses={202: {"description": "Deleting"},
                           400: {"model": Error,
                                 "description": "Invalid parameters or configuration"},
                           401: {"model": Error,
@@ -264,10 +265,7 @@ def get_deployment(deployment_id,
 def delete_deployment(deployment_id,
                       request: Request,
                       user_info=Depends(authenticate)):
-    """Tear down an existing deployment
-
-    :rtype: Success
-    """
+    """Tear down an existing deployment"""
     deployment, status_code = _get_deployment(deployment_id, user_info, request, get_state=False)
     if status_code != 200:
         return Response(content=deployment.model_dump_json(exclude_unset=True, by_alias=True),
@@ -322,13 +320,7 @@ def delete_deployment(deployment_id,
 def deploy_workload(deployment: Deployment,
                     request: Request,
                     user_info=Depends(authenticate)):
-    """Deploy workload to an EOSC environment or an infrastructure for which the user has credentials
-
-    :param body: The deployment request body containing the tool and allocation information
-    :type body: dict | bytes
-
-    :rtype: DeploymentId
-    """
+    """Deploy workload to an EOSC environment or an infrastructure for which the user has credentials"""
     # Get the Tool from the ID
     tool, status_code = awm.routers.tools.get_tool_from_repo(deployment.tool.id, deployment.tool.version, request)
     if status_code != 200:
