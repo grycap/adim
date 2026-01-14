@@ -25,14 +25,13 @@ classifiers = [
 ]
 
 dependencies = [
-    "fastapi==0.110.0",
-    "pydantic==2.7.1",
-    "pydantic[email]==2.7.1",
+    "fastapi==0.128.0",
+    "pydantic==2.12.5",
+    "pydantic[email]==2.12.5",
     "python-dotenv==1.2.1",
     "im-client>=1.8.2",
-    "uvicorn[standard]==0.38.0",
+    "uvicorn[standard]==0.40.0",
     "requests-cache==1.2.1",
-    "httpx==0.26.0",
     "hvac==2.4.0",
     "cryptography==46.0.3",
 ]
@@ -40,10 +39,11 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "flask_testing==0.8.0",
+    "flask_testing==0.8.1",
     "coverage>=4.0.3",
     "nose>=1.3.7",
     "tox==3.20.1",
+    "httpx==0.26.0",
     "pytest-mock",
     "pytest-cov",
 ]
