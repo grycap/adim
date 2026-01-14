@@ -33,7 +33,10 @@ dependencies = [
     "uvicorn[standard]==0.38.0",
     "requests-cache==1.2.1",
     "httpx==0.26.0",
+    "hvac==2.4.0",
+    "cryptography==46.0.3",
 ]
+
 
 [project.optional-dependencies]
 test = [
