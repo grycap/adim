@@ -27,7 +27,7 @@ from . import return_error
 
 
 router = APIRouter()
-ALLOCATION_STORE = os.getenv("ALLOCATION_STORE", "vault")
+ALLOCATION_STORE = os.getenv("ALLOCATION_STORE", "db")
 
 if ALLOCATION_STORE == "db":
     from awm.utils.allocation_store_db import AllocationStoreDB
@@ -129,10 +129,7 @@ def _get_allocation(allocation_id: str, user_info: dict, request: Request) -> Al
 def get_allocation(request: Request,
                    allocation_id,
                    user_info=Depends(authenticate)):
-    """Get information about an existing allocation
-
-    :rtype: AllocationInfo
-    """
+    """Get information about an existing allocation"""
     allocation_info = _get_allocation(allocation_id, user_info, request)
     if allocation_info is None:
         return return_error("Allocation not found", status_code=404)
@@ -212,10 +209,7 @@ def update_allocation(allocation_id,
 def delete_allocation(allocation_id,
                       request: Request,
                       user_info=Depends(authenticate)):
-    """Remove existing environment of the user
-
-    :rtype: Success
-    """
+    """Remove existing environment of the user"""
     allocation_info = _get_allocation(allocation_id, user_info, request)
     if allocation_info is None:
         return return_error("Allocation not found", status_code=404)
@@ -254,9 +248,7 @@ def delete_allocation(allocation_id,
 def create_allocation(allocation: Allocation,
                       request: Request,
                       user_info=Depends(authenticate)):
-    """Record an environment of the user
-    :rtype: AllocationId
-    """
+    """Record an environment of the user"""
     data = allocation.model_dump(exclude_unset=True, mode="json")
     try:
         allocation_id = allocation_store.replace_allocation(data, user_info)

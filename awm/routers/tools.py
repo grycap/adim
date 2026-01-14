@@ -172,10 +172,7 @@ def get_tool(tool_id: str,
              request: Request,
              version: str = Query("latest", description="If missing, the latest version will be returned"),
              user_info=Depends(authenticate)):
-    """Get information about an existing tool blueprint
-
-    :rtype: ToolInfo
-    """
+    """Get information about an existing tool blueprint"""
     tool_or_msg, status_code = get_tool_from_repo(tool_id, version, request)
 
     return Response(content=tool_or_msg.model_dump_json(exclude_unset=True, by_alias=True),

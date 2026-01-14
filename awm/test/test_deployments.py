@@ -222,7 +222,10 @@ def test_get_deployment(client, db_mock, check_oidc_mock, im_mock, allocation_mo
         [[_get_deployment_info()]]
     ]
 
-    im_mock.get_infra_property.return_value = True, {"state": "running"}
+    im_mock.get_infra_property.side_effect = [
+        (True, {"state": "running"}),
+        (True, "contmsg")
+    ]
 
     response = client.get("/deployment/dep_id",
                           headers={"Authorization": "Bearer token"})
@@ -230,6 +233,7 @@ def test_get_deployment(client, db_mock, check_oidc_mock, im_mock, allocation_mo
     assert response.status_code == 200
     assert response.json()["status"] == "running"
     assert response.json()["deployment"]["tool"]["id"] == "toolid"
+    assert response.json()["details"] == "contmsg"
 
     db_mock.select.assert_called_with(
         "SELECT data FROM deployments WHERE id = %s and owner = %s",

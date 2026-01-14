@@ -1,0 +1,1477 @@
+openapi: 3.1.0
+info:
+  description: EOSC Application Workflow Management API
+  title: EOSC AWM API
+  version: 0.1.46
+paths:
+  /allocation/{allocation_id}:
+    delete:
+      description: Remove existing environment of the user
+      operationId: delete_allocation_allocation__allocation_id__delete
+      parameters:
+      - in: path
+        name: allocation_id
+        required: true
+        schema:
+          title: Allocation Id
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '204':
+          description: Accepted
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Invalid parameters or configuration
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authorization required
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not found
+        '419':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Re-delegate credentials
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Try again later
+      security:
+      - OIDC: []
+      summary: Remove existing environment of the user
+      tags:
+      - Allocations
+    get:
+      description: Get information about an existing allocation
+      operationId: get_allocation_allocation__allocation_id__get
+      parameters:
+      - in: path
+        name: allocation_id
+        required: true
+        schema:
+          title: Allocation Id
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationInfo'
+          description: Accepted
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Invalid parameters or configuration
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authorization required
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not found
+        '419':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Re-delegate credentials
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Try again later
+      security:
+      - OIDC: []
+      summary: Get information about an existing deployment
+      tags:
+      - Allocations
+    put:
+      operationId: update_allocation_allocation__allocation_id__put
+      parameters:
+      - in: path
+        name: allocation_id
+        required: true
+        schema:
+          title: Allocation Id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Allocation'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationInfo'
+          description: Updated
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Invalid parameters or configuration
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authorization required
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Forbidden
+        '419':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Re-delegate credentials
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Try again later
+      security:
+      - OIDC: []
+      summary: Update existing environment of the user
+      tags:
+      - Allocations
+  /allocations:
+    get:
+      operationId: list_allocations_allocations_get
+      parameters:
+      - description: Index of the first element to return
+        in: query
+        name: from
+        required: false
+        schema:
+          default: 0
+          description: Index of the first element to return
+          minimum: 0
+          title: From
+          type: integer
+      - description: Maximum number of elements to return
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: 100
+          description: Maximum number of elements to return
+          minimum: 1
+          title: Limit
+          type: integer
+      - in: query
+        name: allNodes
+        required: false
+        schema:
+          default: false
+          title: Allnodes
+          type: boolean
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageOfAllocations'
+          description: Success
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Invalid parameters or configuration
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authorization required
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Forbidden
+        '419':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Re-delegate credentials
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Try again later
+      security:
+      - OIDC: []
+      summary: List all credentials or EOSC environments of the user
+      tags:
+      - Allocations
+    post:
+      description: Record an environment of the user
+      operationId: create_allocation_allocations_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Allocation'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationId'
+          description: Accepted
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Invalid parameters or configuration
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authorization required
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Forbidden
+        '419':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Re-delegate credentials
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Try again later
+      security:
+      - OIDC: []
+      summary: Record an environment of the user
+      tags:
+      - Allocations
+  /deployment/{deployment_id}:
+    delete:
+      description: Tear down an existing deployment
+      operationId: delete_deployment_deployment__deployment_id__delete
+      parameters:
+      - in: path
+        name: deployment_id
+        required: true
+        schema:
+          title: Deployment Id
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '202':
+          description: Deleting
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Invalid parameters or configuration
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authorization required
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not found
+        '419':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Re-delegate credentials
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Try again later
+      security:
+      - OIDC: []
+      summary: Tear down an existing deployment
+      tags:
+      - Deployments
+    get:
+      description: Get information about an existing deployment
+      operationId: get_deployment_deployment__deployment_id__get
+      parameters:
+      - in: path
+        name: deployment_id
+        required: true
+        schema:
+          title: Deployment Id
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeploymentInfo'
+          description: Accepted
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Invalid parameters or configuration
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authorization required
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not found
+        '419':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Re-delegate credentials
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Try again later
+      security:
+      - OIDC: []
+      summary: Get information about an existing deployment
+      tags:
+      - Deployments
+  /deployments:
+    get:
+      operationId: list_deployments_deployments_get
+      parameters:
+      - description: Index of the first element to return
+        in: query
+        name: from
+        required: false
+        schema:
+          default: 0
+          description: Index of the first element to return
+          minimum: 0
+          title: From
+          type: integer
+      - description: Maximum number of elements to return
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: 100
+          description: Maximum number of elements to return
+          minimum: 1
+          title: Limit
+          type: integer
+      - in: query
+        name: allNodes
+        required: false
+        schema:
+          default: false
+          title: Allnodes
+          type: boolean
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageOfDeployments'
+          description: Success
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Invalid parameters or configuration
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authorization required
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Forbidden
+        '419':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Re-delegate credentials
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Try again later
+      security:
+      - OIDC: []
+      summary: List existing deployments
+      tags:
+      - Deployments
+    post:
+      description: Deploy workload to an EOSC environment or an infrastructure for
+        which the user has credentials
+      operationId: deploy_workload_deployments_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Deployment'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeploymentId'
+          description: Deploying
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Invalid parameters or configuration
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authorization required
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Forbidden
+        '419':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Re-delegate credentials
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Try again later
+      security:
+      - OIDC: []
+      summary: Deploy workload to an EOSC environment or an infrastructure for which
+        the user has credentials
+      tags:
+      - Deployments
+  /tool/{tool_id}:
+    get:
+      description: Get information about an existing tool blueprint
+      operationId: get_tool_tool__tool_id__get
+      parameters:
+      - in: path
+        name: tool_id
+        required: true
+        schema:
+          title: Tool Id
+          type: string
+      - description: If missing, the latest version will be returned
+        in: query
+        name: version
+        required: false
+        schema:
+          default: latest
+          description: If missing, the latest version will be returned
+          title: Version
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolInfo'
+          description: Accepted
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Invalid parameters or configuration
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authorization required
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not found
+        '419':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Re-delegate credentials
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Try again later
+      security:
+      - OIDC: []
+      summary: Get information about a tool blueprint
+      tags:
+      - Tools
+  /tools:
+    get:
+      operationId: list_tools_tools_get
+      parameters:
+      - description: Index of the first element to return
+        in: query
+        name: from
+        required: false
+        schema:
+          default: 0
+          description: Index of the first element to return
+          minimum: 0
+          title: From
+          type: integer
+      - description: Maximum number of elements to return
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: 100
+          description: Maximum number of elements to return
+          minimum: 1
+          title: Limit
+          type: integer
+      - in: query
+        name: allNodes
+        required: false
+        schema:
+          default: false
+          title: Allnodes
+          type: boolean
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageOfTools'
+          description: Success
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Invalid parameters or configuration
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authorization required
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Forbidden
+        '419':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Re-delegate credentials
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Try again later
+      security:
+      - OIDC: []
+      summary: List all tool blueprints
+      tags:
+      - Tools
+  /version:
+    get:
+      operationId: version_version_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+          description: Success
+      summary: Return service version information
+      tags:
+      - Service
+components:
+  schemas:
+    Allocation:
+      discriminator:
+        mapping:
+          EoscNodeEnvironment: '#/components/schemas/EoscNodeEnvironment'
+          KubernetesEnvironment: '#/components/schemas/KubernetesEnvironment'
+          OpenStackEnvironment: '#/components/schemas/OpenStackEnvironment'
+        propertyName: kind
+      oneOf:
+      - $ref: '#/components/schemas/EoscNodeEnvironment'
+      - $ref: '#/components/schemas/OpenStackEnvironment'
+      - $ref: '#/components/schemas/KubernetesEnvironment'
+      title: Allocation
+    AllocationId:
+      properties:
+        id:
+          description: Unique identifier for this allocation
+          title: Id
+          type: string
+        infoLink:
+          anyOf:
+          - format: uri
+            maxLength: 2083
+            minLength: 1
+            type: string
+          - type: 'null'
+          description: Endpoint that returns more details about this entity
+          title: Infolink
+        kind:
+          const: AllocationId
+          default: AllocationId
+          enum:
+          - AllocationId
+          title: Kind
+          type: string
+      required:
+      - id
+      title: AllocationId
+      type: object
+    AllocationInfo:
+      properties:
+        allocation:
+          $ref: '#/components/schemas/Allocation'
+        id:
+          description: Unique identifier for this allocation
+          title: Id
+          type: string
+        self:
+          anyOf:
+          - format: uri
+            maxLength: 2083
+            minLength: 1
+            type: string
+          - type: 'null'
+          description: Endpoint that returns the details of this allocation
+          title: Self
+      required:
+      - id
+      - allocation
+      title: AllocationInfo
+      type: object
+    Deployment:
+      properties:
+        allocation:
+          $ref: '#/components/schemas/AllocationId'
+        tool:
+          $ref: '#/components/schemas/ToolId'
+      required:
+      - allocation
+      - tool
+      title: Deployment
+      type: object
+    DeploymentId:
+      properties:
+        id:
+          description: Unique identifier for this deployment
+          title: Id
+          type: string
+        infoLink:
+          anyOf:
+          - format: uri
+            maxLength: 2083
+            minLength: 1
+            type: string
+          - type: 'null'
+          description: Endpoint that returns more details about this entity
+          title: Infolink
+        kind:
+          const: DeploymentId
+          default: DeploymentId
+          enum:
+          - DeploymentId
+          title: Kind
+          type: string
+      required:
+      - id
+      title: DeploymentId
+      type: object
+    DeploymentInfo:
+      properties:
+        deployment:
+          $ref: '#/components/schemas/Deployment'
+        details:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Additional information about the deployment status
+          title: Details
+        id:
+          description: Unique identifier for this tool blueprint
+          title: Id
+          type: string
+        self:
+          anyOf:
+          - format: uri
+            maxLength: 2083
+            minLength: 1
+            type: string
+          - type: 'null'
+          description: Endpoint that returns the details of this tool blueprint
+          title: Self
+        status:
+          enum:
+          - unknown
+          - pending
+          - running
+          - stopped
+          - 'off'
+          - failed
+          - configured
+          - unconfigured
+          - deleting
+          title: Status
+          type: string
+      required:
+      - deployment
+      - id
+      - status
+      title: DeploymentInfo
+      type: object
+    EoscNodeEnvironment:
+      description: Environment variables for EOSC node
+      properties:
+        awmApi:
+          description: Base URL for the AWM API of the EOSC node where this environment
+            was allocated, or null for environments private to the calling user that
+            accessed via explicit credentials
+          format: uri
+          maxLength: 2083
+          minLength: 1
+          title: Awmapi
+          type: string
+        expiresOn:
+          format: date-time
+          title: Expireson
+          type: string
+        hostname:
+          format: uri
+          maxLength: 2083
+          minLength: 1
+          title: Hostname
+          type: string
+        kind:
+          const: EoscNodeEnvironment
+          default: EoscNodeEnvironment
+          enum:
+          - EoscNodeEnvironment
+          title: Kind
+          type: string
+        nodeId:
+          description: URL to the interactive UI of the EOSC node where this environment
+            was allocated
+          title: Nodeid
+          type: string
+        nodeName:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Name of the EOSC node where this environment was allocated
+          title: Nodename
+        offer:
+          $ref: '#/components/schemas/EoscNodeEnvironment_offer'
+        projectId:
+          title: Projectid
+          type: string
+        provisionedOn:
+          format: date-time
+          title: Provisionedon
+          type: string
+      required:
+      - offer
+      - projectId
+      - nodeId
+      - awmApi
+      title: EoscNodeEnvironment
+      type: object
+    EoscNodeEnvironment_offer:
+      properties:
+        bulkStorage:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          description: HDD based (slow) storage quota in GB
+          title: Bulkstorage
+        cpus:
+          anyOf:
+          - minimum: 1.0
+            type: integer
+          - type: 'null'
+          title: Cpus
+        creditsPerDay:
+          description: Credits per day
+          minimum: 1.0
+          title: Creditsperday
+          type: integer
+        fastStorage:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          description: SSD or NVMe based (fast) storage quota in GB
+          title: Faststorage
+        gpus:
+          title: Gpus
+          type: integer
+        memory:
+          anyOf:
+          - minimum: 1.0
+            type: integer
+          - type: 'null'
+          description: RAM quota in GB
+          title: Memory
+        offerId:
+          title: Offerid
+          type: string
+        offerName:
+          title: Offername
+          type: string
+        offerType:
+          enum:
+          - openstack
+          - kubernetes
+          title: Offertype
+          type: string
+        registryStorage:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          description: Container Registry storage quota in GB
+          title: Registrystorage
+        s3Storage:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          description: S3 storage quota in GB
+          title: S3Storage
+      required:
+      - offerId
+      - offerType
+      - creditsPerDay
+      title: EoscNodeEnvironment_offer
+      type: object
+    Error:
+      properties:
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: Error
+          description: Error message
+          title: Description
+        details:
+          anyOf:
+          - type: object
+          - type: 'null'
+          description: Additional details about the error
+          title: Details
+        id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Error type
+          title: Id
+      title: Error
+      type: object
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          title: Detail
+          type: array
+      title: HTTPValidationError
+      type: object
+    KubernetesEnvironment:
+      description: Credentials for Kubernetes
+      properties:
+        host:
+          format: uri
+          maxLength: 2083
+          minLength: 1
+          title: Host
+          type: string
+        kind:
+          const: KubernetesEnvironment
+          default: KubernetesEnvironment
+          enum:
+          - KubernetesEnvironment
+          title: Kind
+          type: string
+      required:
+      - host
+      title: KubernetesEnvironment
+      type: object
+    OpenStackEnvironment:
+      description: Credentials for OpenStack
+      properties:
+        apiVersion:
+          title: Apiversion
+          type: string
+        authVersion:
+          const: 3.x-oidc
+          default: 3.x-oidc
+          enum:
+          - 3.x-oidc
+          title: Authversion
+          type: string
+        domain:
+          title: Domain
+          type: string
+        domainId:
+          title: Domainid
+          type: string
+        host:
+          format: uri
+          maxLength: 2083
+          minLength: 1
+          title: Host
+          type: string
+        kind:
+          const: OpenStackEnvironment
+          default: OpenStackEnvironment
+          enum:
+          - OpenStackEnvironment
+          title: Kind
+          type: string
+        region:
+          title: Region
+          type: string
+        tenant:
+          title: Tenant
+          type: string
+        tenantId:
+          title: Tenantid
+          type: string
+        userName:
+          title: Username
+          type: string
+      required:
+      - userName
+      - domain
+      - tenant
+      - host
+      title: OpenStackEnvironment
+      type: object
+    PageOfAllocations:
+      description: Page of Allocations
+      properties:
+        count:
+          description: Total number of elements
+          title: Count
+          type: integer
+        elements:
+          items:
+            $ref: '#/components/schemas/AllocationInfo'
+          title: Elements
+          type: array
+        from:
+          description: Index of the first element to return
+          title: From
+          type: integer
+        limit:
+          description: Maximum number of elements to return
+          title: Limit
+          type: integer
+        nextPage:
+          anyOf:
+          - format: uri
+            maxLength: 2083
+            minLength: 1
+            type: string
+          - type: 'null'
+          description: Endpoint that returns the next page
+          title: Nextpage
+        prevPage:
+          anyOf:
+          - format: uri
+            maxLength: 2083
+            minLength: 1
+            type: string
+          - type: 'null'
+          description: Endpoint that returns the previous page
+          title: Prevpage
+        self:
+          anyOf:
+          - format: uri
+            maxLength: 2083
+            minLength: 1
+            type: string
+          - type: 'null'
+          description: Endpoint that returned this page
+          title: Self
+      required:
+      - from
+      - limit
+      - count
+      - elements
+      title: PageOfAllocations
+      type: object
+    PageOfDeployments:
+      description: Page of Deployments
+      properties:
+        count:
+          description: Total number of elements
+          title: Count
+          type: integer
+        elements:
+          items:
+            $ref: '#/components/schemas/DeploymentInfo'
+          title: Elements
+          type: array
+        from:
+          description: Index of the first element to return
+          title: From
+          type: integer
+        limit:
+          description: Maximum number of elements to return
+          title: Limit
+          type: integer
+        nextPage:
+          anyOf:
+          - format: uri
+            maxLength: 2083
+            minLength: 1
+            type: string
+          - type: 'null'
+          description: Endpoint that returns the next page
+          title: Nextpage
+        prevPage:
+          anyOf:
+          - format: uri
+            maxLength: 2083
+            minLength: 1
+            type: string
+          - type: 'null'
+          description: Endpoint that returns the previous page
+          title: Prevpage
+        self:
+          anyOf:
+          - format: uri
+            maxLength: 2083
+            minLength: 1
+            type: string
+          - type: 'null'
+          description: Endpoint that returned this page
+          title: Self
+      required:
+      - from
+      - limit
+      - count
+      - elements
+      title: PageOfDeployments
+      type: object
+    PageOfTools:
+      description: Page of Tools
+      properties:
+        count:
+          description: Total number of elements
+          title: Count
+          type: integer
+        elements:
+          items:
+            $ref: '#/components/schemas/ToolInfo'
+          title: Elements
+          type: array
+        from:
+          description: Index of the first element to return
+          title: From
+          type: integer
+        limit:
+          description: Maximum number of elements to return
+          title: Limit
+          type: integer
+        nextPage:
+          anyOf:
+          - format: uri
+            maxLength: 2083
+            minLength: 1
+            type: string
+          - type: 'null'
+          description: Endpoint that returns the next page
+          title: Nextpage
+        prevPage:
+          anyOf:
+          - format: uri
+            maxLength: 2083
+            minLength: 1
+            type: string
+          - type: 'null'
+          description: Endpoint that returns the previous page
+          title: Prevpage
+        self:
+          anyOf:
+          - format: uri
+            maxLength: 2083
+            minLength: 1
+            type: string
+          - type: 'null'
+          description: Endpoint that returned this page
+          title: Self
+      required:
+      - from
+      - limit
+      - count
+      - elements
+      title: PageOfTools
+      type: object
+    Success:
+      properties:
+        message:
+          default: Success
+          description: Confirmation message
+          title: Message
+          type: string
+      title: Success
+      type: object
+    ToolId:
+      properties:
+        id:
+          description: Unique identifier for this tool blueprint
+          title: Id
+          type: string
+        infoLink:
+          anyOf:
+          - format: uri
+            maxLength: 2083
+            minLength: 1
+            type: string
+          - type: 'null'
+          description: URL that returns the full details of this tool blueprint
+          title: Infolink
+        kind:
+          const: ToolId
+          default: ToolId
+          enum:
+          - ToolId
+          title: Kind
+          type: string
+        version:
+          default: latest
+          title: Version
+          type: string
+      required:
+      - id
+      title: ToolId
+      type: object
+    ToolInfo:
+      properties:
+        authorEmail:
+          format: email
+          title: Authoremail
+          type: string
+        authorName:
+          title: Authorname
+          type: string
+        blueprint:
+          description: Blueprint of the tool's workload
+          title: Blueprint
+          type: string
+        blueprintType:
+          enum:
+          - tosca
+          - ansible
+          - helm
+          title: Blueprinttype
+          type: string
+        description:
+          title: Description
+          type: string
+        favorite:
+          title: Favorite
+          type: boolean
+        helpdesk:
+          format: uri
+          maxLength: 2083
+          minLength: 1
+          title: Helpdesk
+          type: string
+        id:
+          title: Id
+          type: string
+        keywords:
+          default: []
+          items:
+            type: string
+          title: Keywords
+          type: array
+        kind:
+          const: ToolInfo
+          default: ToolInfo
+          enum:
+          - ToolInfo
+          title: Kind
+          type: string
+        license:
+          title: License
+          type: string
+        name:
+          title: Name
+          type: string
+        nodeId:
+          title: Nodeid
+          type: string
+        organisation:
+          title: Organisation
+          type: string
+        published:
+          title: Published
+          type: boolean
+        repository:
+          format: uri
+          maxLength: 2083
+          minLength: 1
+          title: Repository
+          type: string
+        self:
+          anyOf:
+          - format: uri
+            maxLength: 2083
+            minLength: 1
+            type: string
+          - type: 'null'
+          description: Endpoint that returns the details of this tool blueprint
+          title: Self
+        type:
+          enum:
+          - vm
+          - container
+          title: Type
+          type: string
+        validated:
+          default: false
+          title: Validated
+          type: boolean
+        validatedOn:
+          format: date-time
+          title: Validatedon
+          type: string
+        version:
+          title: Version
+          type: string
+        versionFrom:
+          format: date-time
+          title: Versionfrom
+          type: string
+        versionLatest:
+          format: date-time
+          title: Versionlatest
+          type: string
+      required:
+      - id
+      - type
+      - blueprint
+      - blueprintType
+      title: ToolInfo
+      type: object
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          title: Location
+          type: array
+        msg:
+          title: Message
+          type: string
+        type:
+          title: Error Type
+          type: string
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+      type: object
+  securitySchemes:
+    OIDC:
+      bearerFormat: JWT
+      description: OpenID Connect access token for authentication
+      scheme: bearer
+      type: http

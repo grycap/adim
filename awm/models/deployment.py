@@ -42,6 +42,7 @@ class DeploymentInfo(BaseModel):
                     "configured",
                     "unconfigured",
                     "deleting"]
+    details: str | None = Field(None, description="Additional information about the deployment status")
     self_: HttpUrl | None = Field(None, alias="self",
                                   description="Endpoint that returns the details of this tool blueprint")
 
