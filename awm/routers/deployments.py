@@ -118,17 +118,29 @@ def _get_deployment(deployment_id: str, user_info: dict, request: Request,
 
                     if allocation_info.allocation.root.kind == "EoscNodeEnvironment":
                         raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
+
+                    auth_data = _get_im_auth_header(user_token, allocation_info.allocation.root)
+                    client = IMClient.init_client(IM_URL, auth_data)
+                    success, state_info = client.get_infra_property(deployment_id, "state")
+                    if not success:
+                        msg = Error(description=state_info)
+                        return msg, 400
+                    success, cont_msg = client.get_infra_property(deployment_id, "contmsg")
+                    if success:
+                        dep_info.details = cont_msg
+                    dep_info.status = state_info['state']
+
+                    # Update deployment info in DB
+                    data = dep_info.model_dump_json(exclude_unset=True)
+                    db.connect()
+                    if db.db_type == DataBase.MONGO:
+                        res = db.replace("deployments", {"id": deployment_id}, {"id": deployment_id, "data": data,
+                                                                                "owner": user_info['sub'],
+                                                                                "created": time.time()})
                     else:
-                        auth_data = _get_im_auth_header(user_token, allocation_info.allocation.root)
-                        client = IMClient.init_client(IM_URL, auth_data)
-                        success, state_info = client.get_infra_property(deployment_id, "state")
-                        if not success:
-                            msg = Error(description=state_info)
-                            return msg, 400
-                        success, cont_msg = client.get_infra_property(deployment_id, "contmsg")
-                        if success:
-                            dep_info.details = cont_msg
-                        dep_info.status = state_info['state']
+                        res = db.execute("replace into deployments (id, data, created, owner) values (%s, %s, %s, %s)",
+                                         (deployment_id, data, time.time(), user_info['sub']))
+                    db.close()
             except Exception as ex:
                 msg = Error(id="400", description=str(ex))
                 return msg, 400
@@ -157,6 +169,7 @@ def _list_deployments(from_: int = 0, limit: int = 100,
                 deployment_data = elem['data']
                 try:
                     deployment_info = DeploymentInfo.model_validate(deployment_data)
+                    deployment_info.details = None
                 except Exception as ex:
                     awm.logger.error("Failed to parse deployment info from database: %s", str(ex))
                     continue
@@ -171,6 +184,7 @@ def _list_deployments(from_: int = 0, limit: int = 100,
                 deployment_data = elem[0]
                 try:
                     deployment_info = DeploymentInfo.model_validate_json(deployment_data)
+                    deployment_info.details = None
                 except Exception as ex:
                     awm.logger.error("Failed to parse deployment info from database: %s", str(ex))
                     continue
