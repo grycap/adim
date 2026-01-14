@@ -19,6 +19,7 @@ IM_URL=http://localhost:8800
 ALLOCATION_STORE="db" # or vault
 VAULT_URL=https://secrets.egi.eu
 ENCRYPT_KEY=3JSvUdOsAlvSNVYvBwHWE-iKdWkhq4C_LmjRcpuycT0=
+AWM_TOOLS_REPO=https://github.com/grycap/tosca/blob/eosc_lot1/templates/
 ```
 
 Or you can set an `.env` file as the `.env.example` provided.
@@ -48,4 +49,8 @@ docker build -t awm .
 
 # starting up a container
 docker run -p 8080:8080 awm
+
+# starting up a setting the IM_URL variable
+docker run -p 8080:8080 -e IM_URL=https://appsgrycap.i3m.upv.es/im-dev/ ghcr.io/grycap/awm
+
 ```
