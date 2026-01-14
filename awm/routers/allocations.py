@@ -27,7 +27,7 @@ from . import return_error
 
 
 router = APIRouter()
-ALLOCATION_STORE = os.getenv("ALLOCATION_STORE", "vault")
+ALLOCATION_STORE = os.getenv("ALLOCATION_STORE", "db")
 
 if ALLOCATION_STORE == "db":
     from awm.utils.allocation_store_db import AllocationStoreDB
