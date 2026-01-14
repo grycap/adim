@@ -32,8 +32,7 @@ from . import return_error
 
 
 router = APIRouter()
-#IM_URL = os.getenv("IM_URL", "http://localhost:8800")
-IM_URL = os.getenv("IM_URL", "https://appsgrycap.i3m.upv.es/im-dev")
+IM_URL = os.getenv("IM_URL", "http://localhost:8800")
 DB_URL = os.getenv("DB_URL", "file:///tmp/awm.db")
 
 
