@@ -28,7 +28,7 @@ from awm.utils.repository import Repository
 from . import return_error
 
 
-AWM_TOOLS_REPO = os.getenv("DB_URL", "https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
+AWM_TOOLS_REPO = os.getenv("AWM_TOOLS_REPO", "https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
 router = APIRouter()
 
 
