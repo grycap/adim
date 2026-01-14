@@ -127,7 +127,7 @@ def _get_deployment(deployment_id: str, user_info: dict, request: Request,
                             return msg, 400
                         success, cont_msg = client.get_infra_property(deployment_id, "contmsg")
                         if success:
-                            dep_info.message = cont_msg
+                            dep_info.details = cont_msg
                         dep_info.status = state_info['state']
             except Exception as ex:
                 msg = Error(id="400", description=str(ex))
