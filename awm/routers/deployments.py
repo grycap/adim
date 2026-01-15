@@ -156,13 +156,9 @@ def deploy_workload(deployment: Deployment,
         return Response(content=tool, status_code=400, media_type="application/json")
 
     # Get the allocation info from the Allocation
-    try:
-        allocation_data = allocation_store.get_allocation(deployment.allocation.id, user_info)
-    except ConnectionException as ex:
-        return return_error(str(ex), 503)
-    if not allocation_data:
-        return return_error("Invalid AllocationId.", status_code=400)
-    allocation = Allocation.model_validate(allocation_data)
+    allocation, status = deployments_manager.get_allocation(deployment, user_info)
+    if status != 200:
+        return allocation, status
 
     if allocation.root.kind == "EoscNodeEnvironment":
         raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")

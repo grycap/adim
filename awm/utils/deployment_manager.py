@@ -124,8 +124,25 @@ class DeploymentsManager:
 
         return count, deployments
 
+    def get_allocation(self, deployment: Deployment, user_info: dict) -> Tuple[Union[Error, Allocation], int]:
+        # Get the allocation info from the Allocation
+        try:
+            allocation_data = allocation_store.get_allocation(deployment.allocation.id, user_info)
+        except ConnectionException as ex:
+            awm.logger.error(f"Error connecting to Allocation Store: {str(ex)}")
+            msg = Error(id="503", description="Allocation Store connection failed: %s." % str(ex))
+            return msg, 503
+
+        allocation = Allocation.model_validate(allocation_data)
+
+        if not allocation:
+            msg = Error(id="400", description="Invalid AllocationId.")
+            return msg, 400
+
+        return allocation, 200
+
     def get_deployment(self, deployment_id: str, user_info: dict,
-                       get_state: bool = True) -> Tuple[Union[Error, Deployment], int]:
+                       get_state: bool = True) -> Tuple[Union[Error, DeploymentInfo], int]:
         dep_info = None
         user_token = user_info['token']
         user_id = user_info['sub']
@@ -150,19 +167,9 @@ class DeploymentsManager:
                 try:
                     if get_state:
                         # Get the allocation info from the Allocation
-                        try:
-                            allocation_data = allocation_store.get_allocation(dep_info.deployment.allocation.id,
-                                                                              user_info)
-                        except ConnectionException as ex:
-                            awm.logger.error(f"Error connecting to Allocation Store: {str(ex)}")
-                            msg = Error(id="503", description="Allocation Store connection failed: %s." % str(ex))
-                            return msg, 503
-
-                        allocation = Allocation.model_validate(allocation_data)
-
-                        if not allocation:
-                            msg = Error(id="400", description="Invalid AllocationId.")
-                            return msg, 400
+                        allocation, status = self.get_allocation(dep_info.deployment, user_info)
+                        if status != 200:
+                            return allocation, status
 
                         if allocation.root.kind == "EoscNodeEnvironment":
                             raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
@@ -210,22 +217,14 @@ class DeploymentsManager:
         return dep_info, 200
 
     def delete_deployment(self, deployment_id: str, user_info: dict) -> Tuple[Union[Error, Success], int]:
-        deployment, status_code = self.get_deployment(deployment_id, user_info, get_state=False)
+        dep_info, status_code = self.get_deployment(deployment_id, user_info, get_state=False)
         if status_code != 200:
-            return deployment, status_code
+            return dep_info, status_code
 
         # Get the allocation info from the Allocation
-        try:
-            allocation_data = allocation_store.get_allocation(deployment.deployment.allocation.id,
-                                                              user_info)
-        except ConnectionException as ex:
-            msg = Error(id="503", description="Error connecting to Allocation Store: %s." % str(ex))
-            return msg, 503
-
-        if not allocation_data:
-            msg = Error(id="400", description="Invalid AllocationId.")
-            return msg, 400
-        allocation = Allocation.model_validate(allocation_data)
+        allocation, status = self.get_allocation(dep_info.deployment, user_info)
+        if status != 200:
+            return allocation, status
 
         if allocation.root.kind == "EoscNodeEnvironment":
             raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")

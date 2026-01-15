@@ -97,7 +97,7 @@ def list_allocations(
                     status_code=200, media_type="application/json")
 
 
-def _get_allocation(allocation_id: str, user_info: dict, request: Request) -> AllocationInfo:
+def _get_allocation_info(allocation_id: str, user_info: dict, request: Request) -> AllocationInfo:
     try:
         allocation_data = allocation_store.get_allocation(allocation_id, user_info)
     except ConnectionException as ex:
@@ -133,7 +133,7 @@ def get_allocation(request: Request,
                    allocation_id,
                    user_info=Depends(authenticate)):
     """Get information about an existing allocation"""
-    allocation_info = _get_allocation(allocation_id, user_info, request)
+    allocation_info = _get_allocation_info(allocation_id, user_info, request)
     if allocation_info is None:
         return return_error("Allocation not found", status_code=404)
 
@@ -173,7 +173,7 @@ def update_allocation(allocation_id,
                       allocation: Allocation,
                       request: Request,
                       user_info=Depends(authenticate)):
-    allocation_info = _get_allocation(allocation_id, user_info, request)
+    allocation_info = _get_allocation_info(allocation_id, user_info, request)
     if allocation_info is None:
         return return_error("Allocation not found", status_code=404)
 
@@ -188,7 +188,7 @@ def update_allocation(allocation_id,
     except Exception as ex:
         return return_error(str(ex), 503)
 
-    allocation_info = _get_allocation(allocation_id, user_info, request)
+    allocation_info = _get_allocation_info(allocation_id, user_info, request)
     return Response(content=allocation_info.model_dump_json(exclude_unset=True, by_alias=True),
                     status_code=200, media_type="application/json")
 
