@@ -19,12 +19,10 @@ from awm.authorization import authenticate
 from awm.models.deployment import DeploymentInfo, DeploymentId, Deployment
 from awm.models.page import PageOfDeployments
 from awm.models.error import Error
-from awm.models.allocation import Allocation
 from awm.utils.node_registry import EOSCNodeRegistry
 from awm.utils.deployment_manager import DeploymentsManager
-from awm.utils import ConnectionException, DBConnectionException
+from awm.utils import DBConnectionException
 from awm.routers.tools import tool_store
-from awm.routers.allocations import allocation_store
 
 from . import return_error
 

@@ -21,6 +21,9 @@ from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
 from awm.__main__ import create_app
+from awm.models.deployment import DeploymentInfo, Deployment
+from awm.models.tool import ToolId
+from awm.models.allocation import AllocationId
 from awm.utils.node_registry import EOSCNode
 from awm.utils.db import DataBase
 from awm.utils.allocation_store_vault import AllocationStoreVault
@@ -91,9 +94,8 @@ def requests_post_mock(mocker):
 
 @pytest.fixture
 def list_deployments_mock(mocker):
-    list_dep_mock = mocker.patch("awm.routers.deployments._list_deployments")
-    list_dep_mock.return_value.status_code = 200
-    list_dep_mock.return_value.body = b'{"from": 0, "limit": 100, "count": 0, "self": "", "elements": []}'
+    list_dep_mock = mocker.patch("awm.routers.deployments.deployments_manager.list_deployments")
+    list_dep_mock.return_value = (0, [])
     return list_dep_mock
 
 
@@ -324,27 +326,20 @@ def test_delete_allocation(check_oidc_mock, list_deployments_mock, client, heade
     assert response.status_code == 200
     assert response.json() == {"message": "Deleted"}
 
-    list_deployments_mock.return_value.status_code = 200
-    list_deployments_mock.return_value.body = json.dumps({
-        "from": 0, "limit": 100, "count": 0, "self": "",
-        "elements": [{
-            "deployment": {
-                "allocation": {
-                    "kind": "AllocationId",
-                    "id": "id1",
-                    "infoLink": "http://some.url/"
-                },
-                "tool": {
-                    "kind": "ToolId",
-                    "id": "toolid",
-                    "version": "latest",
-                    "infoLink": "http://some.url/"
-                },
-            },
-            "id": "dep_id",
-            "status": "pending",
-        }
-        ]}).encode()
+    list_deployments_mock.return_value = (
+        200,
+        [
+            DeploymentInfo(
+                deployment=Deployment(
+                    allocation=AllocationId(kind="AllocationId", id="id1", infoLink="http://some.url/"),
+                    tool=ToolId(kind="ToolId", id="toolid", version="latest", infoLink="http://some.url/")
+                ),
+                id="dep_id",
+                status="pending"
+            )
+        ]
+    )
+
     response = client.delete('/allocation/id1', headers=headers)
     assert response.status_code == 409
     assert response.json() == {'description': 'Allocation in use', 'id': '409'}

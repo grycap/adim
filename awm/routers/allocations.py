@@ -15,7 +15,6 @@
 
 import os
 import awm
-import json
 from fastapi import APIRouter, Query, Depends, Request, Response
 from awm.authorization import authenticate
 from awm.models.allocation import AllocationInfo, Allocation, AllocationId
@@ -143,12 +142,13 @@ def get_allocation(request: Request,
 
 def _check_allocation_in_use(allocation_id: str, user_info: dict, request: Request) -> Response:
     # check if this allocation is used in any deployment
-    response = awm.routers.deployments._list_deployments(user_info=user_info, request=request)
-    if response.status_code != 200:
-        return response
+    try:
+        _, deployments = awm.routers.deployments.deployments_manager.list_deployments(limit=999999999, user_info=user_info)
+    except ConnectionException:
+        return return_error("Database connection failed", 503)
 
-    for dep_info in json.loads(response.body).get("elements"):
-        if dep_info.get('deployment', {}).get('allocation', {}).get('id') == allocation_id:
+    for dep_info in deployments:
+        if dep_info.deployment.allocation.id == allocation_id:
             return return_error("Allocation in use", 409)
 
     return None
