@@ -149,7 +149,8 @@ class DeploymentsManager:
             if self.db.db_type == DataBase.MONGO:
                 res = self.db.find("deployments", {"id": deployment_id, "owner": user_id}, {"data": True})
             else:
-                res = self.db.select("SELECT data FROM deployments WHERE id = %s and owner = %s", (deployment_id, user_id))
+                res = self.db.select("SELECT data FROM deployments WHERE id = %s and owner = %s",
+                                     (deployment_id, user_id))
             self.db.close()
             if res:
                 if self.db.db_type == DataBase.MONGO:

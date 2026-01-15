@@ -119,7 +119,8 @@ def delete_deployment(deployment_id,
                       user_info=Depends(authenticate)):
     """Tear down an existing deployment"""
     res, status_code = awm.deployments_manager.delete_deployment(deployment_id, user_info)
-    return Response(content=res.model_dump_json(exclude_unset=True), status_code=status_code, media_type="application/json")
+    return Response(content=res.model_dump_json(exclude_unset=True),
+                    status_code=status_code, media_type="application/json")
 
 
 # POST /deployments
@@ -156,7 +157,7 @@ def deploy_workload(deployment: Deployment,
 
     try:
         deployment_info = awm.deployments_manager.update_deployment(deployment, tool, allocation,
-                                                                user_info, request)
+                                                                    user_info, request)
     except DBConnectionException as dbe:
         return return_error(str(dbe), 503)
     except Exception as e:

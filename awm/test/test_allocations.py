@@ -174,7 +174,7 @@ def seed_allocations(backend_type, db_mock, vault_mock):
         elif backend_type in ["vault", "enc_vault"]:
             if backend_type == "enc_vault":
                 awm.allocation_store = AllocationStoreVault(AllocationStoreVault.DEFAULT_URL,
-                                                                                key=AllocationStoreVault.DEFAULT_KEY)
+                                                            key=AllocationStoreVault.DEFAULT_KEY)
             else:
                 awm.allocation_store = AllocationStoreVault(AllocationStoreVault.DEFAULT_URL)
             res = []

@@ -81,7 +81,7 @@ def allocation_mock(mocker):
 @pytest.fixture
 def ost_allocation_mock(mocker):
     """Mock para _get_allocation con un entorno estándar Kubernetes."""
-    allocation = {"kind": "OpenStackEnvironment", "host": "http://some.url/", 
+    allocation = {"kind": "OpenStackEnvironment", "host": "http://some.url/",
                   "userName": "user", "password": "pass", "tenant": "tenant", "domain": "domain"}
     return mocker.patch("awm.allocation_store.get_allocation", return_value=allocation)
 

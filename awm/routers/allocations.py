@@ -27,6 +27,7 @@ from . import return_error
 
 router = APIRouter()
 
+
 # GET /allocations
 @router.get("/allocations",
             summary="List all credentials or EOSC environments of the user",
