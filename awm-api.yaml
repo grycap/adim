@@ -905,6 +905,7 @@ components:
           - configured
           - unconfigured
           - deleting
+          - deleted
           title: Status
           type: string
       required:
