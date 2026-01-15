@@ -13,9 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import awm
-import json
 from fastapi import APIRouter, Query, Depends, Request, Response
 from awm.authorization import authenticate
 from awm.models.allocation import AllocationInfo, Allocation, AllocationId
@@ -23,23 +21,11 @@ from awm.models.page import PageOfAllocations
 from awm.models.error import Error
 from awm.models.success import Success
 from awm.utils.node_registry import EOSCNodeRegistry
+from awm.utils import ConnectionException
 from . import return_error
 
 
 router = APIRouter()
-ALLOCATION_STORE = os.getenv("ALLOCATION_STORE", "db")
-
-if ALLOCATION_STORE == "db":
-    from awm.utils.allocation_store_db import AllocationStoreDB
-    DB_URL = os.getenv("DB_URL", AllocationStoreDB.DEFAULT_URL)
-    allocation_store = AllocationStoreDB(DB_URL)
-elif ALLOCATION_STORE == "vault":
-    from awm.utils.allocation_store_vault import AllocationStoreVault
-    VAULT_URL = os.getenv("VAULT_URL", AllocationStoreVault.DEFAULT_URL)
-    ENCRYPT_KEY = os.getenv("ENCRYPT_KEY", AllocationStoreVault.DEFAULT_KEY)
-    allocation_store = AllocationStoreVault(VAULT_URL, key=ENCRYPT_KEY)
-else:
-    raise Exception(f"Allocation store '{ALLOCATION_STORE}' is not supported")
 
 
 # GET /allocations
@@ -67,7 +53,7 @@ def list_allocations(
     user_info=Depends(authenticate)
 ):
     try:
-        count, allocations = allocation_store.list_allocations(user_info, from_, limit)
+        count, allocations = awm.allocation_store.list_allocations(user_info, from_, limit)
     except Exception as ex:
         return return_error(str(ex), 503)
 
@@ -94,10 +80,10 @@ def list_allocations(
                     status_code=200, media_type="application/json")
 
 
-def _get_allocation(allocation_id: str, user_info: dict, request: Request) -> AllocationInfo:
+def _get_allocation_info(allocation_id: str, user_info: dict, request: Request) -> AllocationInfo:
     try:
-        allocation_data = allocation_store.get_allocation(allocation_id, user_info)
-    except Exception as ex:
+        allocation_data = awm.allocation_store.get_allocation(allocation_id, user_info)
+    except ConnectionException as ex:
         return return_error(str(ex), 503)
 
     allocation = Allocation.model_validate(allocation_data)
@@ -130,7 +116,7 @@ def get_allocation(request: Request,
                    allocation_id,
                    user_info=Depends(authenticate)):
     """Get information about an existing allocation"""
-    allocation_info = _get_allocation(allocation_id, user_info, request)
+    allocation_info = _get_allocation_info(allocation_id, user_info, request)
     if allocation_info is None:
         return return_error("Allocation not found", status_code=404)
 
@@ -140,12 +126,13 @@ def get_allocation(request: Request,
 
 def _check_allocation_in_use(allocation_id: str, user_info: dict, request: Request) -> Response:
     # check if this allocation is used in any deployment
-    response = awm.routers.deployments._list_deployments(user_info=user_info, request=request)
-    if response.status_code != 200:
-        return response
+    try:
+        _, deployments = awm.deployments_manager.list_deployments(limit=999999999, user_info=user_info)
+    except ConnectionException:
+        return return_error("Database connection failed", 503)
 
-    for dep_info in json.loads(response.body).get("elements"):
-        if dep_info.get('deployment', {}).get('allocation', {}).get('id') == allocation_id:
+    for dep_info in deployments:
+        if dep_info.deployment.allocation.id == allocation_id:
             return return_error("Allocation in use", 409)
 
     return None
@@ -170,7 +157,7 @@ def update_allocation(allocation_id,
                       allocation: Allocation,
                       request: Request,
                       user_info=Depends(authenticate)):
-    allocation_info = _get_allocation(allocation_id, user_info, request)
+    allocation_info = _get_allocation_info(allocation_id, user_info, request)
     if allocation_info is None:
         return return_error("Allocation not found", status_code=404)
 
@@ -181,11 +168,11 @@ def update_allocation(allocation_id,
 
     data = allocation.model_dump(exclude_unset=True, mode="json")
     try:
-        allocation_store.replace_allocation(data, user_info, allocation_id)
+        awm.allocation_store.replace_allocation(data, user_info, allocation_id)
     except Exception as ex:
         return return_error(str(ex), 503)
 
-    allocation_info = _get_allocation(allocation_id, user_info, request)
+    allocation_info = _get_allocation_info(allocation_id, user_info, request)
     return Response(content=allocation_info.model_dump_json(exclude_unset=True, by_alias=True),
                     status_code=200, media_type="application/json")
 
@@ -210,8 +197,7 @@ def delete_allocation(allocation_id,
                       request: Request,
                       user_info=Depends(authenticate)):
     """Remove existing environment of the user"""
-    allocation_info = _get_allocation(allocation_id, user_info, request)
-    if allocation_info is None:
+    if not awm.allocation_store.get_allocation(allocation_id, user_info):
         return return_error("Allocation not found", status_code=404)
 
     # check if this allocation is used in any deployment
@@ -220,8 +206,8 @@ def delete_allocation(allocation_id,
         return response
 
     try:
-        allocation_store.delete_allocation(allocation_id, user_info)
-    except Exception as ex:
+        awm.allocation_store.delete_allocation(allocation_id, user_info)
+    except ConnectionException as ex:
         return return_error(str(ex), 503)
 
     msg = Success(message="Deleted")
@@ -251,7 +237,7 @@ def create_allocation(allocation: Allocation,
     """Record an environment of the user"""
     data = allocation.model_dump(exclude_unset=True, mode="json")
     try:
-        allocation_id = allocation_store.replace_allocation(data, user_info)
+        allocation_id = awm.allocation_store.replace_allocation(data, user_info)
     except Exception as ex:
         return return_error(str(ex), 503)
 

@@ -20,6 +20,7 @@ import requests
 from typing import List
 from cryptography.fernet import Fernet
 from awm.utils.allocation_store import AllocationStore
+from awm.utils import VaultConnectionException
 
 
 class AllocationStoreVault(AllocationStore):
@@ -68,7 +69,10 @@ class AllocationStoreVault(AllocationStore):
         else:
             data = '{ "jwt": "' + token + '" }'
 
-        response = requests.post(login_url, data=data, verify=self.ssl_verify, timeout=5)
+        try:
+            response = requests.post(login_url, data=data, verify=self.ssl_verify, timeout=5)
+        except requests.exceptions.ConnectionError as ex:
+            raise VaultConnectionException(str(ex))
 
         if not response.ok:
             raise Exception(f"Error getting Vault token: {response.status_code} - {response.text}")
@@ -80,7 +84,7 @@ class AllocationStoreVault(AllocationStore):
 
         client = hvac.Client(url=self.url, token=vault_auth_token, verify=self.ssl_verify)
         if not client.is_authenticated():
-            raise Exception(f"Error authenticating against Vault with token: {vault_auth_token}")
+            raise VaultConnectionException(f"Error authenticating against Vault with token: {vault_auth_token}")
 
         path = self.path
         if path is None:
@@ -92,7 +96,7 @@ class AllocationStoreVault(AllocationStore):
             return client.secrets.kv.v1, path
         elif self.kv_ver == 2:
             return client.secrets.kv.v2, path
-        raise Exception("Invalid KV version (1 or 2)")
+        raise VaultConnectionException("Invalid KV version (1 or 2)")
 
     def list_allocations(self, user_info: dict, from_: int, limit: int) -> List[dict]:
         client, path = self._login(user_info)

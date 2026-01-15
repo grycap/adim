@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   description: EOSC Application Workflow Management API
   title: EOSC AWM API
-  version: 0.1.46
+  version: 0.1.47
 paths:
   /allocation/{allocation_id}:
     delete:

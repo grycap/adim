@@ -16,6 +16,8 @@
 import os
 import logging
 from dotenv import load_dotenv
+from awm.utils.deployment_manager import DeploymentsManager
+from awm.utils.tool_store import ToolStore
 
 __version__ = "1.0.0"
 
@@ -30,3 +32,34 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+
+# Initialize allocation store
+ALLOCATION_STORE = os.getenv("ALLOCATION_STORE", "db")
+
+if ALLOCATION_STORE == "db":
+    from awm.utils.allocation_store_db import AllocationStoreDB
+    DB_URL = os.getenv("DB_URL", AllocationStoreDB.DEFAULT_URL)
+    allocation_store = AllocationStoreDB(DB_URL)
+    logger.info(f"Using AllocationStoreDB with URL: {DB_URL}")
+elif ALLOCATION_STORE == "vault":
+    from awm.utils.allocation_store_vault import AllocationStoreVault
+    VAULT_URL = os.getenv("VAULT_URL", AllocationStoreVault.DEFAULT_URL)
+    ENCRYPT_KEY = os.getenv("ENCRYPT_KEY", AllocationStoreVault.DEFAULT_KEY)
+    allocation_store = AllocationStoreVault(VAULT_URL, key=ENCRYPT_KEY)
+    logger.info(f"Using AllocationStoreVault with URL: {VAULT_URL}")
+else:
+    raise Exception(f"Allocation store '{ALLOCATION_STORE}' is not supported")
+
+# Initialize deployments manager
+
+IM_URL = os.getenv("IM_URL", "http://localhost:8800")
+DB_URL = os.getenv("DB_URL", "file:///tmp/awm.db")
+
+deployments_manager = DeploymentsManager(DB_URL, IM_URL)
+
+# Initialize tool store
+
+AWM_TOOLS_REPO = os.getenv("AWM_TOOLS_REPO", "https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
+
+tool_store = ToolStore(AWM_TOOLS_REPO)

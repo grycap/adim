@@ -21,6 +21,9 @@ from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
 from awm.__main__ import create_app
+from awm.models.deployment import DeploymentInfo, Deployment
+from awm.models.tool import ToolId
+from awm.models.allocation import AllocationId
 from awm.utils.node_registry import EOSCNode
 from awm.utils.db import DataBase
 from awm.utils.allocation_store_vault import AllocationStoreVault
@@ -91,9 +94,8 @@ def requests_post_mock(mocker):
 
 @pytest.fixture
 def list_deployments_mock(mocker):
-    list_dep_mock = mocker.patch("awm.routers.deployments._list_deployments")
-    list_dep_mock.return_value.status_code = 200
-    list_dep_mock.return_value.body = b'{"from": 0, "limit": 100, "count": 0, "self": "", "elements": []}'
+    list_dep_mock = mocker.patch("awm.deployments_manager.list_deployments")
+    list_dep_mock.return_value = (0, [])
     return list_dep_mock
 
 
@@ -150,8 +152,8 @@ ALLOC_3 = (
 def seed_allocations(backend_type, db_mock, vault_mock):
     def _seed(allocations_list):
         if backend_type in ["db", "mongo"]:
-            awm.routers.allocations.allocation_store = AllocationStoreDB(AllocationStoreDB.DEFAULT_URL)
-            awm.routers.allocations.allocation_store.db = db_mock
+            awm.allocation_store = AllocationStoreDB(AllocationStoreDB.DEFAULT_URL)
+            awm.allocation_store.db = db_mock
             db_mock.db_type = DataBase.SQLITE
             if backend_type == "mongo":
                 db_mock.db_type = DataBase.MONGO
@@ -171,10 +173,10 @@ def seed_allocations(backend_type, db_mock, vault_mock):
                 db_mock.select.side_effect = selects
         elif backend_type in ["vault", "enc_vault"]:
             if backend_type == "enc_vault":
-                awm.routers.allocations.allocation_store = AllocationStoreVault(AllocationStoreVault.DEFAULT_URL,
-                                                                                key=AllocationStoreVault.DEFAULT_KEY)
+                awm.allocation_store = AllocationStoreVault(AllocationStoreVault.DEFAULT_URL,
+                                                            key=AllocationStoreVault.DEFAULT_KEY)
             else:
-                awm.routers.allocations.allocation_store = AllocationStoreVault(AllocationStoreVault.DEFAULT_URL)
+                awm.allocation_store = AllocationStoreVault(AllocationStoreVault.DEFAULT_URL)
             res = []
             for allocations_elem in allocations_list:
                 allocations, total = allocations_elem
@@ -318,33 +320,26 @@ def test_get_allocation(check_oidc_mock, db_mock, client, headers, requests_post
 @pytest.mark.parametrize("backend_type", ["db", "mongo", "vault"], indirect=True)
 def test_delete_allocation(check_oidc_mock, list_deployments_mock, client, headers,
                            requests_post_mock, seed_allocations):
-    seed_allocations([ALLOC_1, ALLOC_1])
+    seed_allocations([ALLOC_3, ALLOC_3, ALLOC_3])
 
     response = client.delete('/allocation/id1', headers=headers)
     assert response.status_code == 200
     assert response.json() == {"message": "Deleted"}
 
-    list_deployments_mock.return_value.status_code = 200
-    list_deployments_mock.return_value.body = json.dumps({
-        "from": 0, "limit": 100, "count": 0, "self": "",
-        "elements": [{
-            "deployment": {
-                "allocation": {
-                    "kind": "AllocationId",
-                    "id": "id1",
-                    "infoLink": "http://some.url/"
-                },
-                "tool": {
-                    "kind": "ToolId",
-                    "id": "toolid",
-                    "version": "latest",
-                    "infoLink": "http://some.url/"
-                },
-            },
-            "id": "dep_id",
-            "status": "pending",
-        }
-        ]}).encode()
+    list_deployments_mock.return_value = (
+        200,
+        [
+            DeploymentInfo(
+                deployment=Deployment(
+                    allocation=AllocationId(kind="AllocationId", id="id1", infoLink="http://some.url/"),
+                    tool=ToolId(kind="ToolId", id="toolid", version="latest", infoLink="http://some.url/")
+                ),
+                id="dep_id",
+                status="pending"
+            )
+        ]
+    )
+
     response = client.delete('/allocation/id1', headers=headers)
     assert response.status_code == 409
     assert response.json() == {'description': 'Allocation in use', 'id': '409'}

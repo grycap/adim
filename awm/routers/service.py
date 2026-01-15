@@ -27,5 +27,4 @@ router = APIRouter()
             responses={200: {"model": Success,
                              "description": "Success"}})
 def version():
-    return Response(content=Success(message=__version__).model_dump_json(),
-                    media_type="application/json")
+    return Success(message=__version__)
