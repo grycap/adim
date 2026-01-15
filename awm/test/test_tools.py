@@ -20,7 +20,8 @@ from unittest.mock import patch, MagicMock
 from awm.__main__ import create_app
 from pydantic import HttpUrl
 from awm.utils.node_registry import EOSCNode
-from awm.routers.tools import Repository, AWM_TOOLS_REPO
+from awm.routers.tools import AWM_TOOLS_REPO
+from awm.utils.repository import Repository
 
 
 @pytest.fixture
@@ -49,7 +50,7 @@ def check_oidc_mock():
 def repo_mock(mocker):
     repo = Repository.create(AWM_TOOLS_REPO)
     repo.cache_session = MagicMock(["get"])
-    mocker.patch("awm.routers.tools.Repository.create", return_value=repo)
+    mocker.patch("awm.utils.repository.Repository.create", return_value=repo)
     return repo
 
 

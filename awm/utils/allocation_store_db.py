@@ -19,12 +19,7 @@ import uuid
 from typing import List
 from awm.utils.db import DataBase
 from awm.utils.allocation_store import AllocationStore
-
-
-class DBConnectionException(Exception):
-    def __init__(self, msg="Database connection failed"):
-        Exception.__init__(self, msg)
-        self.message = msg
+from awm.utils import DBConnectionException
 
 
 class AllocationStoreDB(AllocationStore):
@@ -94,6 +89,8 @@ class AllocationStoreDB(AllocationStore):
                     return res[0]["data"]
                 else:
                     return json.loads(res[0][1])
+            else:
+                return None
 
         raise DBConnectionException()
 

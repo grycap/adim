@@ -14,19 +14,17 @@
 # limitations under the License.
 
 import os
-import time
-import awm
-from imclient import IMClient
 from fastapi import APIRouter, Query, Depends, Request, Response
 from awm.authorization import authenticate
 from awm.models.deployment import DeploymentInfo, DeploymentId, Deployment
 from awm.models.page import PageOfDeployments
 from awm.models.error import Error
-from awm.models.success import Success
-from awm.models.allocation import AllocationUnion
+from awm.models.allocation import Allocation
 from awm.utils.node_registry import EOSCNodeRegistry
-from typing import Tuple, Union
-from awm.utils.db import DataBase
+from awm.utils.deployment_manager import DeploymentsManager
+from awm.utils import DBConnectionException
+from awm.routers.tools import tool_store
+from awm.routers.allocations import allocation_store
 
 from . import return_error
 
@@ -36,170 +34,15 @@ IM_URL = os.getenv("IM_URL", "http://localhost:8800")
 DB_URL = os.getenv("DB_URL", "file:///tmp/awm.db")
 
 
-def _init_table(db: DataBase) -> bool:
-    """Creates de database."""
-    if not db.table_exists("deployments"):
-        awm.logger.info("Creating deployments table")
-        if db.db_type == DataBase.MYSQL:
-            db.execute("CREATE TABLE IF NOT EXISTS deployments (id VARCHAR(255) PRIMARY KEY, data TEXT"
-                       ", owner VARCHAR(255), created TIMESTAMP)")
-        elif db.db_type == DataBase.SQLITE:
-            db.execute("CREATE TABLE IF NOT EXISTS deployments (id TEXT PRIMARY KEY, data TEXT"
-                       ", owner VARCHAR(255), created TIMESTAMP)")
-        elif db.db_type == DataBase.MONGO:
-            db.connection.create_collection("deployments")
-            db.connection["deployments"].create_index([("id", 1), ("owner", 1)], unique=True)
-        return True
-    return False
-
-
-def _get_im_auth_header(token: str, allocation: AllocationUnion = None) -> dict:
-    auth_data = [{"type": "InfrastructureManager", "token": token}]
-    if allocation:
-        if allocation.kind == "OpenStackEnvironment":
-            ost_auth_data = {"id": "ost", "type": "OpenStack", "auth_version": "3.x_oidc_access_token"}
-            ost_auth_data["username"] = allocation.userName
-            ost_auth_data["password"] = token
-            ost_auth_data["tenant"] = allocation.tenant
-            ost_auth_data["host"] = str(allocation.host)
-            ost_auth_data["domain"] = allocation.domain
-            if allocation.region:
-                ost_auth_data["service_region"] = allocation.region
-            if allocation.domainId:
-                ost_auth_data["tenant_domain_id"] = allocation.domainId
-            if allocation.tenantId:
-                ost_auth_data["tenant_id"] = allocation.tenantId
-            if allocation.apiVersion:
-                ost_auth_data["api_version"] = allocation.apiVersion
-            auth_data.append(ost_auth_data)
-        elif allocation.kind == "KubernetesEnvironment":
-            k8s_auth_data = {"type": "kubernetes", "token": token}
-            k8s_auth_data["host"] = str(allocation.host)
-            k8s_auth_data["password"] = token
-            auth_data.append(k8s_auth_data)
-        else:
-            raise ValueError("Allocation kind not supported")
-    return auth_data
-
-
-def _get_deployment(deployment_id: str, user_info: dict, request: Request,
-                    get_state: bool = True) -> Tuple[Union[Error, Deployment], int]:
-    dep_info = None
-    user_token = user_info['token']
-    user_id = user_info['sub']
-    db = DataBase(DB_URL)
-    if db.connect():
-        _init_table(db)
-        if db.db_type == DataBase.MONGO:
-            res = db.find("deployments", {"id": deployment_id, "owner": user_id}, {"data": True})
-        else:
-            res = db.select("SELECT data FROM deployments WHERE id = %s and owner = %s", (deployment_id, user_id))
-        db.close()
-        if res:
-            if db.db_type == DataBase.MONGO:
-                deployment_data = res[0]["data"]
-            else:
-                deployment_data = res[0][0]
-            try:
-                dep_info = DeploymentInfo.model_validate_json(deployment_data)
-            except Exception as ex:
-                awm.logger.error(f"Failed to parse deployment info from database: {str(ex)}")
-                msg = Error(id="500", description="Internal server error: corrupted deployment data")
-                return msg, 500
-
-            try:
-                if get_state:
-                    # Get the allocation info from the Allocation
-                    allocation_info = awm.routers.allocations._get_allocation(dep_info.deployment.allocation.id,
-                                                                              user_info,
-                                                                              request)
-                    if not allocation_info:
-                        return "Invalid AllocationId.", 400
-
-                    if allocation_info.allocation.root.kind == "EoscNodeEnvironment":
-                        raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
-
-                    auth_data = _get_im_auth_header(user_token, allocation_info.allocation.root)
-                    client = IMClient.init_client(IM_URL, auth_data)
-                    success, state_info = client.get_infra_property(deployment_id, "state")
-                    if success:
-                        dep_info.status = state_info['state']
-                    else:
-                        dep_info.status = "unknown"
-                        awm.logger.error(f"Could not retrieve deployment status: {state_info}")
-                        # Check if the infrastructure still exists
-                        success, infras = client.list_infras()
-                        if success:
-                            if deployment_id not in infras:
-                                awm.logger.info(f"Deployment {deployment_id} not found in IM."
-                                                " Setting status to 'deleted'")
-                                dep_info.status = "deleted"
-                        else:
-                            awm.logger.error(f"Could not list infrastructures: {infras}")
-
-                    success, cont_msg = client.get_infra_property(deployment_id, "contmsg")
-                    if success:
-                        dep_info.details = cont_msg
-
-                    # Update deployment info in DB
-                    data = dep_info.model_dump_json(exclude_unset=True)
-                    db.connect()
-                    if db.db_type == DataBase.MONGO:
-                        res = db.replace("deployments", {"id": deployment_id}, {"data": data})
-                    else:
-                        res = db.execute("update deployments set data = %s where id = %s",
-                                         (data, deployment_id))
-                    db.close()
-            except Exception as ex:
-                msg = Error(id="400", description=str(ex))
-                return msg, 400
-        else:
-            msg = Error(id="404", description=f"Deployment {deployment_id} not found")
-            return msg, 404
-    else:
-        msg = Error(id="503", description="Database connection failed")
-        return msg, 503
-    return dep_info, 200
+deployments_manager = DeploymentsManager(DB_URL, IM_URL)
 
 
 def _list_deployments(from_: int = 0, limit: int = 100,
                       all_nodes: bool = False,
                       user_info: dict = None, request: Request = None) -> Response:
-    deployments = []
-    db = DataBase(DB_URL)
-    if db.connect():
-        _init_table(db)
-        if db.db_type == DataBase.MONGO:
-            res = db.find("deployments", filt={"owner": user_info['sub']},
-                          projection={"data": True}, sort=[('created', -1)])
-            for count, elem in enumerate(res):
-                if from_ > count:
-                    continue
-                deployment_data = elem['data']
-                try:
-                    deployment_info = DeploymentInfo.model_validate(deployment_data)
-                except Exception as ex:
-                    awm.logger.error("Failed to parse deployment info from database: %s", str(ex))
-                    continue
-                deployments.append(deployment_info)
-                if len(deployments) >= limit:
-                    break
-            count = len(res)
-        else:
-            sql = "SELECT data FROM deployments WHERE owner = %s order by created LIMIT %s OFFSET %s"
-            res = db.select(sql, (user_info['sub'], limit, from_))
-            for elem in res:
-                deployment_data = elem[0]
-                try:
-                    deployment_info = DeploymentInfo.model_validate_json(deployment_data)
-                except Exception as ex:
-                    awm.logger.error("Failed to parse deployment info from database: %s", str(ex))
-                    continue
-                deployments.append(deployment_info)
-            res = db.select("SELECT count(id) from deployments WHERE owner = %s", (user_info['sub'],))
-            count = res[0][0] if res else 0
-        db.close()
-    else:
+    try:
+        count, deployments = deployments_manager.list_deployments(from_, limit, user_info)
+    except DBConnectionException:
         return return_error("Database connection failed", 503)
 
     if all_nodes:
@@ -258,10 +101,9 @@ def list_deployments(
                        503: {"model": Error,
                              "description": "Try again later"}})
 def get_deployment(deployment_id,
-                   request: Request,
                    user_info=Depends(authenticate)):
     """Get information about an existing deployment"""
-    deployment, status_code = _get_deployment(deployment_id, user_info, request)
+    deployment, status_code = deployments_manager.get_deployment(deployment_id, user_info, True)
     return Response(content=deployment.model_dump_json(exclude_unset=True, by_alias=True),
                     status_code=status_code, media_type="application/json")
 
@@ -283,43 +125,10 @@ def get_deployment(deployment_id,
                           503: {"model": Error,
                                 "description": "Try again later"}})
 def delete_deployment(deployment_id,
-                      request: Request,
                       user_info=Depends(authenticate)):
     """Tear down an existing deployment"""
-    deployment, status_code = _get_deployment(deployment_id, user_info, request, get_state=False)
-    if status_code != 200:
-        return Response(content=deployment.model_dump_json(exclude_unset=True, by_alias=True),
-                        status_code=status_code, media_type="application/json")
-
-    # Get the allocation info from the Allocation
-    allocation_info = awm.routers.allocations._get_allocation(deployment.deployment.allocation.id, user_info, request)
-    if not allocation_info:
-        return return_error("Invalid AllocationId.", status_code=400)
-    allocation = allocation_info.allocation
-
-    if allocation_info.allocation.root.kind == "EoscNodeEnvironment":
-        raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
-    else:
-        auth_data = _get_im_auth_header(user_info['token'], allocation.root)
-        client = IMClient.init_client(IM_URL, auth_data)
-        success, msg = client.destroy(deployment_id)
-
-        if not success:
-            return return_error(msg, 400)
-
-    db = DataBase(DB_URL)
-    if db.connect():
-        _init_table(db)
-        if db.db_type == DataBase.MONGO:
-            db.delete("deployments", {"id": deployment_id})
-        else:
-            db.execute("DELETE FROM deployments WHERE id = %s", (deployment_id,))
-        db.close()
-    else:
-        return return_error("Database connection failed", 503)
-
-    msg = Success(message="Deleting")
-    return Response(content=msg.model_dump_json(exclude_unset=True), status_code=202, media_type="application/json")
+    res, status_code = deployments_manager.delete_deployment(deployment_id, user_info)
+    return Response(content=res.model_dump_json(exclude_unset=True), status_code=status_code, media_type="application/json")
 
 
 # POST /deployments
@@ -342,48 +151,27 @@ def deploy_workload(deployment: Deployment,
                     user_info=Depends(authenticate)):
     """Deploy workload to an EOSC environment or an infrastructure for which the user has credentials"""
     # Get the Tool from the ID
-    tool, status_code = awm.routers.tools.get_tool_from_repo(deployment.tool.id, deployment.tool.version, request)
+    tool, status_code = tool_store.get_tool_from_repo(deployment.tool.id, deployment.tool.version, request)
     if status_code != 200:
         return Response(content=tool, status_code=400, media_type="application/json")
 
     # Get the allocation info from the Allocation
-    allocation_info = awm.routers.allocations._get_allocation(deployment.allocation.id, user_info, request)
-    if not allocation_info:
+    allocation_data = allocation_store.get_allocation(deployment.allocation.id, user_info)
+    if not allocation_data:
         return return_error("Invalid AllocationId.", status_code=400)
-    allocation = allocation_info.allocation
+    allocation = Allocation.model_validate(allocation_data)
 
-    if allocation_info.allocation.root.kind == "EoscNodeEnvironment":
+    if allocation.root.kind == "EoscNodeEnvironment":
         raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
-    else:
-        auth_data = _get_im_auth_header(user_info['token'], allocation.root)
 
-        # Create the infrastructure in the IM
-        client = IMClient.init_client(IM_URL, auth_data)
-        success, deployment_id = client.create(tool.blueprint, "yaml", True)
-        if not success:
-            return_error(deployment_id, 400)
+    try:
+        deployment_info = deployments_manager.update_deployment(deployment, tool, allocation,
+                                                                user_info, request)
+    except DBConnectionException as dbe:
+        return return_error(str(dbe), 503)
+    except Exception as e:
+        return return_error(str(e), 400)
 
-    db = DataBase(DB_URL)
-    if db.connect():
-        _init_table(db)
-        deployment_info = DeploymentInfo(id=deployment_id,
-                                         deployment=deployment,
-                                         status="pending",
-                                         self_=str(request.url_for("get_deployment", deployment_id=deployment_id)))
-        data = deployment_info.model_dump_json(exclude_unset=True)
-        if db.db_type == DataBase.MONGO:
-            res = db.replace("deployments", {"id": deployment_id}, {"id": deployment_id, "data": data,
-                                                                    "owner": user_info['sub'],
-                                                                    "created": time.time()})
-        else:
-            res = db.execute("replace into deployments (id, data, created, owner) values (%s, %s, %s, %s)",
-                             (deployment_id, data, time.time(), user_info['sub']))
-        db.close()
-        if not res:
-            return return_error("Failed to store deployment information in the database", 503)
-    else:
-        return return_error("Database connection failed", 503)
-
-    dep_id = DeploymentId(id=deployment_id, kind="DeploymentId", infoLink=deployment_info.self_)
+    dep_id = DeploymentId(id=deployment_info.id, kind="DeploymentId", infoLink=deployment_info.self_)
     return Response(content=dep_id.model_dump_json(exclude_unset=True, by_alias=True),
                     status_code=202, media_type="application/json")
