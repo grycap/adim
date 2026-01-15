@@ -25,7 +25,7 @@ from awm.models.success import Success
 from awm.models.allocation import Allocation, AllocationUnion, AllocationInfo
 from typing import Tuple, Union
 from awm.utils.db import DataBase
-from awm.utils import DBConnectionException
+from awm.utils import ConnectionException, DBConnectionException
 
 
 class DeploymentsManager:
@@ -153,8 +153,9 @@ class DeploymentsManager:
                         try:
                             allocation_data = allocation_store.get_allocation(dep_info.deployment.allocation.id,
                                                                               user_info)
-                        except DBConnectionException:
-                            msg = Error(id="503", description="Database connection failed")
+                        except ConnectionException as ex:
+                            awm.logger.error(f"Error connecting to Allocation Store: {str(ex)}")
+                            msg = Error(id="503", description="Allocation Store connection failed: %s." % str(ex))
                             return msg, 503
 
                         allocation = Allocation.model_validate(allocation_data)
@@ -214,8 +215,13 @@ class DeploymentsManager:
             return deployment, status_code
 
         # Get the allocation info from the Allocation
-        allocation_data = allocation_store.get_allocation(deployment.deployment.allocation.id,
-                                                          user_info)
+        try:
+            allocation_data = allocation_store.get_allocation(deployment.deployment.allocation.id,
+                                                              user_info)
+        except ConnectionException as ex:
+            msg = Error(id="503", description="Error connecting to Allocation Store: %s." % str(ex))
+            return msg, 503
+
         if not allocation_data:
             msg = Error(id="400", description="Invalid AllocationId.")
             return msg, 400

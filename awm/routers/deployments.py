@@ -22,7 +22,7 @@ from awm.models.error import Error
 from awm.models.allocation import Allocation
 from awm.utils.node_registry import EOSCNodeRegistry
 from awm.utils.deployment_manager import DeploymentsManager
-from awm.utils import DBConnectionException
+from awm.utils import ConnectionException, DBConnectionException
 from awm.routers.tools import tool_store
 from awm.routers.allocations import allocation_store
 
@@ -156,7 +156,10 @@ def deploy_workload(deployment: Deployment,
         return Response(content=tool, status_code=400, media_type="application/json")
 
     # Get the allocation info from the Allocation
-    allocation_data = allocation_store.get_allocation(deployment.allocation.id, user_info)
+    try:
+        allocation_data = allocation_store.get_allocation(deployment.allocation.id, user_info)
+    except ConnectionException as ex:
+        return return_error(str(ex), 503)
     if not allocation_data:
         return return_error("Invalid AllocationId.", status_code=400)
     allocation = Allocation.model_validate(allocation_data)

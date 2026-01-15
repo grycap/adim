@@ -23,6 +23,7 @@ from awm.models.page import PageOfAllocations
 from awm.models.error import Error
 from awm.models.success import Success
 from awm.utils.node_registry import EOSCNodeRegistry
+from awm.utils import ConnectionException
 from . import return_error
 
 
@@ -33,11 +34,13 @@ if ALLOCATION_STORE == "db":
     from awm.utils.allocation_store_db import AllocationStoreDB
     DB_URL = os.getenv("DB_URL", AllocationStoreDB.DEFAULT_URL)
     allocation_store = AllocationStoreDB(DB_URL)
+    awm.logger.info(f"Using AllocationStoreDB with URL: {DB_URL}")
 elif ALLOCATION_STORE == "vault":
     from awm.utils.allocation_store_vault import AllocationStoreVault
     VAULT_URL = os.getenv("VAULT_URL", AllocationStoreVault.DEFAULT_URL)
     ENCRYPT_KEY = os.getenv("ENCRYPT_KEY", AllocationStoreVault.DEFAULT_KEY)
     allocation_store = AllocationStoreVault(VAULT_URL, key=ENCRYPT_KEY)
+    awm.logger.info(f"Using AllocationStoreVault with URL: {VAULT_URL}")
 else:
     raise Exception(f"Allocation store '{ALLOCATION_STORE}' is not supported")
 
@@ -97,7 +100,7 @@ def list_allocations(
 def _get_allocation(allocation_id: str, user_info: dict, request: Request) -> AllocationInfo:
     try:
         allocation_data = allocation_store.get_allocation(allocation_id, user_info)
-    except Exception as ex:
+    except ConnectionException as ex:
         return return_error(str(ex), 503)
 
     allocation = Allocation.model_validate(allocation_data)
@@ -210,8 +213,7 @@ def delete_allocation(allocation_id,
                       request: Request,
                       user_info=Depends(authenticate)):
     """Remove existing environment of the user"""
-    allocation_info = _get_allocation(allocation_id, user_info, request)
-    if allocation_info is None:
+    if not allocation_store.get_allocation(allocation_id, user_info):
         return return_error("Allocation not found", status_code=404)
 
     # check if this allocation is used in any deployment
@@ -221,7 +223,7 @@ def delete_allocation(allocation_id,
 
     try:
         allocation_store.delete_allocation(allocation_id, user_info)
-    except Exception as ex:
+    except ConnectionException as ex:
         return return_error(str(ex), 503)
 
     msg = Success(message="Deleted")

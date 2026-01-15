@@ -13,13 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-class DBConnectionException(Exception):
-    def __init__(self, msg="Database connection failed"):
+class ConnectionException(Exception):
+    def __init__(self, msg="Connection failed"):
         Exception.__init__(self, msg)
         self.message = msg
 
 
-class RepositoryConnectionException(Exception):
+class DBConnectionException(ConnectionException):
+    def __init__(self, msg="Database connection failed"):
+        ConnectionException.__init__(self, msg)
+        self.message = msg
+
+
+class RepositoryConnectionException(ConnectionException):
     def __init__(self, msg="Repository connection failed"):
-        Exception.__init__(self, msg)
+        ConnectionException.__init__(self, msg)
+        self.message = msg
+
+
+class VaultConnectionException(ConnectionException):
+    def __init__(self, msg="Vault Connection failed"):
+        ConnectionException.__init__(self, msg)
         self.message = msg

@@ -318,7 +318,7 @@ def test_get_allocation(check_oidc_mock, db_mock, client, headers, requests_post
 @pytest.mark.parametrize("backend_type", ["db", "mongo", "vault"], indirect=True)
 def test_delete_allocation(check_oidc_mock, list_deployments_mock, client, headers,
                            requests_post_mock, seed_allocations):
-    seed_allocations([ALLOC_1, ALLOC_1])
+    seed_allocations([ALLOC_3, ALLOC_3, ALLOC_3])
 
     response = client.delete('/allocation/id1', headers=headers)
     assert response.status_code == 200
