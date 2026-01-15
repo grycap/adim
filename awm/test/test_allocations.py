@@ -94,7 +94,7 @@ def requests_post_mock(mocker):
 
 @pytest.fixture
 def list_deployments_mock(mocker):
-    list_dep_mock = mocker.patch("awm.routers.deployments.deployments_manager.list_deployments")
+    list_dep_mock = mocker.patch("awm.deployments_manager.list_deployments")
     list_dep_mock.return_value = (0, [])
     return list_dep_mock
 
@@ -152,8 +152,8 @@ ALLOC_3 = (
 def seed_allocations(backend_type, db_mock, vault_mock):
     def _seed(allocations_list):
         if backend_type in ["db", "mongo"]:
-            awm.routers.allocations.allocation_store = AllocationStoreDB(AllocationStoreDB.DEFAULT_URL)
-            awm.routers.allocations.allocation_store.db = db_mock
+            awm.allocation_store = AllocationStoreDB(AllocationStoreDB.DEFAULT_URL)
+            awm.allocation_store.db = db_mock
             db_mock.db_type = DataBase.SQLITE
             if backend_type == "mongo":
                 db_mock.db_type = DataBase.MONGO
@@ -173,10 +173,10 @@ def seed_allocations(backend_type, db_mock, vault_mock):
                 db_mock.select.side_effect = selects
         elif backend_type in ["vault", "enc_vault"]:
             if backend_type == "enc_vault":
-                awm.routers.allocations.allocation_store = AllocationStoreVault(AllocationStoreVault.DEFAULT_URL,
+                awm.allocation_store = AllocationStoreVault(AllocationStoreVault.DEFAULT_URL,
                                                                                 key=AllocationStoreVault.DEFAULT_KEY)
             else:
-                awm.routers.allocations.allocation_store = AllocationStoreVault(AllocationStoreVault.DEFAULT_URL)
+                awm.allocation_store = AllocationStoreVault(AllocationStoreVault.DEFAULT_URL)
             res = []
             for allocations_elem in allocations_list:
                 allocations, total = allocations_elem

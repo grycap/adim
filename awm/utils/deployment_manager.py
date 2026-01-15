@@ -16,7 +16,6 @@
 import awm
 import time
 from flask import Request
-from awm.routers.allocations import allocation_store
 from imclient import IMClient
 from awm.models.deployment import DeploymentInfo, Deployment
 from awm.models.tool import ToolInfo
@@ -127,7 +126,7 @@ class DeploymentsManager:
     def get_allocation(self, deployment: Deployment, user_info: dict) -> Tuple[Union[Error, Allocation], int]:
         # Get the allocation info from the Allocation
         try:
-            allocation_data = allocation_store.get_allocation(deployment.allocation.id, user_info)
+            allocation_data = awm.allocation_store.get_allocation(deployment.allocation.id, user_info)
         except ConnectionException as ex:
             awm.logger.error(f"Error connecting to Allocation Store: {str(ex)}")
             msg = Error(id="503", description="Allocation Store connection failed: %s." % str(ex))

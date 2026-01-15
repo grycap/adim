@@ -20,7 +20,7 @@ from unittest.mock import patch, MagicMock
 from awm.__main__ import create_app
 from pydantic import HttpUrl
 from awm.utils.node_registry import EOSCNode
-from awm.routers.tools import AWM_TOOLS_REPO
+from awm import AWM_TOOLS_REPO
 from awm.utils.repository import Repository
 
 

@@ -13,22 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
+import awm
 from fastapi import APIRouter, Query, Depends, Request, Response
 from awm.authorization import authenticate
 from awm.models.tool import ToolInfo
 from awm.models.page import PageOfTools
 from awm.models.error import Error
 from awm.utils.node_registry import EOSCNodeRegistry
-from awm.utils.tool_store import ToolStore
 from awm.utils import RepositoryConnectionException
 from . import return_error
 
 
-AWM_TOOLS_REPO = os.getenv("AWM_TOOLS_REPO", "https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
 router = APIRouter()
-
-tool_store = ToolStore(AWM_TOOLS_REPO)
 
 
 # GET /tools
@@ -56,7 +52,7 @@ def list_tools(
     user_info=Depends(authenticate)
 ):
     try:
-        total, count, tools = tool_store.list_tools(request, from_, limit)
+        total, count, tools = awm.tool_store.list_tools(request, from_, limit)
     except RepositoryConnectionException as ex:
         return return_error("Repository connection failed: %s" % ex, 503)
 
@@ -94,7 +90,7 @@ def get_tool(tool_id: str,
              user_info=Depends(authenticate)):
     """Get information about an existing tool blueprint"""
     try:
-        tool_or_msg, status_code = tool_store.get_tool_from_repo(tool_id, version, request)
+        tool_or_msg, status_code = awm.tool_store.get_tool_from_repo(tool_id, version, request)
     except RepositoryConnectionException as ex:
         return return_error("Repository connection failed: %s" % ex, 503)
 

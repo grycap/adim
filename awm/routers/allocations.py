@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import awm
 from fastapi import APIRouter, Query, Depends, Request, Response
 from awm.authorization import authenticate
@@ -27,22 +26,6 @@ from . import return_error
 
 
 router = APIRouter()
-ALLOCATION_STORE = os.getenv("ALLOCATION_STORE", "db")
-
-if ALLOCATION_STORE == "db":
-    from awm.utils.allocation_store_db import AllocationStoreDB
-    DB_URL = os.getenv("DB_URL", AllocationStoreDB.DEFAULT_URL)
-    allocation_store = AllocationStoreDB(DB_URL)
-    awm.logger.info(f"Using AllocationStoreDB with URL: {DB_URL}")
-elif ALLOCATION_STORE == "vault":
-    from awm.utils.allocation_store_vault import AllocationStoreVault
-    VAULT_URL = os.getenv("VAULT_URL", AllocationStoreVault.DEFAULT_URL)
-    ENCRYPT_KEY = os.getenv("ENCRYPT_KEY", AllocationStoreVault.DEFAULT_KEY)
-    allocation_store = AllocationStoreVault(VAULT_URL, key=ENCRYPT_KEY)
-    awm.logger.info(f"Using AllocationStoreVault with URL: {VAULT_URL}")
-else:
-    raise Exception(f"Allocation store '{ALLOCATION_STORE}' is not supported")
-
 
 # GET /allocations
 @router.get("/allocations",
@@ -69,7 +52,7 @@ def list_allocations(
     user_info=Depends(authenticate)
 ):
     try:
-        count, allocations = allocation_store.list_allocations(user_info, from_, limit)
+        count, allocations = awm.allocation_store.list_allocations(user_info, from_, limit)
     except Exception as ex:
         return return_error(str(ex), 503)
 
@@ -98,7 +81,7 @@ def list_allocations(
 
 def _get_allocation_info(allocation_id: str, user_info: dict, request: Request) -> AllocationInfo:
     try:
-        allocation_data = allocation_store.get_allocation(allocation_id, user_info)
+        allocation_data = awm.allocation_store.get_allocation(allocation_id, user_info)
     except ConnectionException as ex:
         return return_error(str(ex), 503)
 
@@ -143,7 +126,7 @@ def get_allocation(request: Request,
 def _check_allocation_in_use(allocation_id: str, user_info: dict, request: Request) -> Response:
     # check if this allocation is used in any deployment
     try:
-        _, deployments = awm.routers.deployments.deployments_manager.list_deployments(limit=999999999, user_info=user_info)
+        _, deployments = awm.deployments_manager.list_deployments(limit=999999999, user_info=user_info)
     except ConnectionException:
         return return_error("Database connection failed", 503)
 
@@ -184,7 +167,7 @@ def update_allocation(allocation_id,
 
     data = allocation.model_dump(exclude_unset=True, mode="json")
     try:
-        allocation_store.replace_allocation(data, user_info, allocation_id)
+        awm.allocation_store.replace_allocation(data, user_info, allocation_id)
     except Exception as ex:
         return return_error(str(ex), 503)
 
@@ -213,7 +196,7 @@ def delete_allocation(allocation_id,
                       request: Request,
                       user_info=Depends(authenticate)):
     """Remove existing environment of the user"""
-    if not allocation_store.get_allocation(allocation_id, user_info):
+    if not awm.allocation_store.get_allocation(allocation_id, user_info):
         return return_error("Allocation not found", status_code=404)
 
     # check if this allocation is used in any deployment
@@ -222,7 +205,7 @@ def delete_allocation(allocation_id,
         return response
 
     try:
-        allocation_store.delete_allocation(allocation_id, user_info)
+        awm.allocation_store.delete_allocation(allocation_id, user_info)
     except ConnectionException as ex:
         return return_error(str(ex), 503)
 
@@ -253,7 +236,7 @@ def create_allocation(allocation: Allocation,
     """Record an environment of the user"""
     data = allocation.model_dump(exclude_unset=True, mode="json")
     try:
-        allocation_id = allocation_store.replace_allocation(data, user_info)
+        allocation_id = awm.allocation_store.replace_allocation(data, user_info)
     except Exception as ex:
         return return_error(str(ex), 503)
 

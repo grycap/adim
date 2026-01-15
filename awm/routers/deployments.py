@@ -13,33 +13,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
+import awm
 from fastapi import APIRouter, Query, Depends, Request, Response
 from awm.authorization import authenticate
 from awm.models.deployment import DeploymentInfo, DeploymentId, Deployment
 from awm.models.page import PageOfDeployments
 from awm.models.error import Error
 from awm.utils.node_registry import EOSCNodeRegistry
-from awm.utils.deployment_manager import DeploymentsManager
 from awm.utils import DBConnectionException
-from awm.routers.tools import tool_store
 
 from . import return_error
 
 
 router = APIRouter()
-IM_URL = os.getenv("IM_URL", "http://localhost:8800")
-DB_URL = os.getenv("DB_URL", "file:///tmp/awm.db")
-
-
-deployments_manager = DeploymentsManager(DB_URL, IM_URL)
 
 
 def _list_deployments(from_: int = 0, limit: int = 100,
                       all_nodes: bool = False,
                       user_info: dict = None, request: Request = None) -> Response:
     try:
-        count, deployments = deployments_manager.list_deployments(from_, limit, user_info)
+        count, deployments = awm.deployments_manager.list_deployments(from_, limit, user_info)
     except DBConnectionException:
         return return_error("Database connection failed", 503)
 
@@ -101,7 +94,7 @@ def list_deployments(
 def get_deployment(deployment_id,
                    user_info=Depends(authenticate)):
     """Get information about an existing deployment"""
-    deployment, status_code = deployments_manager.get_deployment(deployment_id, user_info, True)
+    deployment, status_code = awm.deployments_manager.get_deployment(deployment_id, user_info, True)
     return Response(content=deployment.model_dump_json(exclude_unset=True, by_alias=True),
                     status_code=status_code, media_type="application/json")
 
@@ -125,7 +118,7 @@ def get_deployment(deployment_id,
 def delete_deployment(deployment_id,
                       user_info=Depends(authenticate)):
     """Tear down an existing deployment"""
-    res, status_code = deployments_manager.delete_deployment(deployment_id, user_info)
+    res, status_code = awm.deployments_manager.delete_deployment(deployment_id, user_info)
     return Response(content=res.model_dump_json(exclude_unset=True), status_code=status_code, media_type="application/json")
 
 
@@ -149,12 +142,12 @@ def deploy_workload(deployment: Deployment,
                     user_info=Depends(authenticate)):
     """Deploy workload to an EOSC environment or an infrastructure for which the user has credentials"""
     # Get the Tool from the ID
-    tool, status_code = tool_store.get_tool_from_repo(deployment.tool.id, deployment.tool.version, request)
+    tool, status_code = awm.tool_store.get_tool_from_repo(deployment.tool.id, deployment.tool.version, request)
     if status_code != 200:
         return Response(content=tool, status_code=400, media_type="application/json")
 
     # Get the allocation info from the Allocation
-    allocation, status = deployments_manager.get_allocation(deployment, user_info)
+    allocation, status = awm.deployments_manager.get_allocation(deployment, user_info)
     if status != 200:
         return allocation, status
 
@@ -162,7 +155,7 @@ def deploy_workload(deployment: Deployment,
         raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
 
     try:
-        deployment_info = deployments_manager.update_deployment(deployment, tool, allocation,
+        deployment_info = awm.deployments_manager.update_deployment(deployment, tool, allocation,
                                                                 user_info, request)
     except DBConnectionException as dbe:
         return return_error(str(dbe), 503)

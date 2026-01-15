@@ -45,8 +45,8 @@ def db_mock(mocker):
 @pytest.fixture
 def seed_deployments(db_mock):
     def _seed(deployments):
-        awm.routers.deployments.deployments_manager = DeploymentsManager("", "")
-        awm.routers.deployments.deployments_manager.db = db_mock
+        awm.deployments_manager = DeploymentsManager("", "")
+        awm.deployments_manager.db = db_mock
         if db_mock.db_type == DataBase.MONGO:
             db_mock.find.side_effect = deployments
         else:
@@ -75,7 +75,7 @@ def im_mock(mocker):
 def allocation_mock(mocker):
     """Mock para _get_allocation con un entorno estándar Kubernetes."""
     allocation = {"kind": "KubernetesEnvironment", "host": "http://some.url/"}
-    return mocker.patch("awm.utils.deployment_manager.allocation_store.get_allocation", return_value=allocation)
+    return mocker.patch("awm.allocation_store.get_allocation", return_value=allocation)
 
 
 @pytest.fixture
@@ -83,7 +83,7 @@ def ost_allocation_mock(mocker):
     """Mock para _get_allocation con un entorno estándar Kubernetes."""
     allocation = {"kind": "OpenStackEnvironment", "host": "http://some.url/", 
                   "userName": "user", "password": "pass", "tenant": "tenant", "domain": "domain"}
-    return mocker.patch("awm.utils.deployment_manager.allocation_store.get_allocation", return_value=allocation)
+    return mocker.patch("awm.allocation_store.get_allocation", return_value=allocation)
 
 
 @pytest.fixture
@@ -144,7 +144,8 @@ def test_list_deployments_mongo(client, db_mock, check_oidc_mock, seed_deploymen
     )
 
 
-def test_list_deployments_remote(client, db_mock, check_oidc_mock, list_nodes_mock, requests_get_mock, seed_deployments):
+def test_list_deployments_remote(client, db_mock, check_oidc_mock, list_nodes_mock,
+                                 requests_get_mock, seed_deployments):
     selects = [
         [[_get_deployment_info()]],
         [[1]],
@@ -284,13 +285,14 @@ def test_delete_deployment(client, db_mock, check_oidc_mock, im_mock, ost_alloca
 def get_tool_mock(mocker):
     tool = MagicMock()
     tool.blueprint = "tool blueprint"
-    return mocker.patch("awm.routers.deployments.tool_store.get_tool_from_repo", return_value=(tool, 200))
+    return mocker.patch("awm.tool_store.get_tool_from_repo", return_value=(tool, 200))
+
 
 @pytest.fixture
 def allocation_mock_router(mocker):
     """Mock para _get_allocation con un entorno estándar Kubernetes."""
     allocation = {"kind": "KubernetesEnvironment", "host": "http://some.url/"}
-    return mocker.patch("awm.utils.deployment_manager.allocation_store.get_allocation", return_value=allocation)
+    return mocker.patch("awm.allocation_store.get_allocation", return_value=allocation)
 
 
 def test_deploy_workload(
