@@ -241,6 +241,31 @@ def test_get_deployment(client, db_mock, check_oidc_mock, im_mock, allocation_mo
     )
 
 
+def test_get_deployment_no_im(client, db_mock, check_oidc_mock, im_mock, allocation_mock):
+    db_mock.select.side_effect = [
+        [[_get_deployment_info()]]
+    ]
+
+    im_mock.get_infra_property.side_effect = [
+        (False, "error"),
+        (False, "error")
+    ]
+
+    im_mock.list_infras.return_value = True, ["other_dep_id"]
+
+    response = client.get("/deployment/dep_id",
+                          headers={"Authorization": "Bearer token"})
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "deleted"
+    assert response.json()["deployment"]["tool"]["id"] == "toolid"
+
+    db_mock.select.assert_called_with(
+        "SELECT data FROM deployments WHERE id = %s and owner = %s",
+        ("dep_id", "test-user")
+    )
+
+
 def test_delete_deployment(client, db_mock, check_oidc_mock, im_mock, ost_allocation_mock):
     db_mock.select.side_effect = [
         [[_get_deployment_info()]]

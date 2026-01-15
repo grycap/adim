@@ -118,17 +118,38 @@ def _get_deployment(deployment_id: str, user_info: dict, request: Request,
 
                     if allocation_info.allocation.root.kind == "EoscNodeEnvironment":
                         raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
-                    else:
-                        auth_data = _get_im_auth_header(user_token, allocation_info.allocation.root)
-                        client = IMClient.init_client(IM_URL, auth_data)
-                        success, state_info = client.get_infra_property(deployment_id, "state")
-                        if not success:
-                            msg = Error(description=state_info)
-                            return msg, 400
-                        success, cont_msg = client.get_infra_property(deployment_id, "contmsg")
-                        if success:
-                            dep_info.details = cont_msg
+
+                    auth_data = _get_im_auth_header(user_token, allocation_info.allocation.root)
+                    client = IMClient.init_client(IM_URL, auth_data)
+                    success, state_info = client.get_infra_property(deployment_id, "state")
+                    if success:
                         dep_info.status = state_info['state']
+                    else:
+                        dep_info.status = "unknown"
+                        awm.logger.error(f"Could not retrieve deployment status: {state_info}")
+                        # Check if the infrastructure still exists
+                        success, infras = client.list_infras()
+                        if success:
+                            if deployment_id not in infras:
+                                awm.logger.info(f"Deployment {deployment_id} not found in IM."
+                                                " Setting status to 'deleted'")
+                                dep_info.status = "deleted"
+                        else:
+                            awm.logger.error(f"Could not list infrastructures: {infras}")
+
+                    success, cont_msg = client.get_infra_property(deployment_id, "contmsg")
+                    if success:
+                        dep_info.details = cont_msg
+
+                    # Update deployment info in DB
+                    data = dep_info.model_dump_json(exclude_unset=True)
+                    db.connect()
+                    if db.db_type == DataBase.MONGO:
+                        res = db.replace("deployments", {"id": deployment_id}, {"data": data})
+                    else:
+                        res = db.execute("update deployments set data = %s where id = %s",
+                                         (data, deployment_id))
+                    db.close()
             except Exception as ex:
                 msg = Error(id="400", description=str(ex))
                 return msg, 400
