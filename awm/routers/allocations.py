@@ -59,12 +59,10 @@ def list_allocations(
 
     res = []
     for elem in allocations:
-        allocation_id = elem['id']
-        allocation_data = elem['data']
-        allocation = Allocation.model_validate(allocation_data)
+        allocation = Allocation.model_validate(elem['data'])
         allocation_info = AllocationInfo(
-            id=allocation_id,
-            self_=str(request.url_for("get_allocation", allocation_id=allocation_id)),
+            id=elem['id'],
+            self_=str(request.url_for("get_allocation", allocation_id=elem['id'])),
             allocation=allocation
         )
         res.append(allocation_info)
@@ -124,7 +122,7 @@ def get_allocation(request: Request,
                     status_code=200, media_type="application/json")
 
 
-def _check_allocation_in_use(allocation_id: str, user_info: dict, request: Request) -> Response:
+def _check_allocation_in_use(allocation_id: str, user_info: dict) -> Response:
     # check if this allocation is used in any deployment
     try:
         _, deployments = awm.deployments_manager.list_deployments(limit=999999999, user_info=user_info)
@@ -162,7 +160,7 @@ def update_allocation(allocation_id,
         return return_error("Allocation not found", status_code=404)
 
     # check if this allocation is used in any deployment
-    response = _check_allocation_in_use(allocation_id, user_info, request)
+    response = _check_allocation_in_use(allocation_id, user_info)
     if response:
         return response
 
@@ -194,14 +192,13 @@ def update_allocation(allocation_id,
                           503: {"model": Error,
                                 "description": "Try again later"}})
 def delete_allocation(allocation_id,
-                      request: Request,
                       user_info=Depends(authenticate)):
     """Remove existing environment of the user"""
     if not awm.allocation_store.get_allocation(allocation_id, user_info):
         return return_error("Allocation not found", status_code=404)
 
     # check if this allocation is used in any deployment
-    response = _check_allocation_in_use(allocation_id, user_info, request)
+    response = _check_allocation_in_use(allocation_id, user_info)
     if response:
         return response
 
