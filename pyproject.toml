@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "awm"
-version = "1.0.0"
+dynamic = ["version"]
 description = "EOSC Application Workflow Management API"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -36,6 +36,8 @@ dependencies = [
     "cryptography==46.0.3",
 ]
 
+[tool.setuptools.dynamic]
+version = {attr = "awm.__version__"}
 
 [project.optional-dependencies]
 test = [

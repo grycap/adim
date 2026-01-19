@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 from awm.utils.deployment_manager import DeploymentsManager
 from awm.utils.tool_store import ToolStore
 
-__version__ = "1.0.0"
+__version__ = "0.2.1"
 
 load_dotenv()
 
