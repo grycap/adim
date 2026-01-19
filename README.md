@@ -20,6 +20,7 @@ ALLOCATION_STORE="db" # or vault
 VAULT_URL=https://secrets.egi.eu
 ENCRYPT_KEY=3JSvUdOsAlvSNVYvBwHWE-iKdWkhq4C_LmjRcpuycT0=
 AWM_TOOLS_REPO=https://github.com/grycap/tosca/blob/eosc_lot1/templates/
+ROOT_PATH=/awm
 ```
 
 Or you can set an `.env` file as the `.env.example` provided.
