@@ -10,7 +10,14 @@ WORKDIR /app
 RUN pip3 install --no-cache-dir gunicorn==23.0.0
 
 COPY requirements.txt /app/
-RUN pip3 install --no-cache-dir -r requirements.txt
+
+RUN apk add --no-cache \
+    mariadb-connector-c \
+    mariadb-connector-c-dev \
+    mariadb-dev \
+    build-base && \
+    pip3 install --no-cache-dir -r requirements.txt && \
+    apk del --no-cache build-base mariadb-dev mariadb-connector-c-dev
 
 COPY ./awm /app/awm
 

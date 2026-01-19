@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from fastapi import FastAPI
 from awm.routers import deployments, allocations, tools, service
 
@@ -24,6 +25,7 @@ def create_app():
         description="EOSC Application Workflow Management API",
         version="0.1.47",
         docs_url="/",
+        root_path=os.getenv("ROOT_PATH", "")
     )
 
     app.include_router(
