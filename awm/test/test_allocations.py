@@ -367,8 +367,8 @@ def test_create_allocation_sql(check_oidc_mock, time_mock, uuid_mock, db_mock, c
     seed_allocations([])
     client.post('/allocations', headers=headers, json=allocation_payload)
     db_mock.execute.assert_called_with(
-        "replace into allocations (id, data, owner, created) values (%s, %s, %s, %s)",
-        ('new-id', '{"kind": "KubernetesEnvironment", "host": "http://k8s.io/"}', 'user123', 1000)
+        "replace into allocations (id, data, owner, created) values (%s, %s, %s, now())",
+        ('new-id', '{"kind": "KubernetesEnvironment", "host": "http://k8s.io/"}', 'user123')
     )
 
 
