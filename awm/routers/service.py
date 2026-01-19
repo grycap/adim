@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter
 from awm.models.success import Success
 from awm import __version__
 

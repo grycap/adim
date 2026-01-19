@@ -7,4 +7,4 @@ uvicorn[standard]==0.40.0
 requests-cache==1.2.1
 hvac==2.4.0
 cryptography==46.0.3
-pymysql==1.1.2
+mysqlclient==2.2.7
