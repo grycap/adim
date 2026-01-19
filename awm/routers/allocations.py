@@ -53,6 +53,7 @@ def list_allocations(
     user_info=Depends(authenticate)
 ):
     try:
+        awm.logger.debug(f"Listing allocations from user '{user_info.get('sub')}'")
         count, allocations = awm.allocation_store.list_allocations(user_info, from_, limit)
     except Exception as ex:
         return return_error(str(ex), 503)
@@ -68,6 +69,7 @@ def list_allocations(
         res.append(allocation_info)
 
     if all_nodes:
+        awm.logger.debug(f"Listing allocations in all EOSC nodes for user '{user_info.get('sub')}'")
         remote_count, remote_tools = EOSCNodeRegistry.list_allocations(from_, limit, count, user_info)
         res.extend(remote_tools)
         count += remote_count
@@ -114,6 +116,7 @@ def get_allocation(request: Request,
                    allocation_id,
                    user_info=Depends(authenticate)):
     """Get information about an existing allocation"""
+    awm.logger.debug(f"Getting allocation {allocation_id} from user '{user_info.get('sub')}'")
     allocation_info = _get_allocation_info(allocation_id, user_info, request)
     if allocation_info is None:
         return return_error("Allocation not found", status_code=404)
@@ -155,6 +158,7 @@ def update_allocation(allocation_id,
                       allocation: Allocation,
                       request: Request,
                       user_info=Depends(authenticate)):
+    awm.logger.debug(f"Update allocation {allocation_id} from user '{user_info.get('sub')}'")
     allocation_info = _get_allocation_info(allocation_id, user_info, request)
     if allocation_info is None:
         return return_error("Allocation not found", status_code=404)
@@ -194,6 +198,7 @@ def update_allocation(allocation_id,
 def delete_allocation(allocation_id,
                       user_info=Depends(authenticate)):
     """Remove existing environment of the user"""
+    awm.logger.debug(f"Delete allocation {allocation_id} from user '{user_info.get('sub')}'")
     if not awm.allocation_store.get_allocation(allocation_id, user_info):
         return return_error("Allocation not found", status_code=404)
 
@@ -232,7 +237,9 @@ def create_allocation(allocation: Allocation,
                       request: Request,
                       user_info=Depends(authenticate)):
     """Record an environment of the user"""
+    awm.logger.debug(f"Create allocation from user '{user_info.get('sub')}'")
     data = allocation.model_dump(exclude_unset=True, mode="json")
+    awm.logger.debug(f"Allocation data: {allocation.model_dump()}")
     try:
         allocation_id = awm.allocation_store.replace_allocation(data, user_info)
     except Exception as ex:

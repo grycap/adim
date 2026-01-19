@@ -52,6 +52,7 @@ def list_tools(
     user_info=Depends(authenticate)
 ):
     try:
+        awm.logger.debug(f"Listing tools from user '{user_info.get('sub')}'")
         total, count, tools = awm.tool_store.list_tools(request, from_, limit)
     except RepositoryConnectionException as ex:
         return return_error("Repository connection failed: %s" % ex, 503)
@@ -90,6 +91,7 @@ def get_tool(tool_id: str,
              user_info=Depends(authenticate)):
     """Get information about an existing tool blueprint"""
     try:
+        awm.logger.debug(f"Getting tool {tool_id} from user '{user_info.get('sub')}'")
         tool_or_msg, status_code = awm.tool_store.get_tool_from_repo(tool_id, version, request)
     except RepositoryConnectionException as ex:
         return return_error("Repository connection failed: %s" % ex, 503)
