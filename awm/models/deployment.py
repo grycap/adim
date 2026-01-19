@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Literal
+from typing import Literal, Dict, Any
 from pydantic import BaseModel, Field, HttpUrl
 from awm.models.allocation import AllocationId
 from awm.models.tool import ToolId
@@ -28,6 +28,7 @@ class DeploymentId(BaseModel):
 class Deployment(BaseModel):
     allocation: AllocationId
     tool: ToolId
+    inputs: Dict[str, Any] | None = Field(None, description="Input values for the template")
 
 
 class DeploymentInfo(BaseModel):
@@ -44,6 +45,7 @@ class DeploymentInfo(BaseModel):
                     "deleting",
                     "deleted"]
     details: str | None = Field(None, description="Additional information about the deployment status")
+    outputs: Dict[str, Any] | None = Field(None, description="Deployed Template output values")
     self_: HttpUrl | None = Field(None, alias="self",
                                   description="Endpoint that returns the details of this tool blueprint")
 

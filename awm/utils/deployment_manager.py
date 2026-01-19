@@ -15,6 +15,8 @@
 
 import awm
 import time
+import yaml
+from typing import Dict, Any
 from fastapi import Request
 from imclient import IMClient
 from awm.models.deployment import DeploymentInfo, Deployment
@@ -250,6 +252,14 @@ class DeploymentsManager:
         msg = Success(message="Deleting")
         return msg, 202
 
+    def _get_template(blueprint: str, inputs: Dict[str, Any]) -> str:
+        template = yaml.safe_load(blueprint)
+        temp_inputs = template.get("topology_template", {}).get("inputs", {})
+        for key in list(temp_inputs.keys()):
+            if key in inputs:
+                temp_inputs[key]["default"] = inputs[key]
+        return yaml.safe_dump(template)
+
     def update_deployment(self, deployment: Deployment, tool: ToolInfo,
                           allocation: AllocationInfo, user_info: dict,
                           request: Request) -> DeploymentInfo:
@@ -258,7 +268,8 @@ class DeploymentsManager:
 
         # Create the infrastructure in the IM
         client = IMClient.init_client(self.im_url, auth_data)
-        success, deployment_id = client.create(tool.blueprint, "yaml", True)
+        template = self._get_template(tool.blueprint, deployment.inputs)
+        success, deployment_id = client.create(template, "yaml", True)
         if not success:
             raise Exception(deployment_id)
 

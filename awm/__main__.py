@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import os
+import yaml
 from fastapi import FastAPI
 from awm.routers import deployments, allocations, tools, service
 
@@ -23,7 +24,7 @@ def create_app():
     app = FastAPI(
         title="EOSC AWM API",
         description="EOSC Application Workflow Management API",
-        version="0.1.47",
+        version="0.1.48",
         docs_url="/",
         root_path=os.getenv("ROOT_PATH", "")
     )
@@ -57,6 +58,10 @@ def main():
 
 
 app = create_app()
+
+
+with open("awm-api.yaml", "w", encoding="utf-8") as f:
+    yaml.dump(app.openapi(), f, sort_keys=False, allow_unicode=True)
 
 
 if __name__ == '__main__':
