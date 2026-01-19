@@ -121,8 +121,8 @@ class AllocationStoreDB(AllocationStore):
             else:
                 if allocation_id is None:  # new allocation
                     allocation_id = str(uuid.uuid4())
-                    sql = "replace into allocations (id, data, owner, created) values (%s, %s, %s, %s)"
-                    values = (allocation_id, json.dumps(data), user_info['sub'], time.time())
+                    sql = "replace into allocations (id, data, owner, created) values (%s, %s, %s, now())"
+                    values = (allocation_id, json.dumps(data), user_info['sub'])
                 else:  # update existing allocation
                     sql = "update allocations set data = %s where id = %s"
                     values = (json.dumps(data), allocation_id)
