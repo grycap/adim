@@ -268,6 +268,7 @@ class DeploymentsManager:
                                              status="pending",
                                              self_=str(request.url_for("get_deployment", deployment_id=deployment_id)))
             data = deployment_info.model_dump_json(exclude_unset=True)
+            awm.logger.debug(f"Storing deployment info: {data}")
             if self.db.db_type == DataBase.MONGO:
                 res = self.db.replace("deployments", {"id": deployment_id},
                                       {"id": deployment_id, "data": data,

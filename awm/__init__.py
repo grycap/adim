@@ -25,14 +25,16 @@ load_dotenv()
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "info")
 
-# Configurar el logger principal
-logging.basicConfig(
-    level=LOG_LEVEL.upper(),
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
-
 logger = logging.getLogger(__name__)
+logger.setLevel(LOG_LEVEL.upper())
+logger.propagate = False
 
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+    handler.setFormatter(formatter)
+    handler.setLevel(LOG_LEVEL.upper())
+    logger.addHandler(handler)
 
 # Initialize allocation store
 ALLOCATION_STORE = os.getenv("ALLOCATION_STORE", "db")

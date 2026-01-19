@@ -71,6 +71,7 @@ def list_deployments(
     all_nodes: bool = Query(False, alias="allNodes"),
     user_info=Depends(authenticate)
 ):
+    awm.logger.debug(f"Listing deployments from user '{user_info.get('sub')}'")
     return _list_deployments(from_, limit, all_nodes, user_info, request)
 
 
@@ -94,6 +95,7 @@ def list_deployments(
 def get_deployment(deployment_id,
                    user_info=Depends(authenticate)):
     """Get information about an existing deployment"""
+    awm.logger.debug(f"Getting deployment {deployment_id} from user '{user_info.get('sub')}'")
     deployment, status_code = awm.deployments_manager.get_deployment(deployment_id, user_info, True)
     return Response(content=deployment.model_dump_json(exclude_unset=True, by_alias=True),
                     status_code=status_code, media_type="application/json")
@@ -118,6 +120,7 @@ def get_deployment(deployment_id,
 def delete_deployment(deployment_id,
                       user_info=Depends(authenticate)):
     """Tear down an existing deployment"""
+    awm.logger.debug(f"Deleting deployment {deployment_id} from user '{user_info.get('sub')}'")
     res, status_code = awm.deployments_manager.delete_deployment(deployment_id, user_info)
     return Response(content=res.model_dump_json(exclude_unset=True),
                     status_code=status_code, media_type="application/json")
@@ -142,17 +145,21 @@ def deploy_workload(deployment: Deployment,
                     request: Request,
                     user_info=Depends(authenticate)):
     """Deploy workload to an EOSC environment or an infrastructure for which the user has credentials"""
+    awm.logger.debug(f"Creating deployment from user '{user_info.get('sub')}'")
     # Get the Tool from the ID
     tool, status_code = awm.tool_store.get_tool_from_repo(deployment.tool.id, deployment.tool.version, request)
     if status_code != 200:
+        awm.logger.warning(f"Tool {deployment.tool.id} not found")
         return Response(content=tool, status_code=400, media_type="application/json")
 
     # Get the allocation info from the Allocation
     allocation, status = awm.deployments_manager.get_allocation(deployment, user_info)
     if status != 200:
+        awm.logger.warning(f"Allocation {deployment.allocation.id} not found")
         return allocation, status
 
     if allocation.root.kind == "EoscNodeEnvironment":
+        awm.logger.error("EOSCNodeEnvironment support not implemented yet")
         raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
 
     try:

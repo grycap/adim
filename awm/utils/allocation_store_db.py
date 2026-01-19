@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import awm
 import json
 import time
 import uuid
@@ -38,6 +39,7 @@ class AllocationStoreDB(AllocationStore):
     def _init_table(db: DataBase) -> bool:
         """Creates de database."""
         if not db.table_exists("allocations"):
+            awm.logger.info("Creating allocations table")
             if db.db_type == DataBase.MYSQL:
                 db.execute("CREATE TABLE IF NOT EXISTS allocations (id VARCHAR(255) PRIMARY KEY, data TEXT, "
                            "owner VARCHAR(255), created TIMESTAMP)")

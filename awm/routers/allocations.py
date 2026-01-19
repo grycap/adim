@@ -53,23 +53,23 @@ def list_allocations(
     user_info=Depends(authenticate)
 ):
     try:
+        awm.logger.debug(f"Listing allocations from user '{user_info.get('sub')}'")
         count, allocations = awm.allocation_store.list_allocations(user_info, from_, limit)
     except Exception as ex:
         return return_error(str(ex), 503)
 
     res = []
     for elem in allocations:
-        allocation_id = elem['id']
-        allocation_data = elem['data']
-        allocation = Allocation.model_validate(allocation_data)
+        allocation = Allocation.model_validate(elem['data'])
         allocation_info = AllocationInfo(
-            id=allocation_id,
-            self_=str(request.url_for("get_allocation", allocation_id=allocation_id)),
+            id=elem['id'],
+            self_=str(request.url_for("get_allocation", allocation_id=elem['id'])),
             allocation=allocation
         )
         res.append(allocation_info)
 
     if all_nodes:
+        awm.logger.debug(f"Listing allocations in all EOSC nodes for user '{user_info.get('sub')}'")
         remote_count, remote_tools = EOSCNodeRegistry.list_allocations(from_, limit, count, user_info)
         res.extend(remote_tools)
         count += remote_count
@@ -116,6 +116,7 @@ def get_allocation(request: Request,
                    allocation_id,
                    user_info=Depends(authenticate)):
     """Get information about an existing allocation"""
+    awm.logger.debug(f"Getting allocation {allocation_id} from user '{user_info.get('sub')}'")
     allocation_info = _get_allocation_info(allocation_id, user_info, request)
     if allocation_info is None:
         return return_error("Allocation not found", status_code=404)
@@ -124,7 +125,7 @@ def get_allocation(request: Request,
                     status_code=200, media_type="application/json")
 
 
-def _check_allocation_in_use(allocation_id: str, user_info: dict, request: Request) -> Response:
+def _check_allocation_in_use(allocation_id: str, user_info: dict) -> Response:
     # check if this allocation is used in any deployment
     try:
         _, deployments = awm.deployments_manager.list_deployments(limit=999999999, user_info=user_info)
@@ -157,12 +158,13 @@ def update_allocation(allocation_id,
                       allocation: Allocation,
                       request: Request,
                       user_info=Depends(authenticate)):
+    awm.logger.debug(f"Update allocation {allocation_id} from user '{user_info.get('sub')}'")
     allocation_info = _get_allocation_info(allocation_id, user_info, request)
     if allocation_info is None:
         return return_error("Allocation not found", status_code=404)
 
     # check if this allocation is used in any deployment
-    response = _check_allocation_in_use(allocation_id, user_info, request)
+    response = _check_allocation_in_use(allocation_id, user_info)
     if response:
         return response
 
@@ -194,14 +196,14 @@ def update_allocation(allocation_id,
                           503: {"model": Error,
                                 "description": "Try again later"}})
 def delete_allocation(allocation_id,
-                      request: Request,
                       user_info=Depends(authenticate)):
     """Remove existing environment of the user"""
+    awm.logger.debug(f"Delete allocation {allocation_id} from user '{user_info.get('sub')}'")
     if not awm.allocation_store.get_allocation(allocation_id, user_info):
         return return_error("Allocation not found", status_code=404)
 
     # check if this allocation is used in any deployment
-    response = _check_allocation_in_use(allocation_id, user_info, request)
+    response = _check_allocation_in_use(allocation_id, user_info)
     if response:
         return response
 
@@ -235,7 +237,9 @@ def create_allocation(allocation: Allocation,
                       request: Request,
                       user_info=Depends(authenticate)):
     """Record an environment of the user"""
+    awm.logger.debug(f"Create allocation from user '{user_info.get('sub')}'")
     data = allocation.model_dump(exclude_unset=True, mode="json")
+    awm.logger.debug(f"Allocation data: {allocation.model_dump()}")
     try:
         allocation_id = awm.allocation_store.replace_allocation(data, user_info)
     except Exception as ex:
