@@ -69,9 +69,9 @@ class KubernetesEnvironment(BaseModel):
 
 
 AllocationUnion = Annotated[
-    Union[EoscNodeEnvironment,
-          OpenStackEnvironment,
-          KubernetesEnvironment],
+    Union[OpenStackEnvironment,
+          KubernetesEnvironment,
+          EoscNodeEnvironment],
     Field(discriminator='kind')
 ]
 

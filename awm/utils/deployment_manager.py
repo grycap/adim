@@ -275,8 +275,8 @@ class DeploymentsManager:
                                        "owner": user_info['sub'],
                                        "created": time.time()})
             else:
-                res = self.db.execute("replace into deployments (id, data, created, owner) values (%s, %s, %s, %s)",
-                                      (deployment_id, data, time.time(), user_info['sub']))
+                res = self.db.execute("replace into deployments (id, data, created, owner) values (%s, %s, now(), %s)",
+                                      (deployment_id, data, user_info['sub']))
             self.db.close()
             if not res:
                 raise DBConnectionException("Failed to store deployment information in the database")
