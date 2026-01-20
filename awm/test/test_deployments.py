@@ -225,7 +225,7 @@ def test_get_deployment(client, db_mock, check_oidc_mock, im_mock, allocation_mo
 
     im_mock.get_infra_property.side_effect = [
         (True, {"state": "running"}),
-        (True, {"outputs": {"output1": "value1"}}),
+        (True, {"output1": "value1"}),
         (True, "contmsg")
     ]
 

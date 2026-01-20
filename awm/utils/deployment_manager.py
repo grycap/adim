@@ -196,7 +196,7 @@ class DeploymentsManager:
 
                         success, outputs = client.get_infra_property(deployment_id, "outputs")
                         if success:
-                            dep_info.outputs = outputs.get('outputs')
+                            dep_info.outputs = outputs
                         else:
                             awm.logger.error(f"Could not get deployment outputs: {outputs}")
 
