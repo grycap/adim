@@ -15,6 +15,8 @@
 
 import awm
 import time
+import yaml
+from typing import Dict, Any
 from fastapi import Request
 from imclient import IMClient
 from awm.models.deployment import DeploymentInfo, Deployment
@@ -178,7 +180,7 @@ class DeploymentsManager:
                         client = IMClient.init_client(self.im_url, auth_data)
                         success, state_info = client.get_infra_property(deployment_id, "state")
                         if success:
-                            dep_info.status = state_info['state']
+                            dep_info.status = state_info.get('state')
                         else:
                             dep_info.status = "unknown"
                             awm.logger.error(f"Could not retrieve deployment status: {state_info}")
@@ -192,12 +194,16 @@ class DeploymentsManager:
                             else:
                                 awm.logger.error(f"Could not list infrastructures: {infras}")
 
+                        success, outputs = client.get_infra_property(deployment_id, "outputs")
+                        if success:
+                            dep_info.outputs = outputs.get('outputs')
+
                         success, cont_msg = client.get_infra_property(deployment_id, "contmsg")
                         if success:
                             dep_info.details = cont_msg
 
                         # Update deployment info in DB
-                        data = dep_info.model_dump_json(exclude_unset=True)
+                        data = dep_info.model_dump_json(exclude_unset=True, exclude_none=True)
                         self.db.connect()
                         if self.db.db_type == DataBase.MONGO:
                             res = self.db.replace("deployments", {"id": deployment_id}, {"data": data})
@@ -250,6 +256,18 @@ class DeploymentsManager:
         msg = Success(message="Deleting")
         return msg, 202
 
+    @staticmethod
+    def _get_template(blueprint: str, inputs: Dict[str, Any]) -> str:
+        if not inputs:
+            return blueprint
+        awm.logger.debug("Input values: ", inputs)
+        template = yaml.safe_load(blueprint)
+        temp_inputs = template.get("topology_template", {}).get("inputs", {})
+        for key in list(temp_inputs.keys()):
+            if key in inputs:
+                temp_inputs[key]["default"] = inputs[key]
+        return yaml.safe_dump(template)
+
     def update_deployment(self, deployment: Deployment, tool: ToolInfo,
                           allocation: AllocationInfo, user_info: dict,
                           request: Request) -> DeploymentInfo:
@@ -258,7 +276,8 @@ class DeploymentsManager:
 
         # Create the infrastructure in the IM
         client = IMClient.init_client(self.im_url, auth_data)
-        success, deployment_id = client.create(tool.blueprint, "yaml", True)
+        template = self._get_template(tool.blueprint, deployment.inputs)
+        success, deployment_id = client.create(template, "yaml", True)
         if not success:
             raise Exception(deployment_id)
 

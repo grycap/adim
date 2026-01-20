@@ -16,6 +16,7 @@
 import awm
 import json
 import pytest
+import yaml
 from pydantic import HttpUrl
 from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
@@ -224,6 +225,7 @@ def test_get_deployment(client, db_mock, check_oidc_mock, im_mock, allocation_mo
 
     im_mock.get_infra_property.side_effect = [
         (True, {"state": "running"}),
+        (True, {"outputs": {"output1": "value1"}}),
         (True, "contmsg")
     ]
 
@@ -234,6 +236,7 @@ def test_get_deployment(client, db_mock, check_oidc_mock, im_mock, allocation_mo
     assert response.json()["status"] == "running"
     assert response.json()["deployment"]["tool"]["id"] == "toolid"
     assert response.json()["details"] == "contmsg"
+    assert response.json()["outputs"] == {"output1": "value1"}
 
     db_mock.select.assert_called_with(
         "SELECT data FROM deployments WHERE id = %s and owner = %s",
@@ -245,6 +248,7 @@ def test_get_deployment_no_im(client, db_mock, check_oidc_mock, im_mock, allocat
     seed_deployments([[[_get_deployment_info()]]])
 
     im_mock.get_infra_property.side_effect = [
+        (False, "error"),
         (False, "error"),
         (False, "error")
     ]
@@ -284,7 +288,15 @@ def test_delete_deployment(client, db_mock, check_oidc_mock, im_mock, ost_alloca
 @pytest.fixture
 def get_tool_mock(mocker):
     tool = MagicMock()
-    tool.blueprint = "tool blueprint"
+    tool.blueprint = """
+tosca_definitions_version: tosca_simple_yaml_1_0
+topology_template:
+  inputs:
+    num_cpus:
+      type: integer
+      description: Number of virtual cpus for the VM
+      default: 2
+    """
     return mocker.patch("awm.tool_store.get_tool_from_repo", return_value=(tool, 200))
 
 
@@ -310,3 +322,31 @@ def test_deploy_workload(
     assert response.status_code == 202
     assert response.json()["id"] == "new_dep_id"
     assert response.json()["infoLink"] == "http://testserver/deployment/new_dep_id"
+
+
+def test_deploy_workload_inputs(
+    client, db_mock, check_oidc_mock, im_mock, get_tool_mock, allocation_mock_router
+):
+    im_mock.create.return_value = True, "new_dep_id"
+
+    payload = ('{"tool": {"kind": "ToolId", "id": "toolid"}, '
+               '"allocation": {"kind": "AllocationId", "id": "aid"},'
+               '"inputs": {"num_cpus": 4}}')
+
+    response = client.post("/deployments",
+                           headers={"Authorization": "Bearer token"},
+                           content=payload)
+
+    assert response.status_code == 202
+    assert response.json()["id"] == "new_dep_id"
+    assert response.json()["infoLink"] == "http://testserver/deployment/new_dep_id"
+    exp_template = yaml.safe_load("""
+tosca_definitions_version: tosca_simple_yaml_1_0
+topology_template:
+  inputs:
+    num_cpus:
+      type: integer
+      description: Number of virtual cpus for the VM
+      default: 4
+    """)
+    assert yaml.safe_load(im_mock.create.call_args_list[0][0][0]) == exp_template
