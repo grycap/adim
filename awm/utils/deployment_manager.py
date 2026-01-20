@@ -180,7 +180,7 @@ class DeploymentsManager:
                         client = IMClient.init_client(self.im_url, auth_data)
                         success, state_info = client.get_infra_property(deployment_id, "state")
                         if success:
-                            dep_info.status = state_info['state']
+                            dep_info.status = state_info.get('state')
                         else:
                             dep_info.status = "unknown"
                             awm.logger.error(f"Could not retrieve deployment status: {state_info}")
@@ -194,12 +194,16 @@ class DeploymentsManager:
                             else:
                                 awm.logger.error(f"Could not list infrastructures: {infras}")
 
+                        success, outputs = client.get_infra_property(deployment_id, "outputs")
+                        if success:
+                            dep_info.outputs = outputs.get('outputs')
+
                         success, cont_msg = client.get_infra_property(deployment_id, "contmsg")
                         if success:
                             dep_info.details = cont_msg
 
                         # Update deployment info in DB
-                        data = dep_info.model_dump_json(exclude_unset=True)
+                        data = dep_info.model_dump_json(exclude_unset=True, exclude_none=True)
                         self.db.connect()
                         if self.db.db_type == DataBase.MONGO:
                             res = self.db.replace("deployments", {"id": deployment_id}, {"data": data})
@@ -252,7 +256,10 @@ class DeploymentsManager:
         msg = Success(message="Deleting")
         return msg, 202
 
+    @staticmethod
     def _get_template(blueprint: str, inputs: Dict[str, Any]) -> str:
+        if not inputs:
+            return blueprint
         template = yaml.safe_load(blueprint)
         temp_inputs = template.get("topology_template", {}).get("inputs", {})
         for key in list(temp_inputs.keys()):

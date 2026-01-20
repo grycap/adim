@@ -59,9 +59,9 @@ def main():
 
 app = create_app()
 
-
-with open("awm-api.yaml", "w", encoding="utf-8") as f:
-    yaml.dump(app.openapi(), f, sort_keys=False, allow_unicode=True)
+if os.getenv("OPENAPI"):
+    with open("awm-api.yaml", "w", encoding="utf-8") as f:
+        yaml.dump(app.openapi(), f, sort_keys=False, allow_unicode=True)
 
 
 if __name__ == '__main__':
