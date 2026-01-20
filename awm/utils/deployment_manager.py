@@ -260,6 +260,7 @@ class DeploymentsManager:
     def _get_template(blueprint: str, inputs: Dict[str, Any]) -> str:
         if not inputs:
             return blueprint
+        awm.logger.debug("Input values: ", inputs)
         template = yaml.safe_load(blueprint)
         temp_inputs = template.get("topology_template", {}).get("inputs", {})
         for key in list(temp_inputs.keys()):

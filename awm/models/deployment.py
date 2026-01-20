@@ -28,7 +28,8 @@ class DeploymentId(BaseModel):
 class Deployment(BaseModel):
     allocation: AllocationId
     tool: ToolId
-    inputs: Dict[str, Any] | None = Field(None, description="Input values for the template")
+    inputs: Dict[str, Any] | None = Field(None, description="Input values for the template",
+                                          json_schema_extra={"type": "object", "additionalProperties": {}})
 
 
 class DeploymentInfo(BaseModel):
@@ -45,7 +46,8 @@ class DeploymentInfo(BaseModel):
                     "deleting",
                     "deleted"]
     details: str | None = Field(None, description="Additional information about the deployment status")
-    outputs: Dict[str, Any] | None = Field(None, description="Deployed Template output values")
+    outputs: Dict[str, Any] | None = Field(None, description="Deployed Template output values",
+                                           json_schema_extra={"type": "object", "additionalProperties": True})
     self_: HttpUrl | None = Field(None, alias="self",
                                   description="Endpoint that returns the details of this tool blueprint")
 
