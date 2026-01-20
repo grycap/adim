@@ -197,10 +197,14 @@ class DeploymentsManager:
                         success, outputs = client.get_infra_property(deployment_id, "outputs")
                         if success:
                             dep_info.outputs = outputs.get('outputs')
+                        else:
+                            awm.logger.error(f"Could not get deployment outputs: {outputs}")
 
                         success, cont_msg = client.get_infra_property(deployment_id, "contmsg")
                         if success:
                             dep_info.details = cont_msg
+                        else:
+                            awm.logger.error(f"Could not get deployment contmsg: {cont_msg}")
 
                         # Update deployment info in DB
                         data = dep_info.model_dump_json(exclude_unset=True, exclude_none=True)
