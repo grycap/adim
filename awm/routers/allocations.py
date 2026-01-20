@@ -76,7 +76,7 @@ def list_allocations(
 
     page = PageOfAllocations(from_=from_, limit=limit, elements=res, count=count)
     page.set_next_and_prev_pages(request, all_nodes)
-    return Response(content=page.model_dump_json(exclude_unset=True, by_alias=True),
+    return Response(content=page.model_dump_json(exclude_unset=True, exclude_none=True, by_alias=True),
                     status_code=200, media_type="application/json")
 
 
@@ -121,7 +121,7 @@ def get_allocation(request: Request,
     if allocation_info is None:
         return return_error("Allocation not found", status_code=404)
 
-    return Response(content=allocation_info.model_dump_json(exclude_unset=True, by_alias=True),
+    return Response(content=allocation_info.model_dump_json(exclude_unset=True, exclude_none=True, by_alias=True),
                     status_code=200, media_type="application/json")
 
 
@@ -175,7 +175,7 @@ def update_allocation(allocation_id,
         return return_error(str(ex), 503)
 
     allocation_info = _get_allocation_info(allocation_id, user_info, request)
-    return Response(content=allocation_info.model_dump_json(exclude_unset=True, by_alias=True),
+    return Response(content=allocation_info.model_dump_json(exclude_unset=True, exclude_none=True, by_alias=True),
                     status_code=200, media_type="application/json")
 
 

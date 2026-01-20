@@ -43,7 +43,7 @@ def _list_deployments(from_: int = 0, limit: int = 100,
 
     page = PageOfDeployments(from_=from_, limit=limit, elements=deployments, count=count, self_=str(request.url))
     page.set_next_and_prev_pages(request, all_nodes)
-    return Response(content=page.model_dump_json(exclude_unset=True, by_alias=True),
+    return Response(content=page.model_dump_json(exclude_unset=True, by_alias=True, exclude_none=True),
                     status_code=200, media_type="application/json")
 
 
@@ -97,7 +97,7 @@ def get_deployment(deployment_id,
     """Get information about an existing deployment"""
     awm.logger.debug(f"Getting deployment {deployment_id} from user '{user_info.get('sub')}'")
     deployment, status_code = awm.deployments_manager.get_deployment(deployment_id, user_info, True)
-    return Response(content=deployment.model_dump_json(exclude_unset=True, by_alias=True),
+    return Response(content=deployment.model_dump_json(exclude_unset=True, exclude_none=True, by_alias=True),
                     status_code=status_code, media_type="application/json")
 
 
