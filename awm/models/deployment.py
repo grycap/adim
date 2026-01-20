@@ -47,7 +47,7 @@ class DeploymentInfo(BaseModel):
                     "deleted"]
     details: str | None = Field(None, description="Additional information about the deployment status")
     outputs: Dict[str, Any] | None = Field(None, description="Deployed Template output values",
-                                           json_schema_extra={"type": "object", "additionalProperties": True})
+                                           json_schema_extra={"type": "object", "additionalProperties": {}})
     self_: HttpUrl | None = Field(None, alias="self",
                                   description="Endpoint that returns the details of this tool blueprint")
 
