@@ -1,0 +1,61 @@
+{
+    "@context": [
+        "https://doi.org/10.5063/schema/codemeta-2.0",
+        "http://schema.org"
+    ],
+    "@type": "SoftwareSourceCode",
+    "identifier": "awm",
+    "name": "AWM",
+    "version": "0.3.0",
+    "description": "Implements EOSC Application Workflow Management API.",
+    "license": "Apache license 2.0",
+    "author": [
+        {
+            "@type": "Person",
+            "givenName": "Miguel",
+            "familyName": "Caballer",
+            "@id": "https://orcid.org/0000-0001-9393-3077",
+            "email": "micafer1@upv.es"
+        }
+    ],
+    "audience": [
+        {
+            "@type": "Audience",
+            "audienceType": "Developers"
+        },
+        {
+            "@type": "Audience",
+            "audienceType": "Science/Research"
+        }
+    ],
+    "runtimePlatform": "Python 3",
+    "url": "https://github.com/grycap/awm",
+    "keywords": "EOSC, Workflow Management, TOSCA, Orchestration",
+    "developmentStatus": "4 - Beta",
+    "programmingLanguage": "Python 3, Python 3.8, Python 3.9, Python 3.10, Python 3.11, Python 3.12",
+    "applicationCategory": "System, Utilities",
+    "codeRepository": "https://github.com/grycap/awm",
+    "copyrightHolder": "GRyCAP-UPV",
+    "copyrightYear": 2026,
+    "creator": [
+        {
+            "@type": "Person",
+            "givenName": "Miguel",
+            "familyName": "Caballer",
+            "@id": "https://orcid.org/0000-0001-9393-3077",
+            "email": "micafer1@upv.es"
+        }
+    ],
+    "dateCreated": "2025-03-31",
+    "affiliation": "UPV",
+    "maintainer": [
+        {
+            "@type": "Person",
+            "givenName": "Miguel",
+            "familyName": "Caballer",
+            "@id": "https://orcid.org/0000-0001-9393-3077",
+            "email": "micafer1@upv.es"
+        }
+    ],
+    "readme": "https://github.com/grycap/awm/blob/master/README.md"
+}
