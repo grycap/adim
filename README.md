@@ -42,7 +42,8 @@ http://localhost:8080/
 
 ## Running with Docker
 
-To run the server on a Docker container, please execute the following from the root directory:
+To run the server on a Docker container, please execute the following from the
+root directory:
 
 ```bash
 # building the image
@@ -52,6 +53,6 @@ docker build -t awm .
 docker run -p 8080:8080 awm
 
 # starting up a setting the IM_URL variable
-docker run -p 8080:8080 -e IM_URL=https://appsgrycap.i3m.upv.es/im-dev/ ghcr.io/grycap/awm
+docker run -p 8080:8080 -e IM_URL=https://im.egi.eu/im ghcr.io/grycap/awm
 
 ```
