@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import base64
+import re
 import yaml
 import awm
 import requests
@@ -43,7 +43,8 @@ class ToolStore:
     @staticmethod
     def _convert_url_to_raw(url: str) -> str:
         if url.startswith("https://github.com"):
-            url = url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
+            url = re.sub(r"https://github\.com/(.+)/blob/(.+)",
+                         r"https://raw.githubusercontent.com/\1/\2", url)
         return url
 
     @staticmethod
