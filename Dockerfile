@@ -7,7 +7,7 @@ LABEL description="Container image to run the AWM API service."
 RUN mkdir -p /app/awm
 WORKDIR /app
 
-RUN pip3 install --no-cache-dir gunicorn==23.0.0
+RUN pip3 install --no-cache-dir gunicorn==24.1.1
 
 COPY requirements.txt /app/
 

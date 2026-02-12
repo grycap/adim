@@ -1,5 +1,8 @@
 # AWM
 
+[![Test AWM](https://github.com/grycap/awm/actions/workflows/main.yaml/badge.svg)](https://github.com/grycap/awm/actions/workflows/main.yaml)
+[![SQAaaS badge shields.io](https://github.com/EOSC-synergy/awm.assess.sqaaas/raw/v0.3.0/.badge/status_shields.svg)](https://sqaaas.eosc-synergy.eu/#/full-assessment/report/https://raw.githubusercontent.com/eosc-synergy/awm.assess.sqaaas/v0.3.0/.report/assessment_output.json)
+
 ## Overview
 
 Implements EOSC Application Workflow Management API.
@@ -48,7 +51,8 @@ http://localhost:8080/
 
 ## Running with Docker
 
-To run the server on a Docker container, please execute the following from the root directory:
+To run the server on a Docker container, please execute the following from the
+root directory:
 
 ```bash
 # building the image
@@ -58,6 +62,6 @@ docker build -t awm .
 docker run -p 8080:8080 awm
 
 # starting up a setting the IM_URL variable
-docker run -p 8080:8080 -e IM_URL=https://appsgrycap.i3m.upv.es/im-dev/ ghcr.io/grycap/awm
+docker run -p 8080:8080 -e IM_URL=https://im.egi.eu/im ghcr.io/grycap/awm
 
 ```
