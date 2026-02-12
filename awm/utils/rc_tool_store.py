@@ -43,7 +43,7 @@ class ToolStore:
     @staticmethod
     def _convert_url_to_raw(url: str) -> str:
         if url.startswith("https://github.com"):
-            url = re.sub(r"https://github\.com/(.+)/blob/(.+)",
+            url = re.sub(r"https://github\.com/([^/]+/[^/]+)/blob/(.+)",
                          r"https://raw.githubusercontent.com/\1/\2", url)
         return url
 
