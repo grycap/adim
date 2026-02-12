@@ -17,7 +17,6 @@ import os
 import logging
 from dotenv import load_dotenv
 from awm.utils.deployment_manager import DeploymentsManager
-from awm.utils.tool_store import ToolStore
 
 __version__ = "0.3.0"
 
@@ -61,7 +60,13 @@ DB_URL = os.getenv("DB_URL", "file:///tmp/awm.db")
 deployments_manager = DeploymentsManager(DB_URL, IM_URL)
 
 # Initialize tool store
+TOOL_STORE = os.getenv("TOOL_STORE", "git")
 
-AWM_TOOLS_REPO = os.getenv("AWM_TOOLS_REPO", "https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
-
-tool_store = ToolStore(AWM_TOOLS_REPO)
+if TOOL_STORE == "git":
+    AWM_TOOLS_REPO = os.getenv("AWM_TOOLS_REPO", "https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
+    from awm.utils.git_tool_store import ToolStore
+    tool_store = ToolStore(AWM_TOOLS_REPO)
+else:
+    RESOURCE_CATALOG = os.getenv("RESOURCE_CATALOG", "https://providers.sandbox.eosc-beyond.eu/api")
+    from awm.utils.rc_tool_store import ToolStore
+    tool_store = ToolStore(RESOURCE_CATALOG)

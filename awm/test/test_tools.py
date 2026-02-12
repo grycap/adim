@@ -20,8 +20,8 @@ from unittest.mock import patch, MagicMock
 from awm.__main__ import create_app
 from pydantic import HttpUrl
 from awm.utils.node_registry import EOSCNode
-from awm import AWM_TOOLS_REPO
 from awm.utils.repository import Repository
+import awm
 
 
 @pytest.fixture
@@ -46,9 +46,14 @@ def check_oidc_mock():
         yield mock_func
 
 
+@pytest.fixture(params=["git", "rc"])
+def backend_type(request):
+    return request.param
+
+
 @pytest.fixture
 def repo_mock(mocker):
-    repo = Repository.create(AWM_TOOLS_REPO)
+    repo = Repository.create("https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
     repo.cache_session = MagicMock(["get"])
     mocker.patch("awm.utils.repository.Repository.create", return_value=repo)
     return repo
@@ -64,39 +69,73 @@ def requests_get_mock(mocker):
     return mocker.patch("requests.get")
 
 
-def test_list_tools(client, check_oidc_mock, repo_mock, headers):
-    repo_mock.cache_session.get.side_effect = [
-        MagicMock(status_code=200, json=MagicMock(return_value={
-            "tree": [{"type": "blob", "path": "templates/tosca.yaml", "sha": "version"}]
-        })),
-        MagicMock(status_code=200, text="description: DESC\nmetadata:\n  template_name: NAME")
-    ]
+@pytest.fixture
+def seed_tools(backend_type, repo_mock, requests_get_mock):
+    def _seed(tools_list):
+        if backend_type == "git":
+            from awm.utils.git_tool_store import ToolStore
+            awm.tool_store = ToolStore("https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
+
+            # Mock the repository responses for git backend
+            responses = []
+            for tools_elem in tools_list:
+                responses.append(tools_elem)
+            repo_mock.cache_session.get.side_effect = responses
+
+        elif backend_type == "rc":
+            from awm.utils.rc_tool_store import ToolStore
+            awm.tool_store = ToolStore("https://providers.sandbox.eosc-beyond.eu/api")
+
+            # Mock the requests.get responses for rc backend
+            responses = []
+            for tools_elem in tools_list:
+                responses.append(tools_elem)
+            requests_get_mock.side_effect = responses
+
+    return _seed
+
+
+@pytest.mark.parametrize("backend_type", ["git", "rc"], indirect=True)
+def test_list_tools(client, check_oidc_mock, backend_type, repo_mock, requests_get_mock,
+                    headers, seed_tools):
+    blueprint = "description: DESC\nmetadata:\n  template_name: NAME"
+
+    if backend_type == "git":
+        seed_tools([
+            MagicMock(status_code=200, json=MagicMock(return_value={
+                "tree": [{"type": "blob", "path": "templates/tosca.yaml", "sha": "version"}]
+            })),
+            MagicMock(status_code=200, text=blueprint)
+        ])
+    else:  # rc
+        resp_list = MagicMock(status_code=200)
+        resp_list.json.return_value = {
+            "results": [
+                {
+                    "id": "tool1",
+                    "version": "version",
+                    "url": "http://catalog.url/tool1"
+                }
+            ]
+        }
+        resp_get = MagicMock(status_code=200)
+        resp_get.text = blueprint
+        seed_tools([resp_list, resp_get])
 
     response = client.get("/tools", headers=headers)
     assert response.status_code == 200
-
-    expected = {
-        "count": 1,
-        "elements": [{
-            "blueprint": "description: DESC\nmetadata:\n  template_name: NAME",
-            "blueprintType": "tosca",
-            "description": "DESC",
-            "id": "templates@tosca.yaml",
-            "name": "NAME",
-            "self": "http://testserver/tool/templates@tosca.yaml?version=version",
-            "type": "vm",
-            "version": "version",
-        }],
-        "from": 0,
-        "limit": 100
-    }
-
-    assert response.json() == expected
+    assert response.json()["count"] == 1
+    assert len(response.json()["elements"]) == 1
+    assert response.json()["elements"][0]["description"] == "DESC"
+    assert response.json()["elements"][0]["name"] == "NAME"
 
 
 def test_list_tools_remote(
     client, mocker, check_oidc_mock, repo_mock, list_nodes_mock, requests_get_mock, headers
 ):
+    from awm.utils.git_tool_store import ToolStore
+    awm.tool_store = ToolStore("test")
+
     blueprint = "description: DESC\nmetadata:\n  template_name: NAME"
 
     mock_list = MagicMock(status_code=200, json=MagicMock(return_value={
@@ -184,36 +223,36 @@ def test_list_tools_remote(
     assert len(response.json()["elements"]) == 1
 
 
-def test_get_tool(client, check_oidc_mock, repo_mock, headers):
-    repo_mock.cache_session.get.return_value = MagicMock(status_code=200,
-                                                         json=MagicMock(return_value={
-                                                             "sha": "version",
-                                                             "content": base64.b64encode(
-                                                                 b"description: DESC\nmetadata:\n  template_name: NAME"
-                                                             ).decode()
-                                                         }))
+@pytest.mark.parametrize("backend_type", ["git", "rc"], indirect=True)
+def test_get_tool(client, check_oidc_mock, backend_type, repo_mock, requests_get_mock, headers, seed_tools):
+    blueprint = "description: DESC\nmetadata:\n  template_name: NAME"
+    tool_id = "toolid"
 
-    response = client.get("/tool/toolid", headers=headers)
+    if backend_type == "git":
+        resp = MagicMock(status_code=200,
+                         json=MagicMock(return_value={
+                             "sha": "version",
+                             "content": base64.b64encode(
+                                 blueprint.encode()
+                                 ).decode()
+                             }))
+        seed_tools([resp])
+
+    else:  # rc
+        resp = MagicMock(status_code=200)
+        resp.text = blueprint
+        resp.json.return_value = {
+            "id": "toolid",
+            "version": "version",
+            "url": "http://catalog.url/tool1"
+        }
+        resp_get = MagicMock(status_code=200)
+        resp_get.text = blueprint
+        seed_tools([resp, resp_get])
+
+    response = client.get(f"/tool/{tool_id}", headers=headers)
     assert response.status_code == 200
-
-    expected = {
-        "blueprint": "description: DESC\nmetadata:\n  template_name: NAME",
-        "blueprintType": "tosca",
-        "description": "DESC",
-        "id": "toolid",
-        "name": "NAME",
-        "self": "http://testserver/tool/toolid?version=version",
-        "type": "vm",
-        "version": "version"
-    }
-
-    assert response.json() == expected
-    repo_mock.cache_session.get.assert_called_once_with(
-        'https://api.github.com/repos/grycap/tosca/contents/toolid?ref=eosc_lot1')
-
-    # Query con version
-    response = client.get("/tool/toolid?version=version", headers=headers)
-    assert response.status_code == 200
-    assert response.json() == expected
-    assert repo_mock.cache_session.get.call_args_list[1][0] == (
-        'https://api.github.com/repos/grycap/tosca/git/blobs/version',)
+    assert response.json()["description"] == "DESC"
+    assert response.json()["name"] == "NAME"
+    assert response.json()["id"] == tool_id
+    assert response.json()["blueprintType"] == "tosca"

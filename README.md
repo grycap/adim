@@ -17,13 +17,19 @@ Set this environment variables to configure the AWM service:
 
 ```bash
 LOG_LEVEL=info
-DB_URL=file:///tmp/awm.db
 IM_URL=http://localhost:8800
-ALLOCATION_STORE="db" # or vault
+DB_URL=file:///tmp/awm.db
+# db or vault
+ALLOCATION_STORE=db
 VAULT_URL=https://secrets.egi.eu
 ENCRYPT_KEY=3JSvUdOsAlvSNVYvBwHWE-iKdWkhq4C_LmjRcpuycT0=
-AWM_TOOLS_REPO=https://github.com/grycap/tosca/blob/eosc_lot1/templates/
-ROOT_PATH=/awm
+#ROOT_PATH=/awm
+# git or rc
+TOOL_STORE=git
+# In case of git, the repository where to store the tools
+AWM_TOOLS_REPO="https://github.com/grycap/tosca/blob/eosc_lot1/templates/"
+# In case of RC, the URL of the Resource Catalog API
+RESOURCE_CATALOG="https://providers.sandbox.eosc-beyond.eu/api"
 ```
 
 Or you can set an `.env` file as the `.env.example` provided.
