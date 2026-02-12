@@ -13,12 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import re
+
 import yaml
 import awm
 import requests
 from typing import Tuple, Union
 from fastapi import Request
+from urllib.parse import urlparse
 from awm.models.tool import ToolInfo
 from awm.models.error import Error
 from awm.utils import RepositoryConnectionException
@@ -42,9 +43,16 @@ class ToolStore:
 
     @staticmethod
     def _convert_url_to_raw(url: str) -> str:
-        if url.startswith("https://github.com"):
-            url = re.sub(r"https://github\.com/([^/]+/[^/]+)/blob/(.+)",
-                         r"https://raw.githubusercontent.com/\1/\2", url)
+        parsed = urlparse(url)
+        # Only convert well-formed GitHub blob URLs with the expected host.
+        if parsed.scheme == "https" and parsed.hostname == "github.com":
+            # Expected path format: /{owner}/{repo}/blob/{path/to/file}
+            path_parts = parsed.path.lstrip("/").split("/", 4)
+            if len(path_parts) >= 4 and path_parts[2] == "blob":
+                owner = path_parts[0]
+                repo = path_parts[1]
+                file_path = path_parts[3] if len(path_parts) == 4 else path_parts[3] + "/" + path_parts[4]
+                return f"https://raw.githubusercontent.com/{owner}/{repo}/{file_path}"
         return url
 
     @staticmethod
