@@ -75,31 +75,31 @@ def seed_tools(backend_type, repo_mock, requests_get_mock):
         if backend_type == "git":
             from awm.utils.git_tool_store import ToolStore
             awm.tool_store = ToolStore("https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
-            
+
             # Mock the repository responses for git backend
             responses = []
             for tools_elem in tools_list:
                 responses.append(tools_elem)
             repo_mock.cache_session.get.side_effect = responses
-            
+
         elif backend_type == "rc":
             from awm.utils.rc_tool_store import ToolStore
             awm.tool_store = ToolStore("https://providers.sandbox.eosc-beyond.eu/api")
-            
+
             # Mock the requests.get responses for rc backend
             responses = []
             for tools_elem in tools_list:
                 responses.append(tools_elem)
             requests_get_mock.side_effect = responses
-    
+
     return _seed
 
 
 @pytest.mark.parametrize("backend_type", ["git", "rc"], indirect=True)
-def test_list_tools(client, check_oidc_mock, backend_type, repo_mock, requests_get_mock, 
+def test_list_tools(client, check_oidc_mock, backend_type, repo_mock, requests_get_mock,
                     headers, seed_tools):
     blueprint = "description: DESC\nmetadata:\n  template_name: NAME"
-    
+
     if backend_type == "git":
         seed_tools([
             MagicMock(status_code=200, json=MagicMock(return_value={
@@ -237,7 +237,7 @@ def test_get_tool(client, check_oidc_mock, backend_type, repo_mock, requests_get
                                  ).decode()
                              }))
         seed_tools([resp])
-        
+
     else:  # rc
         resp = MagicMock(status_code=200)
         resp.text = blueprint
