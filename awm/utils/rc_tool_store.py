@@ -61,22 +61,32 @@ class ToolStore:
         metadata = tosca.get("metadata", {})
         tool_id = elem['id'].replace("/", "@")
         url = str(request.url_for("get_tool", tool_id=tool_id))
-        if elem['version'] and elem['version'] != "latest":
-            url += "?version=%s" % elem['version']
+        url += "?version=%s" % elem['version']
         tool = ToolInfo(
             id=tool_id,
             self_=url,
             version='latest',
             type=ToolStore.get_tool_type(tosca),
-            name=metadata.get("template_name", ""),
-            description=tosca.get("description", ""),
+            name=elem.get("name", metadata.get("template_name", "")),
+            description=elem.get("description", tosca.get("description", "")),
             blueprint=yaml.safe_dump(tosca),
             blueprintType="tosca"
         )
-        if metadata.get("template_author"):
+        if elem.get("creators"):
+            creator = elem["creators"][0].get("creatorNameTypeInfo", {}).get("creatorName")
+            if creator:
+                tool.authorName = creator
+            if elem["creators"][0].get("creatorAffiliationInfo"):
+                tool.organisation = elem["creators"][0].get("creatorAffiliationInfo").get("affiliation")
+        elif metadata.get("template_author"):
             tool.authorName = metadata.get("template_author")
+
+        if elem.get("node"):
+            tool.nodeId = elem["node"]
         if elem.get('version'):
             tool.version = elem['version']
+        if elem.get('softwareLicense'):
+            tool.license = elem['softwareLicense']
         return tool
 
     def get_tool_from_repo(self, tool_id: str, version: str, request: Request) -> Tuple[Union[ToolInfo, Error], int]:
