@@ -48,7 +48,7 @@ class EOSCNode(BaseModel):
         """Return the list of Items of type 'item' of this node"""
         init = max(0, from_ - count)
         elems = limit - (count - from_)
-        url = f"{self.awmAPI}{item}?from0&limit={elems}"
+        url = f"{self.awmAPI}{item}?from=0&limit={elems}"
         try:
             headers = {"Authorization": f"Bearer {token}"}
             response = requests.get(url, headers=headers, timeout=30)

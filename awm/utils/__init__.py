@@ -25,12 +25,6 @@ class DBConnectionException(ConnectionException):
         self.message = msg
 
 
-class RepositoryConnectionException(ConnectionException):
-    def __init__(self, msg="Repository connection failed"):
-        ConnectionException.__init__(self, msg)
-        self.message = msg
-
-
 class VaultConnectionException(ConnectionException):
     def __init__(self, msg="Vault Connection failed"):
         ConnectionException.__init__(self, msg)

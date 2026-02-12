@@ -19,7 +19,7 @@ import time
 import uuid
 from typing import List
 from awm.utils.db import DataBase
-from awm.utils.allocation_store import AllocationStore
+from .allocation_store import AllocationStore
 from awm.utils import DBConnectionException
 
 

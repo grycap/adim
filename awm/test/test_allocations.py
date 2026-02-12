@@ -26,8 +26,8 @@ from awm.models.tool import ToolId
 from awm.models.allocation import AllocationId
 from awm.utils.node_registry import EOSCNode
 from awm.utils.db import DataBase
-from awm.utils.allocation_store_vault import AllocationStoreVault
-from awm.utils.allocation_store_db import AllocationStoreDB
+from awm.utils.allocation.allocation_store_vault import AllocationStoreVault
+from awm.utils.allocation.allocation_store_db import AllocationStoreDB
 import awm
 
 
@@ -60,7 +60,7 @@ def db_mock(mocker):
     instance = MagicMock()
     instance.connect.return_value = True
     instance.db_type = DataBase.SQLITE
-    db = mocker.patch("awm.utils.allocation_store_db.DataBase", return_value=instance)
+    db = mocker.patch("awm.utils.allocation.allocation_store_db.DataBase", return_value=instance)
     db.MONGO = DataBase.MONGO
     db.SQLITE = DataBase.SQLITE
     return instance

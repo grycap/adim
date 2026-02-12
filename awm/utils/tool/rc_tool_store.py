@@ -17,29 +17,19 @@
 import yaml
 import awm
 import requests
-from typing import Tuple, Union
+from typing import Tuple, Union, List
 from fastapi import Request
 from urllib.parse import urlparse
 from awm.models.tool import ToolInfo
 from awm.models.error import Error
-from awm.utils import RepositoryConnectionException
+from awm.utils import ConnectionException
+from .tool_store import ToolStore
 
 
-class ToolStore:
+class ToolStoreRC(ToolStore):
 
-    def __init__(self, repo_url: str = "https://providers.sandbox.eosc-beyond.eu/api"):
-        self.repo_url = repo_url
-
-    @staticmethod
-    def get_tool_type(tosca: dict) -> str:
-        try:
-            node_templates = tosca.get('topology_template', {}).get('node_templates', {})
-            for _, node in node_templates.items():
-                if node.get('type', '') == 'tosca.nodes.Container.Application.Docker':
-                    return "container"
-        except Exception:
-            awm.logger.exception("Error getting tool type using default 'vm'")
-        return "vm"
+    def __init__(self, url: str = "https://providers.sandbox.eosc-beyond.eu/api"):
+        super().__init__(url)
 
     @staticmethod
     def _convert_url_to_raw(url: str) -> str:
@@ -56,8 +46,8 @@ class ToolStore:
         return url
 
     @staticmethod
-    def _get_tool_info_from_repo(elem: dict, request: Request) -> ToolInfo:
-        tosca = yaml.safe_load(requests.get(ToolStore._convert_url_to_raw(elem['url'])).text)
+    def get_tool_info(elem: dict, request: Request) -> ToolInfo:
+        tosca = yaml.safe_load(requests.get(ToolStoreRC._convert_url_to_raw(elem['url'])).text)
         metadata = tosca.get("metadata", {})
         tool_id = elem['id'].replace("/", "@")
         url = str(request.url_for("get_tool", tool_id=tool_id))
@@ -89,14 +79,14 @@ class ToolStore:
             tool.license = elem['softwareLicense']
         return tool
 
-    def get_tool_from_repo(self, tool_id: str, version: str, request: Request) -> Tuple[Union[ToolInfo, Error], int]:
+    def get_tool(self, tool_id: str, version: str, request: Request, user_info: dict=None) -> Tuple[Union[ToolInfo, Error], int]:
         # tool_id was provided with underscores; convert back path
         repo_tool_id = tool_id.replace("@", "/")
         try:
-            response = requests.get(f"{self.repo_url}/deployableService/{repo_tool_id}")
+            response = requests.get(f"{self.url}/deployableService/{repo_tool_id}")
         except Exception as e:
             awm.logger.error("Failed to get tool info: %s", e)
-            raise RepositoryConnectionException("Failed to get tool info: %s" % e)
+            raise ConnectionException("Failed to get tool info: %s" % e)
 
         if response.status_code == 404:
             msg = Error(id="404", description="Tool not found")
@@ -106,29 +96,14 @@ class ToolStore:
             msg = Error(id="503", description="Failed to fetch tool")
             return msg, 503
 
-        tool = ToolStore._get_tool_info_from_repo(response.json(), request)
+        tool = self.get_tool_info(response.json(), request)
         return tool, 200
 
-    def list_tools(self, request: Request, from_: int = 0, limit: int = 100):
-        tools = []
-        try:
-            response = requests.get(f"{self.repo_url}/deployableService/all")
-            tools_list = response.json().get("results")
-        except Exception as e:
-            raise RepositoryConnectionException("Failed to get list of Tools: %s" % e)
+    def _list(self, request: Request, from_: int, limit: int, user_info: dict) -> List[ToolInfo]:
+        response = requests.get(f"{self.url}/deployableService/all")
+        res = []
+        for elem in response.json().get("results", []):
+            tool = self.get_tool_info(elem, request)
+            res.append(tool)
+        return res
 
-        count = 0
-        total = len(tools_list)
-        for elem in tools_list:
-            count += 1
-            if from_ > count - 1:
-                continue
-            try:
-                tool = self._get_tool_info_from_repo(elem, request)
-                tools.append(tool)
-                if len(tools) >= limit:
-                    break
-            except Exception as ex:
-                awm.logger.error("Failed to get tool info: %s", ex)
-
-        return total, count, tools

@@ -20,7 +20,7 @@ from awm.models.tool import ToolInfo
 from awm.models.page import PageOfTools
 from awm.models.error import Error
 from awm.utils.node_registry import EOSCNodeRegistry
-from awm.utils import RepositoryConnectionException
+from awm.utils import ConnectionException
 from . import return_error
 
 
@@ -54,7 +54,7 @@ def list_tools(
     try:
         awm.logger.debug(f"Listing tools from user '{user_info.get('sub')}'")
         total, count, tools = awm.tool_store.list_tools(request, from_, limit)
-    except RepositoryConnectionException as ex:
+    except ConnectionException as ex:
         return return_error("Repository connection failed: %s" % ex, 503)
 
     remote_count = 0
@@ -92,8 +92,8 @@ def get_tool(tool_id: str,
     """Get information about an existing tool blueprint"""
     try:
         awm.logger.debug(f"Getting tool {tool_id} from user '{user_info.get('sub')}'")
-        tool_or_msg, status_code = awm.tool_store.get_tool_from_repo(tool_id, version, request)
-    except RepositoryConnectionException as ex:
+        tool_or_msg, status_code = awm.tool_store.get_tool(tool_id, version, request)
+    except ConnectionException as ex:
         return return_error("Repository connection failed: %s" % ex, 503)
 
     return Response(content=tool_or_msg.model_dump_json(exclude_unset=True, by_alias=True),

@@ -297,7 +297,7 @@ topology_template:
       description: Number of virtual cpus for the VM
       default: 2
     """
-    return mocker.patch("awm.tool_store.get_tool_from_repo", return_value=(tool, 200))
+    return mocker.patch("awm.tool_store.get_tool", return_value=(tool, 200))
 
 
 @pytest.fixture

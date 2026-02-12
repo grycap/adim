@@ -19,7 +19,7 @@ import uuid
 import requests
 from typing import List
 from cryptography.fernet import Fernet
-from awm.utils.allocation_store import AllocationStore
+from .allocation_store import AllocationStore
 from awm.utils import VaultConnectionException
 
 
