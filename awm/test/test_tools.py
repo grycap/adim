@@ -133,6 +133,9 @@ def test_list_tools(client, check_oidc_mock, backend_type, repo_mock, requests_g
 def test_list_tools_remote(
     client, mocker, check_oidc_mock, repo_mock, list_nodes_mock, requests_get_mock, headers
 ):
+    from awm.utils.git_tool_store import ToolStore
+    awm.tool_store = ToolStore("test")
+
     blueprint = "description: DESC\nmetadata:\n  template_name: NAME"
 
     mock_list = MagicMock(status_code=200, json=MagicMock(return_value={

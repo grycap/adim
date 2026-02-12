@@ -41,14 +41,21 @@ class ToolStore:
         return "vm"
 
     @staticmethod
+    def _convert_url_to_raw(url: str) -> str:
+        if url.startswith("https://github.com"):
+            url = url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
+        return url
+
+    @staticmethod
     def _get_tool_info_from_repo(elem: dict, request: Request) -> ToolInfo:
-        tosca = yaml.safe_load(requests.get(elem['url']).text)
+        tosca = yaml.safe_load(requests.get(ToolStore._convert_url_to_raw(elem['url'])).text)
         metadata = tosca.get("metadata", {})
-        url = str(request.url_for("get_tool", tool_id=elem['id']))
+        tool_id = elem['id'].replace("/", "@")
+        url = str(request.url_for("get_tool", tool_id=tool_id))
         if elem['version'] and elem['version'] != "latest":
             url += "?version=%s" % elem['version']
         tool = ToolInfo(
-            id=elem['id'],
+            id=tool_id,
             self_=url,
             version='latest',
             type=ToolStore.get_tool_type(tosca),
@@ -65,8 +72,9 @@ class ToolStore:
 
     def get_tool_from_repo(self, tool_id: str, version: str, request: Request) -> Tuple[Union[ToolInfo, Error], int]:
         # tool_id was provided with underscores; convert back path
+        repo_tool_id = tool_id.replace("@", "/")
         try:
-            response = requests.get(f"{self.repo_url}/deployableService/{tool_id}")
+            response = requests.get(f"{self.repo_url}/deployableService/{repo_tool_id}")
         except Exception as e:
             awm.logger.error("Failed to get tool info: %s", e)
             raise RepositoryConnectionException("Failed to get tool info: %s" % e)
