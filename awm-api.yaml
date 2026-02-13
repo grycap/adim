@@ -100,11 +100,6 @@ paths:
             schema:
               $ref: '#/components/schemas/Deployment'
       responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
         '202':
           description: Deploying
           content:
@@ -164,7 +159,7 @@ paths:
           title: Deployment Id
       responses:
         '200':
-          description: Accepted
+          description: Success
           content:
             application/json:
               schema:
@@ -187,12 +182,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '404':
-          description: Not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '419':
           description: Re-delegate credentials
           content:
@@ -201,6 +190,12 @@ paths:
                 $ref: '#/components/schemas/Error'
         '503':
           description: Try again later
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found
           content:
             application/json:
               schema:
@@ -226,13 +221,12 @@ paths:
         schema:
           title: Deployment Id
       responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
         '202':
           description: Deleting
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
         '400':
           description: Invalid parameters or configuration
           content:
@@ -251,12 +245,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '404':
-          description: Not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '419':
           description: Re-delegate credentials
           content:
@@ -265,6 +253,12 @@ paths:
                 $ref: '#/components/schemas/Error'
         '503':
           description: Try again later
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found
           content:
             application/json:
               schema:
@@ -367,13 +361,8 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Allocation-Input'
+              $ref: '#/components/schemas/Allocation'
       responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
         '201':
           description: Accepted
           content:
@@ -433,7 +422,7 @@ paths:
           title: Allocation Id
       responses:
         '200':
-          description: Accepted
+          description: Success
           content:
             application/json:
               schema:
@@ -456,12 +445,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '404':
-          description: Not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '419':
           description: Re-delegate credentials
           content:
@@ -470,6 +453,12 @@ paths:
                 $ref: '#/components/schemas/Error'
         '503':
           description: Try again later
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found
           content:
             application/json:
               schema:
@@ -498,10 +487,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Allocation-Input'
+              $ref: '#/components/schemas/Allocation'
       responses:
         '200':
-          description: Updated
+          description: Success
           content:
             application/json:
               schema:
@@ -536,6 +525,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '422':
           description: Validation Error
           content:
@@ -558,12 +553,11 @@ paths:
           title: Allocation Id
       responses:
         '200':
-          description: Successful Response
+          description: Deleted
           content:
             application/json:
-              schema: {}
-        '204':
-          description: Accepted
+              schema:
+                $ref: '#/components/schemas/Success'
         '400':
           description: Invalid parameters or configuration
           content:
@@ -582,12 +576,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '404':
-          description: Not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '419':
           description: Re-delegate credentials
           content:
@@ -596,6 +584,12 @@ paths:
                 $ref: '#/components/schemas/Error'
         '503':
           description: Try again later
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found
           content:
             application/json:
               schema:
@@ -712,7 +706,7 @@ paths:
         description: If missing, the latest version will be returned
       responses:
         '200':
-          description: Accepted
+          description: Success
           content:
             application/json:
               schema:
@@ -735,12 +729,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '404':
-          description: Not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '419':
           description: Re-delegate credentials
           content:
@@ -749,6 +737,12 @@ paths:
                 $ref: '#/components/schemas/Error'
         '503':
           description: Try again later
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found
           content:
             application/json:
               schema:
@@ -774,19 +768,7 @@ paths:
                 $ref: '#/components/schemas/Success'
 components:
   schemas:
-    Allocation-Input:
-      oneOf:
-      - $ref: '#/components/schemas/OpenStackEnvironment'
-      - $ref: '#/components/schemas/KubernetesEnvironment'
-      - $ref: '#/components/schemas/EoscNodeEnvironment'
-      title: Allocation
-      discriminator:
-        propertyName: kind
-        mapping:
-          EoscNodeEnvironment: '#/components/schemas/EoscNodeEnvironment'
-          KubernetesEnvironment: '#/components/schemas/KubernetesEnvironment'
-          OpenStackEnvironment: '#/components/schemas/OpenStackEnvironment'
-    Allocation-Output:
+    Allocation:
       oneOf:
       - $ref: '#/components/schemas/OpenStackEnvironment'
       - $ref: '#/components/schemas/KubernetesEnvironment'
@@ -840,7 +822,7 @@ components:
           title: Self
           description: Endpoint that returns the details of this allocation
         allocation:
-          $ref: '#/components/schemas/Allocation-Output'
+          $ref: '#/components/schemas/Allocation'
       type: object
       required:
       - id
@@ -923,7 +905,7 @@ components:
           anyOf:
           - type: object
           - type: 'null'
-          additionalProperties: true
+          additionalProperties: {}
           type: object
           title: Outputs
           description: Deployed Template output values

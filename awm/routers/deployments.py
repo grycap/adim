@@ -18,11 +18,11 @@ from fastapi import APIRouter, Query, Depends, Request, Response
 from awm.authorization import authenticate
 from awm.models.deployment import DeploymentInfo, DeploymentId, Deployment
 from awm.models.page import PageOfDeployments
-from awm.models.error import Error
 from awm.utils.node_registry import EOSCNodeRegistry
 from awm.utils import DBConnectionException
+from awm.models.success import Success
 
-from . import return_error
+from . import return_error, STANDARD_RESPONSES, GET_RESPONSES, DELETE_RESPONSES, POST_RESPONSES
 
 
 router = APIRouter()
@@ -50,18 +50,7 @@ def _list_deployments(from_: int = 0, limit: int = 100,
 # GET /deployments
 @router.get("/deployments",
             summary="List existing deployments",
-            responses={200: {"model": PageOfDeployments,
-                             "description": "Success"},
-                       400: {"model": Error,
-                             "description": "Invalid parameters or configuration"},
-                       401: {"model": Error,
-                             "description": "Authorization required"},
-                       403: {"model": Error,
-                             "description": "Forbidden"},
-                       419: {"model": Error,
-                             "description": "Re-delegate credentials"},
-                       503: {"model": Error,
-                             "description": "Try again later"}})
+            responses=STANDARD_RESPONSES(PageOfDeployments))
 def list_deployments(
     request: Request,
     from_: int = Query(0, alias="from", ge=0,
@@ -78,20 +67,7 @@ def list_deployments(
 # GET /deployment/{deployment_id}
 @router.get("/deployment/{deployment_id}",
             summary="Get information about an existing deployment",
-            responses={200: {"model": DeploymentInfo,
-                             "description": "Accepted"},
-                       400: {"model": Error,
-                             "description": "Invalid parameters or configuration"},
-                       401: {"model": Error,
-                             "description": "Authorization required"},
-                       403: {"model": Error,
-                             "description": "Forbidden"},
-                       404: {"model": Error,
-                             "description": "Not found"},
-                       419: {"model": Error,
-                             "description": "Re-delegate credentials"},
-                       503: {"model": Error,
-                             "description": "Try again later"}})
+            responses=GET_RESPONSES(DeploymentInfo))
 def get_deployment(deployment_id,
                    user_info=Depends(authenticate)):
     """Get information about an existing deployment"""
@@ -104,19 +80,9 @@ def get_deployment(deployment_id,
 # DELETE /deployment/{deployment_id}
 @router.delete("/deployment/{deployment_id}",
                summary="Tear down an existing deployment",
-               responses={202: {"description": "Deleting"},
-                          400: {"model": Error,
-                                "description": "Invalid parameters or configuration"},
-                          401: {"model": Error,
-                                "description": "Authorization required"},
-                          403: {"model": Error,
-                                "description": "Forbidden"},
-                          404: {"model": Error,
-                                "description": "Not found"},
-                          419: {"model": Error,
-                                "description": "Re-delegate credentials"},
-                          503: {"model": Error,
-                                "description": "Try again later"}})
+               status_code=202,
+               response_model=Success,
+               responses=DELETE_RESPONSES(202, "Deleting"))
 def delete_deployment(deployment_id,
                       user_info=Depends(authenticate)):
     """Tear down an existing deployment"""
@@ -129,18 +95,9 @@ def delete_deployment(deployment_id,
 # POST /deployments
 @router.post("/deployments",
              summary="Deploy workload to an EOSC environment or an infrastructure for which the user has credentials",
-             responses={202: {"model": DeploymentId,
-                              "description": "Deploying"},
-                        400: {"model": Error,
-                              "description": "Invalid parameters or configuration"},
-                        401: {"model": Error,
-                              "description": "Authorization required"},
-                        403: {"model": Error,
-                              "description": "Forbidden"},
-                        419: {"model": Error,
-                              "description": "Re-delegate credentials"},
-                        503: {"model": Error,
-                              "description": "Try again later"}})
+             status_code=202,
+             response_model=DeploymentId,
+             responses=POST_RESPONSES(DeploymentId, msg="Deploying"))
 def deploy_workload(deployment: Deployment,
                     request: Request,
                     user_info=Depends(authenticate)):
