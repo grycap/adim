@@ -53,7 +53,7 @@ def list_tools(
 ):
     try:
         awm.logger.debug(f"Listing tools from user '{user_info.get('sub')}'")
-        total, count, tools = awm.tool_store.list_tools(request, from_, limit)
+        total, count, tools = awm.tool_store.list_tools(request, from_, limit, user_info)
     except ConnectionException as ex:
         return return_error("Repository connection failed: %s" % ex, 503)
 

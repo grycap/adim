@@ -66,7 +66,13 @@ if TOOL_STORE == "git":
     AWM_TOOLS_REPO = os.getenv("AWM_TOOLS_REPO", "https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
     from awm.utils.tool.git_tool_store import ToolStoreGit
     tool_store = ToolStoreGit(AWM_TOOLS_REPO)
-else:
+elif TOOL_STORE == "rc":
     RESOURCE_CATALOG = os.getenv("RESOURCE_CATALOG", "https://providers.sandbox.eosc-beyond.eu/api")
     from awm.utils.tool.rc_tool_store import ToolStoreRC
     tool_store = ToolStoreRC(RESOURCE_CATALOG)
+elif TOOL_STORE == "tm":
+    TM_URL = os.getenv("TM_URL", "https://api.open-science-cloud.ec.europa.eu")
+    from awm.utils.tool.tm_tool_store import ToolStoreTM
+    tool_store = ToolStoreTM(TM_URL)
+else:
+    raise Exception(f"Tool store '{TOOL_STORE}' is not supported")

@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import base64
-from flask import request
 import yaml
 import awm
 from typing import Tuple, Union, List
@@ -67,7 +66,8 @@ class ToolStoreGit(ToolStore):
             tool.version = version
         return tool
 
-    def get_tool(self, tool_id: str, version: str, request: Request, user_info: dict=None) -> Tuple[Union[ToolInfo, Error], int]:
+    def get_tool(self, tool_id: str, version: str, request: Request,
+                 user_info: dict = None) -> Tuple[Union[ToolInfo, Error], int]:
         # tool_id was provided with underscores; convert back path
         repo_tool_id = tool_id.replace("@", "/")
         try:

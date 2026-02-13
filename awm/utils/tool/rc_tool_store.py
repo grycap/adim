@@ -101,6 +101,7 @@ class ToolStoreRC(ToolStore):
 
     def _list(self, request: Request, from_: int, limit: int, user_info: dict) -> List[ToolInfo]:
         response = requests.get(f"{self.url}/deployableService/all")
+        response.raise_for_status()
         res = []
         for elem in response.json().get("results", []):
             tool = self.get_tool_info(elem, request)

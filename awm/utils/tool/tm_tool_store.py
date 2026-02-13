@@ -13,13 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-import yaml
-import awm
 import requests
 from typing import Tuple, Union, List
 from fastapi import Request
-from urllib.parse import urlparse
 from awm.models.tool import ToolInfo
 from awm.models.error import Error
 from .tool_store import ToolStore
@@ -27,7 +23,7 @@ from .tool_store import ToolStore
 
 class ToolStoreTM(ToolStore):
 
-    def __init__(self, url: str = "https://api.eosc.athenarc.gr"):
+    def __init__(self, url: str = "https://api.open-science-cloud.ec.europa.eu"):
         super().__init__(url)
 
     @staticmethod
@@ -44,11 +40,12 @@ class ToolStoreTM(ToolStore):
                         author_name=elem.get("author"),)
         return tool
 
-    def get_tool(self, tool_id: str, version: str, request: Request, user_info: dict=None) -> Tuple[Union[ToolInfo, Error], int]:
+    def get_tool(self, tool_id: str, version: str, request: Request,
+                 user_info: dict = None) -> Tuple[Union[ToolInfo, Error], int]:
         # tool_id was provided with @; convert back path
         tool_id = tool_id.replace("@", "%2F")
         response = requests.get(f"{self.url}/tools/api/v1/by-pid/{tool_id}",
-                                headers={"Authorization": "Bearer %s" % user_info['token']},
+                                headers={"Authorization": f"Bearer {user_info['token']}"},
                                 timeout=10)
 
         # If the tool is not found it returns 200 with an empty body,
@@ -63,8 +60,9 @@ class ToolStoreTM(ToolStore):
 
     def _list(self, request: Request, from_: int, limit: int, user_info: dict) -> List[ToolInfo]:
         response = requests.get(f"{self.url}/tools/api/v1?pageSize={limit}&from={from_}",
-                                headers={"Authorization": "Bearer %s" % user_info['token']},
+                                headers={"Authorization": f"Bearer {user_info['token']}"},
                                 timeout=10)
+        response.raise_for_status()
         res = []
         for elem in response.json().get("content", []):
             tool = self.get_tool_info(elem, request)
