@@ -91,3 +91,12 @@ class OpenIDClient(object):
                 return True, "Error getting token info"
         else:
             return True, "No token specified"
+
+    @staticmethod
+    def get_token_claim(token, claim_name):
+        """Get a specific claim from the token"""
+        try:
+            decoded_token = JWT().get_info(token)
+            return decoded_token.get(claim_name, None)
+        except Exception:
+            return None

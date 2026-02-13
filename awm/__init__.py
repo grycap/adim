@@ -18,7 +18,7 @@ import logging
 from dotenv import load_dotenv
 from awm.utils.deployment_manager import DeploymentsManager
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 load_dotenv()
 
@@ -39,12 +39,12 @@ if not logger.handlers:
 ALLOCATION_STORE = os.getenv("ALLOCATION_STORE", "db")
 
 if ALLOCATION_STORE == "db":
-    from awm.utils.allocation_store_db import AllocationStoreDB
+    from awm.utils.allocation.allocation_store_db import AllocationStoreDB
     DB_URL = os.getenv("DB_URL", AllocationStoreDB.DEFAULT_URL)
     allocation_store = AllocationStoreDB(DB_URL)
     logger.info(f"Using AllocationStoreDB with URL: {DB_URL}")
 elif ALLOCATION_STORE == "vault":
-    from awm.utils.allocation_store_vault import AllocationStoreVault
+    from awm.utils.allocation.allocation_store_vault import AllocationStoreVault
     VAULT_URL = os.getenv("VAULT_URL", AllocationStoreVault.DEFAULT_URL)
     ENCRYPT_KEY = os.getenv("ENCRYPT_KEY", AllocationStoreVault.DEFAULT_KEY)
     allocation_store = AllocationStoreVault(VAULT_URL, key=ENCRYPT_KEY)
@@ -64,9 +64,11 @@ TOOL_STORE = os.getenv("TOOL_STORE", "git")
 
 if TOOL_STORE == "git":
     AWM_TOOLS_REPO = os.getenv("AWM_TOOLS_REPO", "https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
-    from awm.utils.git_tool_store import ToolStore
-    tool_store = ToolStore(AWM_TOOLS_REPO)
-else:
+    from awm.utils.tool.git_tool_store import ToolStoreGit
+    tool_store = ToolStoreGit(AWM_TOOLS_REPO)
+elif TOOL_STORE == "rc":
     RESOURCE_CATALOG = os.getenv("RESOURCE_CATALOG", "https://providers.sandbox.eosc-beyond.eu/api")
-    from awm.utils.rc_tool_store import ToolStore
-    tool_store = ToolStore(RESOURCE_CATALOG)
+    from awm.utils.tool.rc_tool_store import ToolStoreRC
+    tool_store = ToolStoreRC(RESOURCE_CATALOG)
+else:
+    raise Exception(f"Tool store '{TOOL_STORE}' is not supported")

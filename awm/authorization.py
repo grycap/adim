@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import logging
+import os
 from fastapi import HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from awm.oidc.client import OpenIDClient
@@ -25,6 +26,11 @@ security = HTTPBearer(
     bearerFormat="JWT"
 )
 logger = logging.getLogger(__name__)
+
+
+OIDC_ISSUERS = os.getenv("OIDC_ISSUERS", "")
+OIDC_AUDIENCE = os.getenv("OIDC_AUDIENCE", None)
+OIDC_GROUPS = os.getenv("OIDC_GROUPS", "")
 
 
 def authenticate(
@@ -42,9 +48,39 @@ def check_OIDC(token):
         expired, _ = OpenIDClient.is_access_token_expired(token)
         if expired:
             raise HTTPException(status_code=401, detail="Token expired")
+
+        # Check issuer if specified
+        if OIDC_ISSUERS:
+            issuer = OpenIDClient.get_token_claim(token, "iss")
+            if issuer not in OIDC_ISSUERS.split(","):
+                raise HTTPException(status_code=401, detail="Invalid token issuer")
+
+        # Check audience if specified
+        if OIDC_AUDIENCE:
+            found = False
+            audience = OpenIDClient.get_token_claim(token, "aud")
+            if audience:
+                for aud in audience.split(","):
+                    if aud == OIDC_AUDIENCE:
+                        found = True
+                        logger.debug("Audience %s successfully checked." % OIDC_AUDIENCE)
+                        break
+            if not found:
+                logger.error("Audience %s not found in access token." % OIDC_AUDIENCE)
+                raise HTTPException(status_code=401, detail="Invalid token audience")
+
         success, user_info = OpenIDClient.get_user_info_request(token)
         if not success:
-            return None
+            raise HTTPException(status_code=401, detail="Error validating token: %s" % user_info)
+
+        if OIDC_GROUPS:
+            user_groups = user_info.get('groups',
+                                        user_info.get('entitlement',
+                                                      user_info.get('eduperson_entitlement', [])))
+            if not set(OIDC_GROUPS.split(",")).issubset(user_groups):
+                logger.debug("No match on group membership. User group membership: %s", user_groups)
+                raise HTTPException(status_code=401, detail="Invalid token groups")
+
     except HTTPException:
         raise
     except Exception:

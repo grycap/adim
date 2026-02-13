@@ -20,7 +20,7 @@ from unittest.mock import patch, MagicMock
 from awm.__main__ import create_app
 from pydantic import HttpUrl
 from awm.utils.node_registry import EOSCNode
-from awm.utils.repository import Repository
+from awm.utils.tool.repository import Repository
 import awm
 
 
@@ -55,7 +55,7 @@ def backend_type(request):
 def repo_mock(mocker):
     repo = Repository.create("https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
     repo.cache_session = MagicMock(["get"])
-    mocker.patch("awm.utils.repository.Repository.create", return_value=repo)
+    mocker.patch("awm.utils.tool.repository.Repository.create", return_value=repo)
     return repo
 
 
@@ -73,8 +73,8 @@ def requests_get_mock(mocker):
 def seed_tools(backend_type, repo_mock, requests_get_mock):
     def _seed(tools_list):
         if backend_type == "git":
-            from awm.utils.git_tool_store import ToolStore
-            awm.tool_store = ToolStore("https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
+            from awm.utils.tool.git_tool_store import ToolStoreGit
+            awm.tool_store = ToolStoreGit("https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
 
             # Mock the repository responses for git backend
             responses = []
@@ -83,8 +83,8 @@ def seed_tools(backend_type, repo_mock, requests_get_mock):
             repo_mock.cache_session.get.side_effect = responses
 
         elif backend_type == "rc":
-            from awm.utils.rc_tool_store import ToolStore
-            awm.tool_store = ToolStore("https://providers.sandbox.eosc-beyond.eu/api")
+            from awm.utils.tool.rc_tool_store import ToolStoreRC
+            awm.tool_store = ToolStoreRC("https://providers.sandbox.eosc-beyond.eu/api")
 
             # Mock the requests.get responses for rc backend
             responses = []
@@ -133,8 +133,8 @@ def test_list_tools(client, check_oidc_mock, backend_type, repo_mock, requests_g
 def test_list_tools_remote(
     client, mocker, check_oidc_mock, repo_mock, list_nodes_mock, requests_get_mock, headers
 ):
-    from awm.utils.git_tool_store import ToolStore
-    awm.tool_store = ToolStore("test")
+    from awm.utils.tool.git_tool_store import ToolStoreGit
+    awm.tool_store = ToolStoreGit("test")
 
     blueprint = "description: DESC\nmetadata:\n  template_name: NAME"
 
@@ -146,7 +146,9 @@ def test_list_tools_remote(
         mock_list,
         mock_get,
         mock_list,
+        mock_get,
         mock_list,
+        mock_get,
     ]
 
     node1 = EOSCNode(awmAPI=HttpUrl("http://server1.com"), nodeId="n1")
@@ -189,12 +191,12 @@ def test_list_tools_remote(
     assert len(response.json()["elements"]) == 4
 
     requests_get_mock.assert_any_call(
-        "http://server1.com/tools?from0&limit=99",
+        "http://server1.com/tools?from=0&limit=99",
         headers={"Authorization": "Bearer token"},
         timeout=30
     )
     requests_get_mock.assert_any_call(
-        "http://server2.com/tools?from0&limit=98",
+        "http://server2.com/tools?from=0&limit=98",
         headers={"Authorization": "Bearer token"},
         timeout=30
     )
@@ -206,12 +208,12 @@ def test_list_tools_remote(
     assert len(response.json()["elements"]) == 2
 
     requests_get_mock.assert_any_call(
-        "http://server1.com/tools?from0&limit=2",
+        "http://server1.com/tools?from=0&limit=2",
         headers={"Authorization": "Bearer token"},
         timeout=30
     )
     requests_get_mock.assert_any_call(
-        "http://server2.com/tools?from0&limit=1",
+        "http://server2.com/tools?from=0&limit=1",
         headers={"Authorization": "Bearer token"},
         timeout=30
     )

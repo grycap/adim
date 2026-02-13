@@ -147,7 +147,7 @@ def deploy_workload(deployment: Deployment,
     """Deploy workload to an EOSC environment or an infrastructure for which the user has credentials"""
     awm.logger.debug(f"Creating deployment from user '{user_info.get('sub')}'")
     # Get the Tool from the ID
-    tool, status_code = awm.tool_store.get_tool_from_repo(deployment.tool.id, deployment.tool.version, request)
+    tool, status_code = awm.tool_store.get_tool(deployment.tool.id, deployment.tool.version, request)
     if status_code != 200:
         awm.logger.warning(f"Tool {deployment.tool.id} not found")
         return Response(content=tool, status_code=400, media_type="application/json")

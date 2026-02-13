@@ -16,18 +16,19 @@
 import base64
 import yaml
 import awm
-from typing import Tuple, Union
+from typing import Tuple, Union, List
 from fastapi import Request
 from awm.models.tool import ToolInfo
 from awm.models.error import Error
-from awm.utils.repository import Repository
-from awm.utils import RepositoryConnectionException
+from awm.utils.tool.repository import Repository
+from awm.utils import ConnectionException
+from .tool_store import ToolStore
 
 
-class ToolStore:
+class ToolStoreGit(ToolStore):
 
-    def __init__(self, repo_url: str):
-        self.repo_url = repo_url
+    def __init__(self, url: str):
+        super().__init__(url)
 
     @staticmethod
     def get_tool_type(tosca: dict) -> str:
@@ -41,12 +42,13 @@ class ToolStore:
         return "vm"
 
     @staticmethod
-    def _get_tool_info_from_repo(elem: str, path: str, version: str, request: Request) -> ToolInfo:
-        tosca = yaml.safe_load(elem)
+    def get_tool_info(elem: dict, request: Request) -> ToolInfo:
+        tosca = yaml.safe_load(elem["template"])
         metadata = tosca.get("metadata", {})
-        tool_id = path.replace("/", "@")
+        tool_id = elem['path'].replace("/", "@")
         url = str(request.url_for("get_tool", tool_id=tool_id))
-        if version and version != "latest":
+        version = elem.get("version", "latest")
+        if version != "latest":
             url += "?version=%s" % version
         tool = ToolInfo(
             id=tool_id,
@@ -55,7 +57,7 @@ class ToolStore:
             type=ToolStore.get_tool_type(tosca),
             name=metadata.get("template_name", ""),
             description=tosca.get("description", ""),
-            blueprint=elem,
+            blueprint=elem["template"],
             blueprintType="tosca"
         )
         if metadata.get("template_author"):
@@ -64,15 +66,16 @@ class ToolStore:
             tool.version = version
         return tool
 
-    def get_tool_from_repo(self, tool_id: str, version: str, request: Request) -> Tuple[Union[ToolInfo, Error], int]:
+    def get_tool(self, tool_id: str, version: str, request: Request,
+                 user_info: dict = None) -> Tuple[Union[ToolInfo, Error], int]:
         # tool_id was provided with underscores; convert back path
         repo_tool_id = tool_id.replace("@", "/")
         try:
-            repo = Repository.create(self.repo_url)
+            repo = Repository.create(self.url)
             response = repo.get(repo_tool_id, version, details=True)
         except Exception as e:
             awm.logger.error("Failed to get tool info: %s", e)
-            raise RepositoryConnectionException("Failed to get tool info: %s" % e)
+            raise ConnectionException("Failed to get tool info: %s" % e)
 
         if response.status_code == 404:
             msg = Error(id="404", description="Tool not found")
@@ -86,29 +89,15 @@ class ToolStore:
         if not version or version == "latest":
             version = response.json().get("sha")
 
-        tool = ToolStore._get_tool_info_from_repo(template, repo_tool_id, version, request)
+        tool = self.get_tool_info({"path": repo_tool_id, "version": version,
+                                   "template": template}, request)
         return tool, 200
 
-    def list_tools(self, request: Request, from_: int = 0, limit: int = 100):
-        tools = []
-        try:
-            repo = Repository.create(self.repo_url)
-            tools_list = repo.list()
-        except Exception as e:
-            raise RepositoryConnectionException("Failed to get list of Tools: %s" % e)
-
-        count = 0
-        total = len(tools_list)
-        for _, elem in tools_list.items():
-            count += 1
-            if from_ > count - 1:
-                continue
-            try:
-                tool = self._get_tool_info_from_repo(repo.get(elem['path']).text, elem['path'], elem['sha'], request)
-                tools.append(tool)
-                if len(tools) >= limit:
-                    break
-            except Exception as ex:
-                awm.logger.error("Failed to get tool info: %s", ex)
-
-        return total, count, tools
+    def _list(self, request: Request, from_: int, limit: int, user_info: dict) -> List[ToolInfo]:
+        repo = Repository.create(self.url)
+        res = []
+        for _, elem in repo.list().items():
+            tool = self.get_tool_info({"path": elem['path'], "version": elem['sha'],
+                                       "template": repo.get(elem['path']).text}, request)
+            res.append(tool)
+        return res
