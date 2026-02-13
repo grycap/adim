@@ -236,8 +236,8 @@ def test_get_tool(client, check_oidc_mock, backend_type, repo_mock, requests_get
                              "sha": "version",
                              "content": base64.b64encode(
                                  blueprint.encode()
-                                 ).decode()
-                             }))
+                             ).decode()
+                         }))
         seed_tools([resp])
 
     else:  # rc
