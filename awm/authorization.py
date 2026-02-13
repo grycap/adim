@@ -78,7 +78,7 @@ def check_OIDC(token):
                                         user_info.get('entitlement',
                                                       user_info.get('eduperson_entitlement', [])))
             user_groups = extract_groups_from_entitlements(user_groups)
-            if not set(OIDC_GROUPS.split(",")).issubset(user_groups):
+            if not any(group in user_groups for group in OIDC_GROUPS.split(',')):
                 logger.debug("No match on group membership. User group membership: %s", user_groups)
                 raise HTTPException(status_code=401, detail="Invalid token groups")
 
