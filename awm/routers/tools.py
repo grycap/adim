@@ -18,10 +18,9 @@ from fastapi import APIRouter, Query, Depends, Request, Response
 from awm.authorization import authenticate
 from awm.models.tool import ToolInfo
 from awm.models.page import PageOfTools
-from awm.models.error import Error
 from awm.utils.node_registry import EOSCNodeRegistry
 from awm.utils import ConnectionException
-from . import return_error
+from . import return_error, STANDARD_RESPONSES, GET_RESPONSES
 
 
 router = APIRouter()
@@ -30,18 +29,7 @@ router = APIRouter()
 # GET /tools
 @router.get("/tools",
             summary="List all tool blueprints",
-            responses={200: {"model": PageOfTools,
-                             "description": "Success"},
-                       400: {"model": Error,
-                             "description": "Invalid parameters or configuration"},
-                       401: {"model": Error,
-                             "description": "Authorization required"},
-                       403: {"model": Error,
-                             "description": "Forbidden"},
-                       419: {"model": Error,
-                             "description": "Re-delegate credentials"},
-                       503: {"model": Error,
-                             "description": "Try again later"}})
+            responses=STANDARD_RESPONSES(PageOfTools))
 def list_tools(
     request: Request,
     from_: int = Query(0, alias="from", ge=0,
@@ -71,20 +59,7 @@ def list_tools(
 # GET /tool/{tool_id}
 @router.get("/tool/{tool_id}",
             summary="Get information about a tool blueprint",
-            responses={200: {"model": ToolInfo,
-                             "description": "Accepted"},
-                       400: {"model": Error,
-                             "description": "Invalid parameters or configuration"},
-                       401: {"model": Error,
-                             "description": "Authorization required"},
-                       403: {"model": Error,
-                             "description": "Forbidden"},
-                       404: {"model": Error,
-                             "description": "Not found"},
-                       419: {"model": Error,
-                             "description": "Re-delegate credentials"},
-                       503: {"model": Error,
-                             "description": "Try again later"}})
+            responses=GET_RESPONSES(ToolInfo))
 def get_tool(tool_id: str,
              request: Request,
              version: str = Query("latest", description="If missing, the latest version will be returned"),

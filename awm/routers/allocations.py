@@ -18,11 +18,10 @@ from fastapi import APIRouter, Query, Depends, Request, Response
 from awm.authorization import authenticate
 from awm.models.allocation import AllocationInfo, Allocation, AllocationId
 from awm.models.page import PageOfAllocations
-from awm.models.error import Error
 from awm.models.success import Success
 from awm.utils.node_registry import EOSCNodeRegistry
 from awm.utils import ConnectionException
-from . import return_error
+from . import return_error, STANDARD_RESPONSES, GET_RESPONSES, DELETE_RESPONSES, POST_RESPONSES
 
 
 router = APIRouter()
@@ -31,18 +30,7 @@ router = APIRouter()
 # GET /allocations
 @router.get("/allocations",
             summary="List all credentials or EOSC environments of the user",
-            responses={200: {"model": PageOfAllocations,
-                             "description": "Success"},
-                       400: {"model": Error,
-                             "description": "Invalid parameters or configuration"},
-                       401: {"model": Error,
-                             "description": "Authorization required"},
-                       403: {"model": Error,
-                             "description": "Forbidden"},
-                       419: {"model": Error,
-                             "description": "Re-delegate credentials"},
-                       503: {"model": Error,
-                             "description": "Try again later"}})
+            responses=STANDARD_RESPONSES(PageOfAllocations))
 def list_allocations(
     request: Request,
     from_: int = Query(0, alias="from", ge=0,
@@ -98,20 +86,7 @@ def _get_allocation_info(allocation_id: str, user_info: dict, request: Request) 
 # GET /allocation/{allocation_id}
 @router.get("/allocation/{allocation_id}",
             summary="Get information about an existing deployment",
-            responses={200: {"model": AllocationInfo,
-                             "description": "Accepted"},
-                       400: {"model": Error,
-                             "description": "Invalid parameters or configuration"},
-                       401: {"model": Error,
-                             "description": "Authorization required"},
-                       403: {"model": Error,
-                             "description": "Forbidden"},
-                       404: {"model": Error,
-                             "description": "Not found"},
-                       419: {"model": Error,
-                             "description": "Re-delegate credentials"},
-                       503: {"model": Error,
-                             "description": "Try again later"}})
+            responses=GET_RESPONSES(AllocationInfo))
 def get_allocation(request: Request,
                    allocation_id,
                    user_info=Depends(authenticate)):
@@ -142,18 +117,7 @@ def _check_allocation_in_use(allocation_id: str, user_info: dict) -> Response:
 # PUT /allocation/{allocation_id}
 @router.put("/allocation/{allocation_id}",
             summary="Update existing environment of the user",
-            responses={200: {"model": AllocationInfo,
-                             "description": "Updated"},
-                       400: {"model": Error,
-                             "description": "Invalid parameters or configuration"},
-                       401: {"model": Error,
-                             "description": "Authorization required"},
-                       403: {"model": Error,
-                             "description": "Forbidden"},
-                       419: {"model": Error,
-                             "description": "Re-delegate credentials"},
-                       503: {"model": Error,
-                             "description": "Try again later"}})
+            responses=GET_RESPONSES(AllocationInfo))
 def update_allocation(allocation_id,
                       allocation: Allocation,
                       request: Request,
@@ -182,19 +146,8 @@ def update_allocation(allocation_id,
 # DELETE /allocation/{allocation_id}
 @router.delete("/allocation/{allocation_id}",
                summary="Remove existing environment of the user",
-               responses={204: {"description": "Accepted"},
-                          400: {"model": Error,
-                                "description": "Invalid parameters or configuration"},
-                          401: {"model": Error,
-                                "description": "Authorization required"},
-                          403: {"model": Error,
-                                "description": "Forbidden"},
-                          404: {"model": Error,
-                                "description": "Not found"},
-                          419: {"model": Error,
-                                "description": "Re-delegate credentials"},
-                          503: {"model": Error,
-                                "description": "Try again later"}})
+               response_model=Success,
+               responses=DELETE_RESPONSES(200))
 def delete_allocation(allocation_id,
                       user_info=Depends(authenticate)):
     """Remove existing environment of the user"""
@@ -221,18 +174,9 @@ def delete_allocation(allocation_id,
 # POST /allocations
 @router.post("/allocations",
              summary="Record an environment of the user",
-             responses={201: {"model": AllocationId,
-                              "description": "Accepted"},
-                        400: {"model": Error,
-                              "description": "Invalid parameters or configuration"},
-                        401: {"model": Error,
-                              "description": "Authorization required"},
-                        403: {"model": Error,
-                              "description": "Forbidden"},
-                        419: {"model": Error,
-                              "description": "Re-delegate credentials"},
-                        503: {"model": Error,
-                              "description": "Try again later"}})
+             responses=POST_RESPONSES(AllocationId, 201),
+             response_model=AllocationId,
+             status_code=201)
 def create_allocation(allocation: Allocation,
                       request: Request,
                       user_info=Depends(authenticate)):

@@ -16,7 +16,7 @@
 import requests
 import logging
 from pydantic import BaseModel, HttpUrl
-from typing import List, Tuple, Any
+from typing import List, Tuple, Union
 from awm.models.page import PageOfItems
 from awm.models.allocation import AllocationInfo
 from awm.models.tool import ToolInfo
@@ -24,6 +24,9 @@ from awm.models.deployment import DeploymentInfo
 
 
 logger = logging.getLogger(__name__)
+
+
+ItemInfo = Union[AllocationInfo, ToolInfo, DeploymentInfo]
 
 
 class EOSCNode(BaseModel):
@@ -44,7 +47,7 @@ class EOSCNode(BaseModel):
         """Return the list of deployments of this node"""
         return self.list_items("deployments", from_, limit, count, token)
 
-    def list_items(self, item: str, from_: int, limit: int, count: int, token: str) -> Tuple[int, List[Any]]:
+    def list_items(self, item: str, from_: int, limit: int, count: int, token: str) -> Tuple[int, List[ItemInfo]]:
         """Return the list of Items of type 'item' of this node"""
         init = max(0, from_ - count)
         elems = limit - (count - from_)
@@ -78,7 +81,7 @@ class EOSCNodeRegistry():
         return None
 
     @staticmethod
-    def list_items(item: str, from_: int, limit: int, count: int, user_info) -> Tuple[int, List[Any]]:
+    def list_items(item: str, from_: int, limit: int, count: int, user_info) -> Tuple[int, List[ItemInfo]]:
         """Return the list of remote items"""
         total = 0
         num_items = 0

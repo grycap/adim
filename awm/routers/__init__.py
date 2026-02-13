@@ -13,8 +13,46 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Dict
 from fastapi import Response
+from pydantic import BaseModel
 from awm.models.error import Error
+
+
+def STANDARD_RESPONSES(return_type: BaseModel = BaseModel) -> Dict[int, Dict[str, str]]:
+    """Standard HTTP error responses used across all routers"""
+    return {
+        200: {"model": return_type, "description": "Success"},
+        400: {"model": Error, "description": "Invalid parameters or configuration"},
+        401: {"model": Error, "description": "Authorization required"},
+        403: {"model": Error, "description": "Forbidden"},
+        419: {"model": Error, "description": "Re-delegate credentials"},
+        503: {"model": Error, "description": "Try again later"},
+    }
+
+
+def GET_RESPONSES(return_type: BaseModel = BaseModel) -> Dict[int, Dict[str, str]]:
+    """Standard HTTP error responses for GET operations"""
+    responses = STANDARD_RESPONSES(return_type)
+    responses[404] = {"model": Error, "description": "Not found"}
+    return responses
+
+
+def DELETE_RESPONSES(status_code: int = 204, msg: str = "Deleted") -> Dict[int, Dict[str, str]]:
+    """Standard HTTP error responses for DELETE operations"""
+    responses = GET_RESPONSES(BaseModel)
+    del responses[200]
+    responses[status_code] = {"description": msg}
+    return responses
+
+
+def POST_RESPONSES(return_type: BaseModel = BaseModel, status_code: int = 202,
+                   msg: str = "Accepted") -> Dict[int, Dict[str, str]]:
+    """Standard HTTP error responses for POST operations"""
+    responses = STANDARD_RESPONSES(return_type)
+    del responses[200]
+    responses[status_code] = {"model": return_type, "description": msg}
+    return responses
 
 
 def return_error(message: str, status_code: int = 500) -> Response:
