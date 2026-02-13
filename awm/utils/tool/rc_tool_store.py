@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import yaml
 import awm
 import requests
@@ -47,11 +46,11 @@ class ToolStoreRC(ToolStore):
 
     @staticmethod
     def get_tool_info(elem: dict, request: Request) -> ToolInfo:
-        tosca = yaml.safe_load(requests.get(ToolStoreRC._convert_url_to_raw(elem['url'])).text)
+        tosca = yaml.safe_load(requests.get(ToolStoreRC._convert_url_to_raw(elem['url']), timeout=10).text)
         metadata = tosca.get("metadata", {})
         tool_id = elem['id'].replace("/", "@")
         url = str(request.url_for("get_tool", tool_id=tool_id))
-        url += "?version=%s" % elem['version']
+        url += f"?version={elem['version']}"
         tool = ToolInfo(
             id=tool_id,
             self_=url,
@@ -84,10 +83,10 @@ class ToolStoreRC(ToolStore):
         # tool_id was provided with underscores; convert back path
         repo_tool_id = tool_id.replace("@", "/")
         try:
-            response = requests.get(f"{self.url}/deployableService/{repo_tool_id}")
+            response = requests.get(f"{self.url}/deployableService/{repo_tool_id}", timeout=10)
         except Exception as e:
             awm.logger.error("Failed to get tool info: %s", e)
-            raise ConnectionException("Failed to get tool info: %s" % e)
+            raise ConnectionException(f"Failed to get tool info: {e}")
 
         if response.status_code == 404:
             msg = Error(id="404", description="Tool not found")
@@ -101,7 +100,7 @@ class ToolStoreRC(ToolStore):
         return tool, 200
 
     def _list(self, request: Request, from_: int, limit: int, user_info: dict) -> List[ToolInfo]:
-        response = requests.get(f"{self.url}/deployableService/all")
+        response = requests.get(f"{self.url}/deployableService/all", timeout=10)
         response.raise_for_status()
         res = []
         for elem in response.json().get("results", []):
