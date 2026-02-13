@@ -69,7 +69,17 @@ def check_OIDC(token):
                 logger.error("Audience %s not found in access token." % OIDC_AUDIENCE)
                 raise HTTPException(status_code=401, detail="Invalid token audience")
 
-        user_info = {}
+        success, user_info = OpenIDClient.get_user_info_request(token)
+        if not success:
+            raise HTTPException(status_code=401, detail="Error validating token: %s" % user_info)
+
+        if OIDC_GROUPS:
+            user_groups = user_info.get('groups',
+                                        user_info.get('entitlement',
+                                                      user_info.get('eduperson_entitlement', [])))
+            if not set(OIDC_GROUPS.split(",")).issubset(user_groups):
+                logger.debug("No match on group membership. User group membership: %s", user_groups)
+                raise HTTPException(status_code=401, detail="Invalid token groups")
 
     except HTTPException:
         raise
