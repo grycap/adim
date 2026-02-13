@@ -280,18 +280,18 @@ def test_list_allocations_remote(
     assert response.status_code == 200
     assert response.json()["count"] == 4
     assert len(response.json()["elements"]) == 4
-    requests_get_mock.assert_any_call('http://server1.com/allocations?from0&limit=99',
+    requests_get_mock.assert_any_call('http://server1.com/allocations?from=0&limit=99',
                                       headers={'Authorization': 'Bearer token'}, timeout=30)
-    requests_get_mock.assert_any_call('http://server2.com/allocations?from0&limit=98',
+    requests_get_mock.assert_any_call('http://server2.com/allocations?from=0&limit=98',
                                       headers={'Authorization': 'Bearer token'}, timeout=30)
 
     response = client.get("/allocations?allNodes=true&from=1&limit=2", headers=headers)
     assert response.status_code == 200
     assert response.json()["count"] == 3
     assert len(response.json()["elements"]) == 2
-    requests_get_mock.assert_any_call('http://server1.com/allocations?from0&limit=2',
+    requests_get_mock.assert_any_call('http://server1.com/allocations?from=0&limit=2',
                                       headers={'Authorization': 'Bearer token'}, timeout=30)
-    requests_get_mock.assert_any_call('http://server2.com/allocations?from0&limit=1',
+    requests_get_mock.assert_any_call('http://server2.com/allocations?from=0&limit=1',
                                       headers={'Authorization': 'Bearer token'}, timeout=30)
 
     response = client.get("/allocations?allNodes=true&from=3&limit=2", headers=headers)
@@ -303,9 +303,9 @@ def test_list_allocations_remote(
     assert response.status_code == 200
     assert response.json()["count"] == 4
     assert len(response.json()["elements"]) == 2
-    requests_get_mock.assert_any_call('http://server1.com/allocations?from0&limit=2',
+    requests_get_mock.assert_any_call('http://server1.com/allocations?from=0&limit=2',
                                       headers={'Authorization': 'Bearer token'}, timeout=30)
-    requests_get_mock.assert_any_call('http://server2.com/allocations?from0&limit=1',
+    requests_get_mock.assert_any_call('http://server2.com/allocations?from=0&limit=1',
                                       headers={'Authorization': 'Bearer token'}, timeout=30)
     assert str(response.json()["nextPage"]) == "http://testserver/allocations?allNodes=true&from=3&limit=2"
     assert str(response.json()["prevPage"]) == "http://testserver/allocations?allNodes=true&from=0&limit=2"
