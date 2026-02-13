@@ -15,6 +15,7 @@
 
 import json
 import pytest
+import awm.authorization
 from awm.oidc.client import OpenIDClient
 from awm.authorization import check_OIDC
 from unittest.mock import MagicMock
@@ -170,3 +171,58 @@ def test_auth_check_oidc_success(requests_mock, jwt_mock, time_mock, token):
     assert res["sub"] == "user123"
     assert res["name"] == "Test User"
     assert res["email"] == "user@example.com"
+
+
+def test_auth_check_oidc_issuers(requests_mock, jwt_mock, time_mock, token):
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.text = json.dumps({
+        "sub": "user123",
+        "name": "Test User",
+        "email": "user@example.com"
+    })
+    requests_mock.return_value = mock_response
+
+    current_time = 1000
+    expiration_time = 2000
+
+    jwt_mock.return_value = {"exp": expiration_time, "iss": "https://issuer.example.com"}
+    time_mock.return_value = current_time
+
+    awm.authorization.OIDC_ISSUERS = "https://issuer.example.com"
+    res = check_OIDC(token)
+    assert res["sub"] == "user123"
+
+    awm.authorization.OIDC_ISSUERS = "https://other-issuer.example.com"
+    with pytest.raises(HTTPException):
+        check_OIDC(token)
+
+    awm.authorization.OIDC_ISSUERS = ""
+
+
+def test_auth_check_oidc_aud(requests_mock, jwt_mock, time_mock, token):
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.text = json.dumps({
+        "sub": "user123",
+        "name": "Test User",
+        "email": "user@example.com"
+    })
+    requests_mock.return_value = mock_response
+
+    current_time = 1000
+    expiration_time = 2000
+
+    jwt_mock.return_value = {"exp": expiration_time, "iss": "https://issuer.example.com",
+                             "aud": "awm"}
+    time_mock.return_value = current_time
+
+    awm.authorization.OIDC_AUDIENCE = "awm"
+    res = check_OIDC(token)
+    assert res["sub"] == "user123"
+
+    jwt_mock.return_value = {"exp": expiration_time, "iss": "https://issuer.example.com"}
+    with pytest.raises(HTTPException):
+        res = check_OIDC(token)
+
+    awm.authorization.OIDC_AUDIENCE = ""
