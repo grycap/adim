@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import awm
+import os
 from typing import List, Tuple, Union
 from fastapi import Request
 from awm.models.tool import ToolInfo
@@ -70,3 +71,19 @@ class ToolStore:
     def get_tool(self, tool_id: str, version: str, request: Request,
                  user_info: dict = None) -> Tuple[Union[ToolInfo, Error], int]:
         raise NotImplementedError()
+
+    @staticmethod
+    def get_tool_store() -> 'ToolStore':
+        """Factory method to get the ToolStore instance based on the configuration"""
+        tool_type = os.getenv("TOOL_STORE", "git")
+        if tool_type == "git":
+            AWM_TOOLS_REPO = os.getenv("AWM_TOOLS_REPO", "https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
+            from awm.utils.tool.git_tool_store import ToolStoreGit
+            tool_store = ToolStoreGit(AWM_TOOLS_REPO)
+        elif tool_type == "rc":
+            RESOURCE_CATALOG = os.getenv("RESOURCE_CATALOG", "https://providers.sandbox.eosc-beyond.eu/api")
+            from awm.utils.tool.rc_tool_store import ToolStoreRC
+            tool_store = ToolStoreRC(RESOURCE_CATALOG)
+        else:
+            raise Exception(f"Tool store '{tool_type}' is not supported")
+        return tool_store
