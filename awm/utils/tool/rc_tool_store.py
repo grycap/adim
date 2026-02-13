@@ -79,7 +79,8 @@ class ToolStoreRC(ToolStore):
             tool.license = elem['softwareLicense']
         return tool
 
-    def get_tool(self, tool_id: str, version: str, request: Request, user_info: dict=None) -> Tuple[Union[ToolInfo, Error], int]:
+    def get_tool(self, tool_id: str, version: str, request: Request,
+                 user_info: dict = None) -> Tuple[Union[ToolInfo, Error], int]:
         # tool_id was provided with underscores; convert back path
         repo_tool_id = tool_id.replace("@", "/")
         try:
@@ -107,4 +108,3 @@ class ToolStoreRC(ToolStore):
             tool = self.get_tool_info(elem, request)
             res.append(tool)
         return res
-

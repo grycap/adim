@@ -20,6 +20,7 @@ from awm.models.tool import ToolInfo
 from awm.models.error import Error
 from awm.utils import ConnectionException
 
+
 class ToolStore:
 
     def __init__(self, url: str):
@@ -40,7 +41,7 @@ class ToolStore:
         raise NotImplementedError()
 
     def list_tools(self, request: Request, from_: int = 0, limit: int = 100,
-                   user_info: dict=None) -> Tuple[int, int, List[ToolInfo]]:
+                   user_info: dict = None) -> Tuple[int, int, List[ToolInfo]]:
         tools = []
         try:
             tools_list = self._list(request, from_, limit, user_info)
@@ -67,5 +68,5 @@ class ToolStore:
         raise NotImplementedError()
 
     def get_tool(self, tool_id: str, version: str, request: Request,
-                 user_info: dict=None) -> Tuple[Union[ToolInfo, Error], int]:
+                 user_info: dict = None) -> Tuple[Union[ToolInfo, Error], int]:
         raise NotImplementedError()
