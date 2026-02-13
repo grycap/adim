@@ -109,5 +109,7 @@ def extract_groups_from_entitlements(entitlements, vo_roles=None):
         elif elem.startswith('urn:egi.eu:group:'):
             vo = elem[17:]
             groups.append(vo)
+        else:
+            groups.append(elem)
     groups.sort()
     return groups
