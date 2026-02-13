@@ -1,7 +1,7 @@
 # AWM
 
 [![Test AWM](https://github.com/grycap/awm/actions/workflows/main.yaml/badge.svg)](https://github.com/grycap/awm/actions/workflows/main.yaml)
-[![SQAaaS badge shields.io](https://github.com/EOSC-synergy/awm.assess.sqaaas/raw/v0.3.0/.badge/status_shields.svg)](https://sqaaas.eosc-synergy.eu/#/full-assessment/report/https://raw.githubusercontent.com/eosc-synergy/awm.assess.sqaaas/v0.3.0/.report/assessment_output.json)
+[![SQAaaS badge shields.io](https://github.com/EOSC-synergy/awm.assess.sqaaas/raw/v0.4.0/.badge/status_shields.svg)](https://sqaaas.eosc-synergy.eu/#/full-assessment/report/https://raw.githubusercontent.com/eosc-synergy/awm.assess.sqaaas/v0.4.0/.report/assessment_output.json)
 
 ## Overview
 
