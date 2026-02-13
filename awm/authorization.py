@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 OIDC_ISSUERS = os.getenv("OIDC_ISSUERS", "")
 OIDC_AUDIENCE = os.getenv("OIDC_AUDIENCE", None)
+OIDC_GROUPS = os.getenv("OIDC_GROUPS", "")
 
 
 def authenticate(
@@ -71,6 +72,15 @@ def check_OIDC(token):
         success, user_info = OpenIDClient.get_user_info_request(token)
         if not success:
             return None
+
+        if OIDC_GROUPS:
+            user_groups = user_info.get('groups',
+                                        user_info.get('entitlement',
+                                                      user_info.get('eduperson_entitlement', [])))
+            if not set(OIDC_GROUPS.split(",")).issubset(user_groups):
+                logger.debug("No match on group membership. User group membership: %s", user_groups)
+                raise HTTPException(status_code=401, detail="Invalid token groups")
+
     except HTTPException:
         raise
     except Exception:

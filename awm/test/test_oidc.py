@@ -226,3 +226,35 @@ def test_auth_check_oidc_aud(requests_mock, jwt_mock, time_mock, token):
         res = check_OIDC(token)
 
     awm.authorization.OIDC_AUDIENCE = ""
+
+
+def test_auth_check_oidc_groups(requests_mock, jwt_mock, time_mock, token):
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.text = json.dumps({
+        "sub": "user123",
+        "name": "Test User",
+        "email": "user@example.com",
+        "groups": ["awm"]
+    })
+    requests_mock.return_value = mock_response
+
+    current_time = 1000
+    expiration_time = 2000
+
+    jwt_mock.return_value = {"exp": expiration_time, "iss": "https://issuer.example.com"}
+    time_mock.return_value = current_time
+
+    awm.authorization.OIDC_GROUPS = "awm"
+    res = check_OIDC(token)
+    assert res["sub"] == "user123"
+
+    mock_response.text = json.dumps({
+        "sub": "user123",
+        "name": "Test User",
+        "email": "user@example.com"
+    })
+    with pytest.raises(HTTPException):
+        res = check_OIDC(token)
+
+    awm.authorization.OIDC_GROUPS = ""

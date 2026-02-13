@@ -34,6 +34,8 @@ RESOURCE_CATALOG="https://providers.sandbox.eosc-beyond.eu/api"
 OIDC_ISSUERS="https://aai.egi.eu/auth/realms/egi,https://aai-demo.egi.eu/auth/realms/egi,https://proxy.aai.open-science-cloud.ec.europa.eu"
 # Audience to check in the token, if not specified, no audience check will be performed
 #OIDC_AUDIENCE=awm
+# Comma separated list of groups to check in the token, if not specified, no group check will be performed
+#OIDC_GROUPS="eos-beyond.eu"
 ```
 
 Or you can set an `.env` file as the `.env.example` provided.
