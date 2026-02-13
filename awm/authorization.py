@@ -77,6 +77,7 @@ def check_OIDC(token):
             user_groups = user_info.get('groups',
                                         user_info.get('entitlement',
                                                       user_info.get('eduperson_entitlement', [])))
+            user_groups = extract_groups_from_entitlements(user_groups)
             if not set(OIDC_GROUPS.split(",")).issubset(user_groups):
                 logger.debug("No match on group membership. User group membership: %s", user_groups)
                 raise HTTPException(status_code=401, detail="Invalid token groups")
@@ -89,3 +90,26 @@ def check_OIDC(token):
 
     user_info["token"] = token
     return user_info
+
+
+def extract_groups_from_entitlements(entitlements, vo_roles=None):
+    groups = []
+    for elem in entitlements:
+        # format: urn:mace:egi.eu:group:eosc-synergy.eu:role=vm_operator#aai.egi.eu
+        # or      urn:mace:egi.eu:group:demo.fedcloud.egi.eu:vm_operator:role=member#aai.egi.eu
+        if elem.startswith('urn:mace:egi.eu:group:'):
+            vo = elem[22:22 + elem[22:].find(':')]
+            if vo and vo not in groups:
+                if not vo_roles:
+                    groups.append(vo)
+                else:
+                    for vo_role in vo_roles:
+                        if f":role={vo_role}#" in elem or f":{vo_role}:" in elem:
+                            groups.append(vo)
+        elif elem.startswith('urn:egi.eu:group:'):
+            vo = elem[17:]
+            groups.append(vo)
+        else:
+            groups.append(elem)
+    groups.sort()
+    return groups
