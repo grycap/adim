@@ -41,11 +41,7 @@ if not logger.handlers:
 allocation_store = AllocationStore.get_allocation_store()
 
 # Initialize deployments manager
-
-IM_URL = os.getenv("IM_URL", "http://localhost:8800")
-DB_URL = os.getenv("DB_URL", "file:///tmp/awm.db")
-
-deployments_manager = DeploymentsManager(DB_URL, IM_URL)
+deployments_manager = DeploymentsManager.get_deployments_manager()
 
 # Initialize tool store
 tool_store = ToolStore.get_tool_store()

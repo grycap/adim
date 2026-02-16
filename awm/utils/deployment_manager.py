@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import awm
+import os
 import time
 import yaml
 from typing import Dict, Any
@@ -264,7 +265,7 @@ class DeploymentsManager:
     def _get_template(blueprint: str, inputs: Dict[str, Any]) -> str:
         if not inputs:
             return blueprint
-        awm.logger.debug("Input values: ", inputs)
+        awm.logger.debug(f"Input values: {inputs}")
         template = yaml.safe_load(blueprint)
         temp_inputs = template.get("topology_template", {}).get("inputs", {})
         for key in list(temp_inputs.keys()):
@@ -307,3 +308,9 @@ class DeploymentsManager:
             raise DBConnectionException("Database connection failed")
 
         return deployment_info
+
+    @staticmethod
+    def get_deployments_manager():
+        IM_URL = os.getenv("IM_URL", "http://localhost:8800")
+        DB_URL = os.getenv("DB_URL", "file:///tmp/awm.db")
+        return DeploymentsManager(DB_URL, IM_URL)
