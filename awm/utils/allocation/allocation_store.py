@@ -34,18 +34,18 @@ class AllocationStore():
 
     @staticmethod
     def get_allocation_store() -> 'AllocationStore':
-        ALLOCATION_STORE = os.getenv("ALLOCATION_STORE", "db")
-        if ALLOCATION_STORE == "db":
+        store_type = os.getenv("ALLOCATION_STORE", "db")
+        if store_type == "db":
             from awm.utils.allocation.allocation_store_db import AllocationStoreDB
-            DB_URL = os.getenv("DB_URL", AllocationStoreDB.DEFAULT_URL)
-            allocation_store = AllocationStoreDB(DB_URL)
-            awm.logger.info(f"Using AllocationStoreDB with URL: {DB_URL}")
-        elif ALLOCATION_STORE == "vault":
+            db_url = os.getenv("DB_URL", AllocationStoreDB.DEFAULT_URL)
+            allocation_store = AllocationStoreDB(db_url)
+            awm.logger.info(f"Using AllocationStoreDB with URL: {db_url}")
+        elif store_type == "vault":
             from awm.utils.allocation.allocation_store_vault import AllocationStoreVault
-            VAULT_URL = os.getenv("VAULT_URL", AllocationStoreVault.DEFAULT_URL)
-            ENCRYPT_KEY = os.getenv("ENCRYPT_KEY", AllocationStoreVault.DEFAULT_KEY)
-            allocation_store = AllocationStoreVault(VAULT_URL, key=ENCRYPT_KEY)
-            awm.logger.info(f"Using AllocationStoreVault with URL: {VAULT_URL}")
+            vault_url = os.getenv("VAULT_URL", AllocationStoreVault.DEFAULT_URL)
+            encrypt_key = os.getenv("ENCRYPT_KEY", None)
+            allocation_store = AllocationStoreVault(vault_url, key=encrypt_key)
+            awm.logger.info(f"Using AllocationStoreVault with URL: {vault_url}")
         else:
-            raise Exception(f"Allocation store '{ALLOCATION_STORE}' is not supported")
+            raise ValueError(f"Allocation store '{store_type}' is not supported")
         return allocation_store

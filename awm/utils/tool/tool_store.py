@@ -47,7 +47,7 @@ class ToolStore:
         try:
             tools_list = self._list(request, from_, limit, user_info)
         except Exception as e:
-            raise ConnectionException("Failed to get list of Tools: %s" % e)
+            raise ConnectionException(f"Failed to get list of Tools: {e}") from e
 
         count = 0
         total = len(tools_list)
@@ -77,13 +77,14 @@ class ToolStore:
         """Factory method to get the ToolStore instance based on the configuration"""
         tool_type = os.getenv("TOOL_STORE", "git")
         if tool_type == "git":
-            AWM_TOOLS_REPO = os.getenv("AWM_TOOLS_REPO", "https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
+            tools_repo = os.getenv("AWM_TOOLS_REPO", "https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
             from awm.utils.tool.git_tool_store import ToolStoreGit
-            tool_store = ToolStoreGit(AWM_TOOLS_REPO)
+            tool_store = ToolStoreGit(tools_repo)
         elif tool_type == "rc":
-            RESOURCE_CATALOG = os.getenv("RESOURCE_CATALOG", "https://providers.sandbox.eosc-beyond.eu/api")
+            resource_catalog = os.getenv("RESOURCE_CATALOG", "https://providers.sandbox.eosc-beyond.eu/api")
             from awm.utils.tool.rc_tool_store import ToolStoreRC
-            tool_store = ToolStoreRC(RESOURCE_CATALOG)
+            tool_store = ToolStoreRC(resource_catalog)
         else:
-            raise Exception(f"Tool store '{tool_type}' is not supported")
+            raise ValueError(f"Tool store '{tool_type}' is not supported")
         return tool_store
+

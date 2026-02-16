@@ -314,6 +314,6 @@ class DeploymentsManager:
 
     @staticmethod
     def get_deployments_manager():
-        IM_URL = os.getenv("IM_URL", "http://localhost:8800")
-        DB_URL = os.getenv("DB_URL", "file:///tmp/awm.db")
-        return DeploymentsManager(DB_URL, IM_URL)
+        im_url = os.getenv("IM_URL", "http://localhost:8800")
+        db_url = os.getenv("DB_URL", "file:///tmp/awm.db")
+        return DeploymentsManager(db_url, im_url)

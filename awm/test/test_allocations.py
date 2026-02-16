@@ -27,7 +27,7 @@ from awm.models.allocation import AllocationId
 from awm.utils.node_registry import EOSCNode
 from awm.utils.db import DataBase
 from awm.utils.allocation.allocation_store_vault import AllocationStoreVault
-from awm.utils.allocation.allocation_store_db import AllocationStoreDB
+from awm.utils.allocation.allocation_store import AllocationStore
 import awm
 
 
@@ -149,14 +149,28 @@ ALLOC_3 = (
 
 
 @pytest.fixture
-def seed_allocations(backend_type, db_mock, vault_mock):
+def seed_allocations(backend_type, db_mock, vault_mock, monkeypatch):
     def _seed(allocations_list):
+        # Set environment variables based on backend type
         if backend_type in ["db", "mongo"]:
-            awm.allocation_store = AllocationStoreDB(AllocationStoreDB.DEFAULT_URL)
+            monkeypatch.setenv("ALLOCATION_STORE", "db")
+        elif backend_type in ["vault", "enc_vault"]:
+            monkeypatch.setenv("ALLOCATION_STORE", "vault")
+            if backend_type == "enc_vault":
+                monkeypatch.setenv("ENCRYPT_KEY", AllocationStoreVault.DEFAULT_KEY)
+            else:
+                # For vault without encryption, ensure ENCRYPT_KEY is not set
+                monkeypatch.delenv("ENCRYPT_KEY", raising=False)
+
+        # Use the factory method to create the allocation store
+        from awm.utils.allocation.allocation_store import AllocationStore
+        awm.allocation_store = AllocationStore.get_allocation_store()
+
+        # Setup mocks based on backend type
+        if backend_type in ["db", "mongo"]:
             awm.allocation_store.db = db_mock
-            db_mock.db_type = DataBase.SQLITE
-            if backend_type == "mongo":
-                db_mock.db_type = DataBase.MONGO
+            db_mock.db_type = DataBase.MONGO if backend_type == "mongo" else DataBase.SQLITE
+
             selects = []
             for allocations_elem in allocations_list:
                 allocations, total = allocations_elem
@@ -167,16 +181,13 @@ def seed_allocations(backend_type, db_mock, vault_mock):
                 selects.append(rows)
                 if total is not None:
                     selects.append([[total]])
+
             if backend_type == "mongo":
                 db_mock.find.side_effect = selects
             else:
                 db_mock.select.side_effect = selects
+
         elif backend_type in ["vault", "enc_vault"]:
-            if backend_type == "enc_vault":
-                awm.allocation_store = AllocationStoreVault(AllocationStoreVault.DEFAULT_URL,
-                                                            key=AllocationStoreVault.DEFAULT_KEY)
-            else:
-                awm.allocation_store = AllocationStoreVault(AllocationStoreVault.DEFAULT_URL)
             res = []
             for allocations_elem in allocations_list:
                 allocations, total = allocations_elem
