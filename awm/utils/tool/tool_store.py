@@ -87,4 +87,3 @@ class ToolStore:
         else:
             raise ValueError(f"Tool store '{tool_type}' is not supported")
         return tool_store
-
