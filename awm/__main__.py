@@ -21,7 +21,7 @@ from awm.routers import deployments, allocations, tools, service
 
 
 def create_app():
-    app = FastAPI(
+    fapp = FastAPI(
         title="EOSC AWM API",
         description="EOSC Application Workflow Management API",
         version="0.1.48",
@@ -29,27 +29,27 @@ def create_app():
         root_path=os.getenv("ROOT_PATH", "")
     )
 
-    app.include_router(
+    fapp.include_router(
         deployments.router,
         tags=["Deployments"]
     )
 
-    app.include_router(
+    fapp.include_router(
         allocations.router,
         tags=["Allocations"]
     )
 
-    app.include_router(
+    fapp.include_router(
         tools.router,
         tags=["Tools"]
     )
 
-    app.include_router(
+    fapp.include_router(
         service.router,
         tags=["Service"]
     )
 
-    return app
+    return fapp
 
 
 def main():
@@ -59,6 +59,7 @@ def main():
 
 app = create_app()
 
+# Generate OpenAPI spec if OPENAPI environment variable is set
 if os.getenv("OPENAPI"):
     with open("awm-api.yaml", "w", encoding="utf-8") as f:
         yaml.dump(app.openapi(), f, sort_keys=False, allow_unicode=True)

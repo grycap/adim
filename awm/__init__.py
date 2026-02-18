@@ -17,6 +17,8 @@ import os
 import logging
 from dotenv import load_dotenv
 from awm.utils.deployment_manager import DeploymentsManager
+from awm.utils.tool.tool_store import ToolStore
+from awm.utils.allocation.allocation_store import AllocationStore
 
 __version__ = "0.4.0"
 
@@ -36,39 +38,10 @@ if not logger.handlers:
     logger.addHandler(handler)
 
 # Initialize allocation store
-ALLOCATION_STORE = os.getenv("ALLOCATION_STORE", "db")
-
-if ALLOCATION_STORE == "db":
-    from awm.utils.allocation.allocation_store_db import AllocationStoreDB
-    DB_URL = os.getenv("DB_URL", AllocationStoreDB.DEFAULT_URL)
-    allocation_store = AllocationStoreDB(DB_URL)
-    logger.info(f"Using AllocationStoreDB with URL: {DB_URL}")
-elif ALLOCATION_STORE == "vault":
-    from awm.utils.allocation.allocation_store_vault import AllocationStoreVault
-    VAULT_URL = os.getenv("VAULT_URL", AllocationStoreVault.DEFAULT_URL)
-    ENCRYPT_KEY = os.getenv("ENCRYPT_KEY", AllocationStoreVault.DEFAULT_KEY)
-    allocation_store = AllocationStoreVault(VAULT_URL, key=ENCRYPT_KEY)
-    logger.info(f"Using AllocationStoreVault with URL: {VAULT_URL}")
-else:
-    raise Exception(f"Allocation store '{ALLOCATION_STORE}' is not supported")
+allocation_store = AllocationStore.get_allocation_store()
 
 # Initialize deployments manager
-
-IM_URL = os.getenv("IM_URL", "http://localhost:8800")
-DB_URL = os.getenv("DB_URL", "file:///tmp/awm.db")
-
-deployments_manager = DeploymentsManager(DB_URL, IM_URL)
+deployments_manager = DeploymentsManager.get_deployments_manager()
 
 # Initialize tool store
-TOOL_STORE = os.getenv("TOOL_STORE", "git")
-
-if TOOL_STORE == "git":
-    AWM_TOOLS_REPO = os.getenv("AWM_TOOLS_REPO", "https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
-    from awm.utils.tool.git_tool_store import ToolStoreGit
-    tool_store = ToolStoreGit(AWM_TOOLS_REPO)
-elif TOOL_STORE == "rc":
-    RESOURCE_CATALOG = os.getenv("RESOURCE_CATALOG", "https://providers.sandbox.eosc-beyond.eu/api")
-    from awm.utils.tool.rc_tool_store import ToolStoreRC
-    tool_store = ToolStoreRC(RESOURCE_CATALOG)
-else:
-    raise Exception(f"Tool store '{TOOL_STORE}' is not supported")
+tool_store = ToolStore.get_tool_store()

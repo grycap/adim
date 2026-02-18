@@ -21,6 +21,7 @@ from awm.__main__ import create_app
 from pydantic import HttpUrl
 from awm.utils.node_registry import EOSCNode
 from awm.utils.tool.repository import Repository
+from awm.utils.tool.tool_store import ToolStore
 import awm
 
 
@@ -70,27 +71,19 @@ def requests_get_mock(mocker):
 
 
 @pytest.fixture
-def seed_tools(backend_type, repo_mock, requests_get_mock):
+def seed_tools(backend_type, repo_mock, requests_get_mock, monkeypatch):
     def _seed(tools_list):
+        # Set environment variable for the tool store type
+        monkeypatch.setenv("TOOL_STORE", backend_type)
+
+        # Use the factory method to create the tool store
+        awm.tool_store = ToolStore.get_tool_store()
+
+        # Mock the responses based on backend type
         if backend_type == "git":
-            from awm.utils.tool.git_tool_store import ToolStoreGit
-            awm.tool_store = ToolStoreGit("https://github.com/grycap/tosca/blob/eosc_lot1/templates/")
-
-            # Mock the repository responses for git backend
-            responses = []
-            for tools_elem in tools_list:
-                responses.append(tools_elem)
-            repo_mock.cache_session.get.side_effect = responses
-
+            repo_mock.cache_session.get.side_effect = tools_list
         elif backend_type == "rc":
-            from awm.utils.tool.rc_tool_store import ToolStoreRC
-            awm.tool_store = ToolStoreRC("https://providers.sandbox.eosc-beyond.eu/api")
-
-            # Mock the requests.get responses for rc backend
-            responses = []
-            for tools_elem in tools_list:
-                responses.append(tools_elem)
-            requests_get_mock.side_effect = responses
+            requests_get_mock.side_effect = tools_list
 
     return _seed
 
@@ -133,8 +126,8 @@ def test_list_tools(client, check_oidc_mock, backend_type, repo_mock, requests_g
 def test_list_tools_remote(
     client, mocker, check_oidc_mock, repo_mock, list_nodes_mock, requests_get_mock, headers
 ):
-    from awm.utils.tool.git_tool_store import ToolStoreGit
-    awm.tool_store = ToolStoreGit("test")
+    mocker.patch.dict('os.environ', {'TOOL_STORE': 'git', 'AWM_TOOLS_REPO': 'test'})
+    awm.tool_store = ToolStore.get_tool_store()
 
     blueprint = "description: DESC\nmetadata:\n  template_name: NAME"
 

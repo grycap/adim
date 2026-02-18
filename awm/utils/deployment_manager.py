@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import awm
+import os
 import time
 import yaml
 from typing import Dict, Any
@@ -142,10 +143,53 @@ class DeploymentsManager:
 
         return allocation, 200
 
+    def _get_state(self, dep_info: DeploymentInfo, user_info: dict) -> DeploymentInfo:
+        try:
+            # Get the allocation info from the Allocation
+            allocation, status = self.get_allocation(dep_info.deployment, user_info)
+            if status != 200:
+                return allocation, status
+
+            if allocation.root.kind == "EoscNodeEnvironment":
+                raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
+
+            auth_data = self.get_im_auth_header(user_info['token'], allocation.root)
+            client = IMClient.init_client(self.im_url, auth_data)
+            success, state_info = client.get_infra_property(dep_info.id, "state")
+            if success:
+                dep_info.status = state_info.get('state')
+            else:
+                dep_info.status = "unknown"
+                awm.logger.error(f"Could not retrieve deployment status: {state_info}")
+                # Check if the infrastructure still exists
+                success, infras = client.list_infras()
+                if success:
+                    if dep_info.id not in infras:
+                        awm.logger.info(f"Deployment {dep_info.id} not found in IM."
+                                        " Setting status to 'deleted'")
+                        dep_info.status = "deleted"
+                else:
+                    awm.logger.error(f"Could not list infrastructures: {infras}")
+
+            success, outputs = client.get_infra_property(dep_info.id, "outputs")
+            if success:
+                dep_info.outputs = outputs
+            else:
+                awm.logger.error(f"Could not get deployment outputs: {outputs}")
+
+            success, cont_msg = client.get_infra_property(dep_info.id, "contmsg")
+            if success:
+                dep_info.details = cont_msg
+            else:
+                awm.logger.error(f"Could not get deployment contmsg: {cont_msg}")
+        except Exception as ex:
+            awm.logger.error(f"Error retrieving deployment state: {str(ex)}")
+
+        return dep_info
+
     def get_deployment(self, deployment_id: str, user_info: dict,
                        get_state: bool = True) -> Tuple[Union[Error, DeploymentInfo], int]:
         dep_info = None
-        user_token = user_info['token']
         user_id = user_info['sub']
         if self.db.connect():
             if self.db.db_type == DataBase.MONGO:
@@ -166,58 +210,18 @@ class DeploymentsManager:
                     msg = Error(id="500", description="Internal server error: corrupted deployment data")
                     return msg, 500
 
-                try:
-                    if get_state:
-                        # Get the allocation info from the Allocation
-                        allocation, status = self.get_allocation(dep_info.deployment, user_info)
-                        if status != 200:
-                            return allocation, status
-
-                        if allocation.root.kind == "EoscNodeEnvironment":
-                            raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
-
-                        auth_data = self.get_im_auth_header(user_token, allocation.root)
-                        client = IMClient.init_client(self.im_url, auth_data)
-                        success, state_info = client.get_infra_property(deployment_id, "state")
-                        if success:
-                            dep_info.status = state_info.get('state')
-                        else:
-                            dep_info.status = "unknown"
-                            awm.logger.error(f"Could not retrieve deployment status: {state_info}")
-                            # Check if the infrastructure still exists
-                            success, infras = client.list_infras()
-                            if success:
-                                if deployment_id not in infras:
-                                    awm.logger.info(f"Deployment {deployment_id} not found in IM."
-                                                    " Setting status to 'deleted'")
-                                    dep_info.status = "deleted"
-                            else:
-                                awm.logger.error(f"Could not list infrastructures: {infras}")
-
-                        success, outputs = client.get_infra_property(deployment_id, "outputs")
-                        if success:
-                            dep_info.outputs = outputs
-                        else:
-                            awm.logger.error(f"Could not get deployment outputs: {outputs}")
-
-                        success, cont_msg = client.get_infra_property(deployment_id, "contmsg")
-                        if success:
-                            dep_info.details = cont_msg
-                        else:
-                            awm.logger.error(f"Could not get deployment contmsg: {cont_msg}")
-
-                        # Update deployment info in DB
-                        data = dep_info.model_dump_json(exclude_unset=True, exclude_none=True)
-                        self.db.connect()
-                        if self.db.db_type == DataBase.MONGO:
-                            res = self.db.replace("deployments", {"id": deployment_id}, {"data": data})
-                        else:
-                            res = self.db.execute("update deployments set data = %s where id = %s",
-                                                  (data, deployment_id))
-                        self.db.close()
-                except Exception as ex:
-                    msg = Error(id="400", description=str(ex))
-                    return msg, 400
+                if get_state:
+                    # Get the deployment state from the IM and update the deployment info
+                    dep_info = self._get_state(dep_info, user_info)
+                    # Update deployment info in DB
+                    data = dep_info.model_dump_json(exclude_unset=True, exclude_none=True)
+                    self.db.connect()
+                    if self.db.db_type == DataBase.MONGO:
+                        res = self.db.replace("deployments", {"id": deployment_id}, {"data": data})
+                    else:
+                        res = self.db.execute("update deployments set data = %s where id = %s",
+                                              (data, deployment_id))
+                    self.db.close()
             else:
                 msg = Error(id="404", description=f"Deployment {deployment_id} not found")
                 return msg, 404
@@ -264,7 +268,7 @@ class DeploymentsManager:
     def _get_template(blueprint: str, inputs: Dict[str, Any]) -> str:
         if not inputs:
             return blueprint
-        awm.logger.debug("Input values: ", inputs)
+        awm.logger.debug(f"Input values: {inputs}")
         template = yaml.safe_load(blueprint)
         temp_inputs = template.get("topology_template", {}).get("inputs", {})
         for key in list(temp_inputs.keys()):
@@ -307,3 +311,9 @@ class DeploymentsManager:
             raise DBConnectionException("Database connection failed")
 
         return deployment_info
+
+    @staticmethod
+    def get_deployments_manager():
+        im_url = os.getenv("IM_URL", "http://localhost:8800")
+        db_url = os.getenv("DB_URL", "file:///tmp/awm.db")
+        return DeploymentsManager(db_url, im_url)

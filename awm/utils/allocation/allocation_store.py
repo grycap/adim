@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import awm
+import os
 from typing import List
 
 
@@ -29,3 +31,21 @@ class AllocationStore():
 
     def replace_allocation(self, data: dict, user_info: dict, allocation_id: str = None) -> str:
         raise NotImplementedError()
+
+    @staticmethod
+    def get_allocation_store() -> 'AllocationStore':
+        store_type = os.getenv("ALLOCATION_STORE", "db")
+        if store_type == "db":
+            from awm.utils.allocation.allocation_store_db import AllocationStoreDB
+            db_url = os.getenv("DB_URL", AllocationStoreDB.DEFAULT_URL)
+            allocation_store = AllocationStoreDB(db_url)
+            awm.logger.info(f"Using AllocationStoreDB with URL: {db_url}")
+        elif store_type == "vault":
+            from awm.utils.allocation.allocation_store_vault import AllocationStoreVault
+            vault_url = os.getenv("VAULT_URL", AllocationStoreVault.DEFAULT_URL)
+            encrypt_key = os.getenv("ENCRYPT_KEY", None)
+            allocation_store = AllocationStoreVault(vault_url, key=encrypt_key)
+            awm.logger.info(f"Using AllocationStoreVault with URL: {vault_url}")
+        else:
+            raise ValueError(f"Allocation store '{store_type}' is not supported")
+        return allocation_store
