@@ -48,11 +48,11 @@ class ToolStoreRC(ToolStore):
     def get_tool_info(elem: dict, request: Request) -> ToolInfo:
         tosca = yaml.safe_load(requests.get(ToolStoreRC._convert_url_to_raw(elem['url']), timeout=10).text)
         metadata = tosca.get("metadata", {})
-        tool_id = elem['id'].replace("/", "@")
+        tool_id = elem['id'].replace("/", "%2F")
         url = str(request.url_for("get_tool", tool_id=tool_id))
         url += f"?version={elem['version']}"
         tool = ToolInfo(
-            id=tool_id,
+            id=elem['id'],
             self_=url,
             version='latest',
             type=ToolStore.get_tool_type(tosca),
@@ -81,7 +81,7 @@ class ToolStoreRC(ToolStore):
     def get_tool(self, tool_id: str, version: str, request: Request,
                  user_info: dict = None) -> Tuple[Union[ToolInfo, Error], int]:
         # tool_id was provided with underscores; convert back path
-        repo_tool_id = tool_id.replace("@", "/")
+        repo_tool_id = tool_id.replace("%2F", "/")
         try:
             response = requests.get(f"{self.url}/deployableService/{repo_tool_id}", timeout=10)
         except Exception as e:
