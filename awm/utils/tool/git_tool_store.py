@@ -45,13 +45,13 @@ class ToolStoreGit(ToolStore):
     def get_tool_info(elem: dict, request: Request) -> ToolInfo:
         tosca = yaml.safe_load(elem["template"])
         metadata = tosca.get("metadata", {})
-        tool_id = elem['path'].replace("/", "@")
+        tool_id = elem['path'].replace("/", "%2F")
         url = str(request.url_for("get_tool", tool_id=tool_id))
         version = elem.get("version", "latest")
         if version != "latest":
             url += "?version=%s" % version
         tool = ToolInfo(
-            id=tool_id,
+            id=elem['path'],
             self_=url,
             version='latest',
             type=ToolStore.get_tool_type(tosca),
@@ -69,7 +69,7 @@ class ToolStoreGit(ToolStore):
     def get_tool(self, tool_id: str, version: str, request: Request,
                  user_info: dict = None) -> Tuple[Union[ToolInfo, Error], int]:
         # tool_id was provided with underscores; convert back path
-        repo_tool_id = tool_id.replace("@", "/")
+        repo_tool_id = tool_id.replace("%2F", "/")
         try:
             repo = Repository.create(self.url)
             response = repo.get(repo_tool_id, version, details=True)
