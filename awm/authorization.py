@@ -59,6 +59,7 @@ def get_user_groups(token: str | dict, user_info: dict) -> List[str]:
                 break
     return extract_groups_from_entitlements(user_groups)
 
+
 def check_OIDC(token: str) -> dict:
     try:
         user_info = {}
@@ -85,7 +86,6 @@ def check_OIDC(token: str) -> dict:
             if not success:
                 raise HTTPException(status_code=401, detail="Error validating token: %s" % user_info)
 
-
         # Check audience if specified
         if OIDC_AUDIENCE:
             found = False
@@ -99,7 +99,6 @@ def check_OIDC(token: str) -> dict:
             if not found:
                 logger.error("Audience %s not found in access token." % OIDC_AUDIENCE)
                 raise HTTPException(status_code=401, detail="Invalid token audience")
-
 
         if OIDC_GROUPS:
             user_groups = get_user_groups(decoded_token, user_info)
@@ -117,7 +116,7 @@ def check_OIDC(token: str) -> dict:
     return user_info
 
 
-def extract_groups_from_entitlements(entitlements: List[str], vo_roles: List[str]=None) -> List[str]:
+def extract_groups_from_entitlements(entitlements: List[str], vo_roles: List[str] = None) -> List[str]:
     groups = []
     for elem in entitlements:
         # format: urn:mace:egi.eu:group:eosc-synergy.eu:role=vm_operator#aai.egi.eu

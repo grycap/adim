@@ -24,7 +24,7 @@ class OpenIDClient(object):
     ISSUER_CONFIG_CACHE = {}
 
     @staticmethod
-    def get_openid_configuration(iss: str, verify_ssl: bool=False) -> dict:
+    def get_openid_configuration(iss: str, verify_ssl: bool = False) -> dict:
         try:
             if iss in OpenIDClient.ISSUER_CONFIG_CACHE:
                 return OpenIDClient.ISSUER_CONFIG_CACHE[iss]
@@ -40,7 +40,7 @@ class OpenIDClient(object):
             return {"error": str(ex)}
 
     @staticmethod
-    def get_user_info_request(token: str, verify_ssl: bool=False) -> Tuple[bool, dict | str]:
+    def get_user_info_request(token: str, verify_ssl: bool = False) -> Tuple[bool, dict | str]:
         """
         Get a the user info from a token
         """
@@ -57,7 +57,7 @@ class OpenIDClient(object):
 
     @staticmethod
     def get_token_introspection(token: str, issuer: str, client_id: str, client_secret: str,
-                                verify_ssl: bool=False) -> Tuple[bool, dict | str]:
+                                verify_ssl: bool = False) -> Tuple[bool, dict | str]:
         """
         Get token introspection
         """

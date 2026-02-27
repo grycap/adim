@@ -280,7 +280,7 @@ def test_auth_check_oidc_groups(requests_mock, jwt_mock, time_mock, token):
         "groups": ["awm"]
     }
     mock_response3 = MagicMock()
-    mock_response3.status_code = 200 
+    mock_response3.status_code = 200
     mock_response3.json.return_value = {
         "sub": "user123",
         "name": "Test User",
