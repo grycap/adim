@@ -16,7 +16,7 @@
 import awm
 from fastapi import APIRouter, Query, Depends, Request, Response
 from awm.authorization import authenticate
-from awm.models.deployment import DeploymentInfo, DeploymentId, Deployment
+from awm.models.deployment import DeploymentInfo, DeploymentId, Deployment, DeploymentResources
 from awm.models.page import PageOfDeployments
 from awm.utils.node_registry import EOSCNodeRegistry
 from awm.utils import DBConnectionException
@@ -95,11 +95,12 @@ def delete_deployment(deployment_id,
 # POST /deployments
 @router.post("/deployments",
              summary="Deploy workload to an EOSC environment or an infrastructure for which the user has credentials",
-             status_code=202,
-             response_model=DeploymentId,
-             responses=POST_RESPONSES(DeploymentId, msg="Deploying"))
+             status_code=200,
+             response_model=DeploymentId | DeploymentResources,
+             responses=POST_RESPONSES(DeploymentId | DeploymentResources, msg="Deploying"))
 def deploy_workload(deployment: Deployment,
                     request: Request,
+                    dry_run: bool = Query(False, alias="dryRun"),
                     user_info=Depends(authenticate)):
     """Deploy workload to an EOSC environment or an infrastructure for which the user has credentials"""
     awm.logger.debug(f"Creating deployment from user '{user_info.get('sub')}'")
@@ -121,12 +122,16 @@ def deploy_workload(deployment: Deployment,
 
     try:
         deployment_info = awm.deployments_manager.update_deployment(deployment, tool, allocation,
-                                                                    user_info, request)
+                                                                    user_info, request, dry_run)
     except DBConnectionException as dbe:
         return return_error(str(dbe), 503)
     except Exception as e:
         return return_error(str(e), 400)
 
-    dep_id = DeploymentId(id=deployment_info.id, kind="DeploymentId", infoLink=deployment_info.self_)
-    return Response(content=dep_id.model_dump_json(exclude_unset=True, by_alias=True),
-                    status_code=202, media_type="application/json")
+    if dry_run:
+        return Response(content=deployment_info.model_dump_json(exclude_unset=True, exclude_none=True),
+                        status_code=200, media_type="application/json")
+    else:
+        dep_id = DeploymentId(id=deployment_info.id, kind="DeploymentId", infoLink=deployment_info.self_)
+        return Response(content=dep_id.model_dump_json(exclude_unset=True, by_alias=True),
+                        status_code=202, media_type="application/json")

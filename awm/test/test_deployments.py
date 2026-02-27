@@ -350,3 +350,50 @@ topology_template:
       default: 4
     """)
     assert yaml.safe_load(im_mock.create.call_args_list[0][0][0]) == exp_template
+
+def test_deploy_workload_dry_run(
+    client, db_mock, check_oidc_mock, im_mock, get_tool_mock, allocation_mock_router
+):
+    im_mock.create.return_value = True, {"cloud": {
+        "cloudType": "OpenStack",
+        "cloudEndpoint": "http://openstack.example.com:5000",
+        "compute": [
+                {
+                "cpuCores": 2,
+                "memoryInMegabytes": 4096,
+                "diskSizeInGigabytes": 20,
+                "publicIP": 1,
+                "GPU": 1
+                },
+                {
+                "cpuCores": 1,
+                "memoryInMegabytes": 2048,
+                "diskSizeInGigabytes": 10
+                }
+        ],
+        "storage": [
+                {"sizeInGigabytes": 100, "type": "ceph"},
+                {"sizeInGigabytes": 100}
+        ]
+    }}
+    im_mock.get_cloud_quotas.return_value = True, {"quotas": {
+        "cores": {"used": 4, "limit": 10},
+        "ram": {"used": 8192, "limit": 16384},
+        "gpus": {"used": 1, "limit": 4},
+        "instances": {"used": 2, "limit": 5},
+        "floating_ips": {"used": 1, "limit": 3},
+        "security_groups": {"used": 2, "limit": 10},
+        "volumes": {"used": 3, "limit": 10},
+        "volume_storage": {"used": 300, "limit": 1000}
+    }}  
+
+    payload = ('{"tool": {"kind": "ToolId", "id": "toolid"}, '
+               '"allocation": {"kind": "AllocationId", "id": "aid"}}')
+
+    response = client.post("/deployments?dryRun=true",
+                           headers={"Authorization": "Bearer token"},
+                           content=payload)
+
+    assert response.status_code == 200
+    response_json = response.json()
+    assert response_json["cloud"]["cloudType"] == "OpenStack"
