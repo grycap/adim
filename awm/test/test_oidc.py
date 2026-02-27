@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import pytest
 import awm.authorization
 from awm.oidc.client import OpenIDClient
@@ -63,6 +62,7 @@ def test_get_openid_configuration_success(requests_mock):
     mock_response.json.return_value = response_data
     requests_mock.return_value = mock_response
 
+    OpenIDClient.ISSUER_CONFIG_CACHE = {}
     result = OpenIDClient.get_openid_configuration(iss)
 
     assert "userinfo_endpoint" in result
@@ -79,13 +79,20 @@ def test_get_user_info_request_success(requests_mock, token):
     """Test obtener user info exitosamente"""
     mock_response = MagicMock()
     mock_response.status_code = 200
-    mock_response.text = json.dumps({
+    mock_response.json.return_value = {
+        "userinfo_endpoint": "https://issuer.example.com/userinfo",
+        "introspection_endpoint": "https://issuer.example.com/introspect"
+    }
+    mock_response2 = MagicMock()
+    mock_response2.status_code = 200
+    mock_response2.json.return_value = {
         "sub": "user123",
         "name": "Test User",
         "email": "user@example.com"
-    })
-    requests_mock.return_value = mock_response
+    }
+    requests_mock.side_effect = [mock_response, mock_response2]
 
+    OpenIDClient.ISSUER_CONFIG_CACHE = {}
     success, user_info = OpenIDClient.get_user_info_request(token)
 
     assert success is True
@@ -108,14 +115,22 @@ def test_get_token_introspection_success(requests_mock, token):
 
     mock_response = MagicMock()
     mock_response.status_code = 200
-    mock_response.text = json.dumps({
+    mock_response.json.return_value = {
+        "userinfo_endpoint": "https://issuer.example.com/userinfo",
+        "introspection_endpoint": "https://issuer.example.com/introspect"
+    }
+    mock_response2 = MagicMock()
+    mock_response2.status_code = 200
+    mock_response2.json.return_value = {
         "active": True,
         "exp": 9999999999,
         "sub": "user123"
-    })
-    requests_mock.return_value = mock_response
+    }
+    requests_mock.side_effect = [mock_response, mock_response2]
 
-    success, introspection = OpenIDClient.get_token_introspection(token, client_id, client_secret)
+    OpenIDClient.ISSUER_CONFIG_CACHE = {}
+    awm.authorization.OIDC_ISSUERS = ["https://issuer.example.com"]
+    success, introspection = OpenIDClient.get_token_introspection(token, None, client_id, client_secret)
 
     assert success is True
     assert introspection["active"] is True
@@ -153,12 +168,18 @@ def test_auth_check_oidc_expired(token):
 def test_auth_check_oidc_success(requests_mock, jwt_mock, time_mock, token):
     mock_response = MagicMock()
     mock_response.status_code = 200
-    mock_response.text = json.dumps({
+    mock_response.json.return_value = {
+        "userinfo_endpoint": "https://issuer.example.com/userinfo",
+        "introspection_endpoint": "https://issuer.example.com/introspect"
+    }
+    mock_response2 = MagicMock()
+    mock_response2.status_code = 200
+    mock_response2.json.return_value = {
         "sub": "user123",
         "name": "Test User",
         "email": "user@example.com"
-    })
-    requests_mock.return_value = mock_response
+    }
+    requests_mock.side_effect = [mock_response, mock_response2]
 
     current_time = 1000
     expiration_time = 2000
@@ -166,6 +187,8 @@ def test_auth_check_oidc_success(requests_mock, jwt_mock, time_mock, token):
     jwt_mock.return_value = {"exp": expiration_time, "iss": "https://issuer.example.com"}
     time_mock.return_value = current_time
 
+    OpenIDClient.ISSUER_CONFIG_CACHE = {}
+    awm.authorization.OIDC_ISSUERS = ["https://issuer.example.com"]
     res = check_OIDC(token)
 
     assert res["sub"] == "user123"
@@ -176,12 +199,18 @@ def test_auth_check_oidc_success(requests_mock, jwt_mock, time_mock, token):
 def test_auth_check_oidc_issuers(requests_mock, jwt_mock, time_mock, token):
     mock_response = MagicMock()
     mock_response.status_code = 200
-    mock_response.text = json.dumps({
+    mock_response.json.return_value = {
+        "userinfo_endpoint": "https://issuer.example.com/userinfo",
+        "introspection_endpoint": "https://issuer.example.com/introspect"
+    }
+    mock_response2 = MagicMock()
+    mock_response2.status_code = 200
+    mock_response2.json.return_value = {
         "sub": "user123",
         "name": "Test User",
         "email": "user@example.com"
-    })
-    requests_mock.return_value = mock_response
+    }
+    requests_mock.side_effect = [mock_response, mock_response2]
 
     current_time = 1000
     expiration_time = 2000
@@ -189,26 +218,31 @@ def test_auth_check_oidc_issuers(requests_mock, jwt_mock, time_mock, token):
     jwt_mock.return_value = {"exp": expiration_time, "iss": "https://issuer.example.com"}
     time_mock.return_value = current_time
 
-    awm.authorization.OIDC_ISSUERS = "https://issuer.example.com"
+    OpenIDClient.ISSUER_CONFIG_CACHE = {}
+    awm.authorization.OIDC_ISSUERS = ["https://issuer.example.com"]
     res = check_OIDC(token)
     assert res["sub"] == "user123"
 
-    awm.authorization.OIDC_ISSUERS = "https://other-issuer.example.com"
+    awm.authorization.OIDC_ISSUERS = ["https://other-issuer.example.com"]
     with pytest.raises(HTTPException):
         check_OIDC(token)
-
-    awm.authorization.OIDC_ISSUERS = ""
 
 
 def test_auth_check_oidc_aud(requests_mock, jwt_mock, time_mock, token):
     mock_response = MagicMock()
     mock_response.status_code = 200
-    mock_response.text = json.dumps({
+    mock_response.json.return_value = {
+        "userinfo_endpoint": "https://issuer.example.com/userinfo",
+        "introspection_endpoint": "https://issuer.example.com/introspect"
+    }
+    mock_response2 = MagicMock()
+    mock_response2.status_code = 200
+    mock_response2.json.return_value = {
         "sub": "user123",
         "name": "Test User",
         "email": "user@example.com"
-    })
-    requests_mock.return_value = mock_response
+    }
+    requests_mock.side_effect = [mock_response, mock_response2]
 
     current_time = 1000
     expiration_time = 2000
@@ -217,6 +251,8 @@ def test_auth_check_oidc_aud(requests_mock, jwt_mock, time_mock, token):
                              "aud": "awm"}
     time_mock.return_value = current_time
 
+    OpenIDClient.ISSUER_CONFIG_CACHE = {}
+    awm.authorization.OIDC_ISSUERS = ["https://issuer.example.com"]
     awm.authorization.OIDC_AUDIENCE = "awm"
     res = check_OIDC(token)
     assert res["sub"] == "user123"
@@ -231,13 +267,26 @@ def test_auth_check_oidc_aud(requests_mock, jwt_mock, time_mock, token):
 def test_auth_check_oidc_groups(requests_mock, jwt_mock, time_mock, token):
     mock_response = MagicMock()
     mock_response.status_code = 200
-    mock_response.text = json.dumps({
+    mock_response.json.return_value = {
+        "userinfo_endpoint": "https://issuer.example.com/userinfo",
+        "introspection_endpoint": "https://issuer.example.com/introspect"
+    }
+    mock_response2 = MagicMock()
+    mock_response2.status_code = 200
+    mock_response2.json.return_value = {
         "sub": "user123",
         "name": "Test User",
         "email": "user@example.com",
         "groups": ["awm"]
-    })
-    requests_mock.return_value = mock_response
+    }
+    mock_response3 = MagicMock()
+    mock_response3.status_code = 200 
+    mock_response3.json.return_value = {
+        "sub": "user123",
+        "name": "Test User",
+        "email": "user@example.com"
+    }
+    requests_mock.side_effect = [mock_response, mock_response2, mock_response3]
 
     current_time = 1000
     expiration_time = 2000
@@ -245,15 +294,12 @@ def test_auth_check_oidc_groups(requests_mock, jwt_mock, time_mock, token):
     jwt_mock.return_value = {"exp": expiration_time, "iss": "https://issuer.example.com"}
     time_mock.return_value = current_time
 
+    OpenIDClient.ISSUER_CONFIG_CACHE = {}
+    awm.authorization.OIDC_ISSUERS = ["https://issuer.example.com"]
     awm.authorization.OIDC_GROUPS = "awm"
     res = check_OIDC(token)
     assert res["sub"] == "user123"
 
-    mock_response.text = json.dumps({
-        "sub": "user123",
-        "name": "Test User",
-        "email": "user@example.com"
-    })
     with pytest.raises(HTTPException):
         res = check_OIDC(token)
 
