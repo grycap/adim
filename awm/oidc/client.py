@@ -13,23 +13,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import requests
 import time
+from typing import Tuple
 from awm.oidc.jwt import JWT
 
 
 class OpenIDClient(object):
 
     ISSUER_CONFIG_CACHE = {}
+    DEFAULT_TIMEOUT = 10
 
     @staticmethod
-    def get_openid_configuration(iss, verify_ssl=False):
+    def get_openid_configuration(iss: str, verify_ssl: bool = False) -> dict:
         try:
             if iss in OpenIDClient.ISSUER_CONFIG_CACHE:
                 return OpenIDClient.ISSUER_CONFIG_CACHE[iss]
             url = "%s/.well-known/openid-configuration" % iss
-            resp = requests.request("GET", url, verify=verify_ssl)
+            resp = requests.request("GET", url, verify=verify_ssl, timeout=OpenIDClient.DEFAULT_TIMEOUT)
             if resp.status_code != 200:
                 return {"error": "Code: %d. Message: %s." % (resp.status_code, resp.text)}
             # Only store currently needed data
@@ -40,7 +41,7 @@ class OpenIDClient(object):
             return {"error": str(ex)}
 
     @staticmethod
-    def get_user_info_request(token, verify_ssl=False):
+    def get_user_info_request(token: str, verify_ssl: bool = False) -> Tuple[bool, dict | str]:
         """
         Get a the user info from a token
         """
@@ -48,32 +49,38 @@ class OpenIDClient(object):
             decoded_token = JWT().get_info(token)
             headers = {'Authorization': 'Bearer %s' % token}
             conf = OpenIDClient.get_openid_configuration(decoded_token['iss'], verify_ssl=False)
-            resp = requests.request("GET", conf["userinfo_endpoint"], verify=verify_ssl, headers=headers)
+            resp = requests.request("GET", conf["userinfo_endpoint"], verify=verify_ssl,
+                                    headers=headers, timeout=OpenIDClient.DEFAULT_TIMEOUT)
             if resp.status_code != 200:
                 return False, "Code: %d. Message: %s." % (resp.status_code, resp.text)
-            return True, json.loads(resp.text)
+            return True, resp.json()
         except Exception as ex:
             return False, str(ex)
 
     @staticmethod
-    def get_token_introspection(token, client_id, client_secret, verify_ssl=False):
+    def get_token_introspection(token: str, issuer: str, client_id: str, client_secret: str,
+                                verify_ssl: bool = False) -> Tuple[bool, dict | str]:
         """
         Get token introspection
         """
         try:
             decoded_token = JWT().get_info(token)
-            conf = OpenIDClient.get_openid_configuration(decoded_token['iss'], verify_ssl=False)
-            url = "%s?token=%s&token_type_hint=access_token" % (conf["introspection_endpoint"], token)
-            resp = requests.request("GET", url, verify=verify_ssl,
-                                    auth=requests.auth.HTTPBasicAuth(client_id, client_secret))
+            if not issuer:
+                issuer = decoded_token['iss']
+            conf = OpenIDClient.get_openid_configuration(issuer, verify_ssl=verify_ssl)
+            params = {'token': token, 'token_type_hint': 'access_token'}
+            resp = requests.request("POST", conf["introspection_endpoint"],
+                                    headers={'Content-Type': 'application/x-www-form-urlencoded'},
+                                    auth=requests.auth.HTTPBasicAuth(client_id, client_secret),
+                                    verify=verify_ssl, timeout=OpenIDClient.DEFAULT_TIMEOUT, data=params)
             if resp.status_code != 200:
                 return False, "Code: %d. Message: %s." % (resp.status_code, resp.text)
-            return True, json.loads(resp.text)
+            return True, resp.json()
         except Exception as ex:
             return False, str(ex)
 
     @staticmethod
-    def is_access_token_expired(token):
+    def is_access_token_expired(token: str) -> Tuple[bool, str]:
         """
         Check if the current access token is expired
         """
@@ -93,10 +100,12 @@ class OpenIDClient(object):
             return True, "No token specified"
 
     @staticmethod
-    def get_token_claim(token, claim_name):
+    def get_token_claim(token: str | dict, claim_name: str) -> str | None:
         """Get a specific claim from the token"""
         try:
-            decoded_token = JWT().get_info(token)
-            return decoded_token.get(claim_name, None)
+            if isinstance(token, dict):
+                return token.get(claim_name, None)
+            else:
+                return JWT().get_info(token).get(claim_name, None)
         except Exception:
             return None
