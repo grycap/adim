@@ -55,8 +55,8 @@ class DeploymentInfo(BaseModel):
 
 
 class Quota(BaseModel):
-    used: int | float = Field(..., description="Amount of the resource currently used")
-    limit: int | float = Field(..., description="Maximum amount of the resource available")
+    used: int | float | None = Field(None, description="Amount of the resource currently used")
+    limit: int | float | None = Field(None, description="Maximum amount of the resource available")
     to_use: int | float | None = Field(None, description="Amount of the resources the user needs with the deployment")
 
 
@@ -69,28 +69,3 @@ class CloudQuota(BaseModel):
     security_groups: Quota | None = Field(None, description="Number of security groups quota")
     volumes: Quota | None = Field(None, description="Number of volumes quota")
     volume_storage: Quota | None = Field(None, description="Storage in gigabytes quota for volumes")
-
-
-class ComputeResource(BaseModel):
-    cpuCores: float = Field(..., description="Number of CPU cores")
-    memoryInMegabytes: float = Field(..., description="Amount of memory in megabytes")
-    diskSizeInGigabytes: float | None = Field(None, description="Disk size in gigabytes")
-    publicIP: int | None = Field(None, description="Number of public IPs")
-    GPU: float | None = Field(None, description="Number of GPU units")
-
-
-class StorageResource(BaseModel):
-    sizeInGigabytes: float = Field(..., description="Storage size in gigabytes")
-    type: str | None = Field(None, description="Type of storage (e.g. SSD, CEPH, etc.)")
-
-
-class CloudResource(BaseModel):
-    cloudType: str = Field(..., description="Type of the cloud resource (e.g. OpenStack, Kubernetes, etc.)")
-    cloudEndpoint: HttpUrl = Field(..., description="Endpoint of the cloud resource")
-    compute: List[ComputeResource] = Field(..., description="List of compute resources")
-    storage: List[StorageResource] | None = Field(None, description="List of storage resources")
-    quotas: CloudQuota | None = Field(None, description="Quotas for the cloud resource")
-
-
-class DeploymentResources(RootModel[Dict[str, CloudResource]]):
-    pass

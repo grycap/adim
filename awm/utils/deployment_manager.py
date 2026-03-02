@@ -17,10 +17,10 @@ import awm
 import os
 import time
 import yaml
-from typing import Dict, Any
+from typing import Dict, Any, List
 from fastapi import Request
 from imclient import IMClient
-from awm.models.deployment import DeploymentInfo, Deployment, DeploymentResources, CloudQuota
+from awm.models.deployment import DeploymentInfo, Deployment, CloudQuota
 from awm.models.tool import ToolInfo
 from awm.models.error import Error
 from awm.models.success import Success
@@ -31,6 +31,8 @@ from awm.utils import ConnectionException, DBConnectionException
 
 
 class DeploymentsManager:
+
+    DEFAULT_CLOUD_NAME = "cloud"
 
     def __init__(self, db_url: str, im_url: str):
         self.im_url = im_url
@@ -59,10 +61,10 @@ class DeploymentsManager:
         return False
 
     @staticmethod
-    def get_im_auth_header(token: str, allocation: AllocationUnion = None) -> dict:
+    def get_im_auth_header(token: str, allocation: AllocationUnion | None = None) -> List[Dict[str, str]]:
         auth_data = [{"type": "InfrastructureManager", "token": token}]
-        cloud_auth_data = {"id": "cloud"}
         if allocation:
+            cloud_auth_data = {"id": DeploymentsManager.DEFAULT_CLOUD_NAME}
             if allocation.kind == "OpenStackEnvironment":
                 cloud_auth_data["type"] = "OpenStack"
                 cloud_auth_data["auth_version"] = "3.x_oidc_access_token"
@@ -79,14 +81,13 @@ class DeploymentsManager:
                     cloud_auth_data["tenant_id"] = allocation.tenantId
                 if allocation.apiVersion:
                     cloud_auth_data["api_version"] = allocation.apiVersion
-                auth_data.append(cloud_auth_data)
             elif allocation.kind == "KubernetesEnvironment":
                 cloud_auth_data["type"] = "Kubernetes"
                 cloud_auth_data["host"] = str(allocation.host)
                 cloud_auth_data["token"] = token
-                auth_data.append(cloud_auth_data)
             else:
                 raise ValueError("Allocation kind not supported")
+            auth_data.append(cloud_auth_data)
         return auth_data
 
     def list_deployments(self, from_: int = 0, limit: int = 100,
@@ -327,12 +328,11 @@ class DeploymentsManager:
             raise Exception(deployment_id)
 
         if dry_run:
-            success, quotas = client.get_cloud_quotas("cloud")
+            success, quotas = client.get_cloud_quotas(self.DEFAULT_CLOUD_NAME)
             if not success:
-                awm.logger.error(f"Could not get cloud quotas: {quotas}")
-                raise Exception(f"Could not get cloud quotas: {quotas}")
-            else:
-                return self._compute_resources_to_use(list(deployment_id.values())[0], quotas)
+                awm.logger.error("Could not get cloud quotas: %s", quotas)
+                quotas = {}
+            return self._compute_resources_to_use(list(deployment_id.values())[0], quotas)
         else:
             if self.db.connect():
                 deployment_info = DeploymentInfo(id=deployment_id,
