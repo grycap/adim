@@ -14,8 +14,9 @@
 # limitations under the License.
 
 import requests
+import requests.auth
 import time
-from typing import Tuple
+from typing import Tuple, Any
 from awm.oidc.jwt import JWT
 
 
@@ -100,7 +101,7 @@ class OpenIDClient(object):
             return True, "No token specified"
 
     @staticmethod
-    def get_token_claim(token: str | dict, claim_name: str) -> str | None:
+    def get_token_claim(token: str | dict, claim_name: str) -> Any:
         """Get a specific claim from the token"""
         try:
             if isinstance(token, dict):
