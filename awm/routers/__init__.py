@@ -55,6 +55,14 @@ def POST_RESPONSES(return_type: Any = BaseModel, status_code: int = 202,
     return responses
 
 
+def DEP_POST_RESPONSES(return_type: Any = BaseModel, return_type_2: Any = BaseModel) -> Dict[int | str, Dict[str, Any]]:
+    """Standard HTTP error responses for POST operations"""
+    responses = STANDARD_RESPONSES(return_type_2)
+    responses[200] = {"description": "Success"}
+    responses[202] = {"model": return_type, "description": "Deploying"}
+    return responses
+
+
 def return_error(message: str, status_code: int = 500) -> Response:
     err = Error(id=f"{status_code}", description=message)
     return Response(content=err.model_dump_json(exclude_unset=True),

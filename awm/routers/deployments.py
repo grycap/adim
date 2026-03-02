@@ -22,7 +22,7 @@ from awm.utils.node_registry import EOSCNodeRegistry
 from awm.utils import DBConnectionException
 from awm.models.success import Success
 
-from . import return_error, STANDARD_RESPONSES, GET_RESPONSES, DELETE_RESPONSES, POST_RESPONSES
+from . import DEP_POST_RESPONSES, return_error, STANDARD_RESPONSES, GET_RESPONSES, DELETE_RESPONSES, POST_RESPONSES
 
 
 router = APIRouter()
@@ -96,8 +96,8 @@ def delete_deployment(deployment_id,
 @router.post("/deployments",
              summary="Deploy workload to an EOSC environment or an infrastructure for which the user has credentials",
              status_code=200,
-             response_model=DeploymentId | CloudQuota,
-             responses=POST_RESPONSES(DeploymentId | CloudQuota, msg="Deploying"))
+             response_model=CloudQuota,
+             responses=DEP_POST_RESPONSES(DeploymentId, CloudQuota))
 def deploy_workload(deployment: Deployment,
                     request: Request,
                     dry_run: bool = Query(False, alias="dryRun"),

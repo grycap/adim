@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: EOSC AWM API
   description: EOSC Application Workflow Management API
-  version: 0.1.48
+  version: 0.1.49
 paths:
   /deployments:
     get:
@@ -93,6 +93,14 @@ paths:
       operationId: deploy_workload_deployments_post
       security:
       - OIDC: []
+      parameters:
+      - name: dryRun
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Dryrun
       requestBody:
         required: true
         content:
@@ -100,12 +108,12 @@ paths:
             schema:
               $ref: '#/components/schemas/Deployment'
       responses:
-        '202':
-          description: Deploying
+        '200':
+          description: Success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DeploymentId'
+                $ref: '#/components/schemas/CloudQuota'
         '400':
           description: Invalid parameters or configuration
           content:
@@ -136,6 +144,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '202':
+          description: Deploying
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeploymentId'
         '422':
           description: Validation Error
           content:
@@ -828,6 +842,51 @@ components:
       - id
       - allocation
       title: AllocationInfo
+    CloudQuota:
+      properties:
+        cores:
+          allOf:
+          - $ref: '#/components/schemas/Quota'
+          description: CPU cores quota
+        ram:
+          allOf:
+          - $ref: '#/components/schemas/Quota'
+          description: Memory quota in megabytes
+        gpus:
+          anyOf:
+          - $ref: '#/components/schemas/Quota'
+          - type: 'null'
+          description: GPU units quota
+        instances:
+          allOf:
+          - $ref: '#/components/schemas/Quota'
+          description: Number of instances quota
+        floating_ips:
+          anyOf:
+          - $ref: '#/components/schemas/Quota'
+          - type: 'null'
+          description: Number of floating IPs quota
+        security_groups:
+          anyOf:
+          - $ref: '#/components/schemas/Quota'
+          - type: 'null'
+          description: Number of security groups quota
+        volumes:
+          anyOf:
+          - $ref: '#/components/schemas/Quota'
+          - type: 'null'
+          description: Number of volumes quota
+        volume_storage:
+          anyOf:
+          - $ref: '#/components/schemas/Quota'
+          - type: 'null'
+          description: Storage in gigabytes quota for volumes
+      type: object
+      required:
+      - cores
+      - ram
+      - instances
+      title: CloudQuota
     Deployment:
       properties:
         allocation:
@@ -1310,6 +1369,31 @@ components:
       - elements
       title: PageOfTools
       description: Page of Tools
+    Quota:
+      properties:
+        used:
+          anyOf:
+          - type: integer
+          - type: number
+          - type: 'null'
+          title: Used
+          description: Amount of the resource currently used
+        limit:
+          anyOf:
+          - type: integer
+          - type: number
+          - type: 'null'
+          title: Limit
+          description: Maximum amount of the resource available
+        to_use:
+          anyOf:
+          - type: integer
+          - type: number
+          - type: 'null'
+          title: To Use
+          description: Amount of the resources the user needs with the deployment
+      type: object
+      title: Quota
     Success:
       properties:
         message:
