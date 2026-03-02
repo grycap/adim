@@ -60,7 +60,7 @@ def get_user_groups(token: str | dict, user_info: dict) -> List[str]:
     return extract_groups_from_entitlements(user_groups)
 
 
-def check_OIDC(token: str) -> dict:
+def check_OIDC(token: str) -> dict | None:
     try:
         user_info = {}
         decoded_token = None
@@ -84,7 +84,7 @@ def check_OIDC(token: str) -> dict:
 
             success, user_info = OpenIDClient.get_user_info_request(token)
             if not success:
-                raise HTTPException(status_code=401, detail="Error validating token: %s" % user_info)
+                raise HTTPException(status_code=401, detail=f"Error validating token: {user_info}")
 
         # Check audience if specified
         if OIDC_AUDIENCE:
@@ -94,10 +94,10 @@ def check_OIDC(token: str) -> dict:
                 for aud in audience.split(","):
                     if aud == OIDC_AUDIENCE:
                         found = True
-                        logger.debug("Audience %s successfully checked." % OIDC_AUDIENCE)
+                        logger.debug("Audience %s successfully checked.", OIDC_AUDIENCE)
                         break
             if not found:
-                logger.error("Audience %s not found in access token." % OIDC_AUDIENCE)
+                logger.error("Audience %s not found in access token.", OIDC_AUDIENCE)
                 raise HTTPException(status_code=401, detail="Invalid token audience")
 
         if OIDC_GROUPS:
