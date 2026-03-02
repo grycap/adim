@@ -22,6 +22,7 @@ from awm.oidc.jwt import JWT
 class OpenIDClient(object):
 
     ISSUER_CONFIG_CACHE = {}
+    DEFAULT_TIMEOUT = 10
 
     @staticmethod
     def get_openid_configuration(iss: str, verify_ssl: bool = False) -> dict:
@@ -29,7 +30,7 @@ class OpenIDClient(object):
             if iss in OpenIDClient.ISSUER_CONFIG_CACHE:
                 return OpenIDClient.ISSUER_CONFIG_CACHE[iss]
             url = "%s/.well-known/openid-configuration" % iss
-            resp = requests.request("GET", url, verify=verify_ssl)
+            resp = requests.request("GET", url, verify=verify_ssl, timeout=OpenIDClient.DEFAULT_TIMEOUT)
             if resp.status_code != 200:
                 return {"error": "Code: %d. Message: %s." % (resp.status_code, resp.text)}
             # Only store currently needed data
@@ -48,7 +49,8 @@ class OpenIDClient(object):
             decoded_token = JWT().get_info(token)
             headers = {'Authorization': 'Bearer %s' % token}
             conf = OpenIDClient.get_openid_configuration(decoded_token['iss'], verify_ssl=False)
-            resp = requests.request("GET", conf["userinfo_endpoint"], verify=verify_ssl, headers=headers)
+            resp = requests.request("GET", conf["userinfo_endpoint"], verify=verify_ssl,
+                                    headers=headers, timeout=OpenIDClient.DEFAULT_TIMEOUT)
             if resp.status_code != 200:
                 return False, "Code: %d. Message: %s." % (resp.status_code, resp.text)
             return True, resp.json()
@@ -66,9 +68,11 @@ class OpenIDClient(object):
             if not issuer:
                 issuer = decoded_token['iss']
             conf = OpenIDClient.get_openid_configuration(issuer, verify_ssl=verify_ssl)
-            url = "%s?token=%s&token_type_hint=access_token" % (conf["introspection_endpoint"], token)
-            resp = requests.request("GET", url, verify=verify_ssl,
-                                    auth=requests.auth.HTTPBasicAuth(client_id, client_secret))
+            params = {'token': token, 'token_type_hint': 'access_token'}
+            resp = requests.request("POST", conf["introspection_endpoint"],
+                                    headers={'Content-Type': 'application/x-www-form-urlencoded'},
+                                    auth=requests.auth.HTTPBasicAuth(client_id, client_secret),
+                                    verify=verify_ssl, timeout=OpenIDClient.DEFAULT_TIMEOUT, data=params)
             if resp.status_code != 200:
                 return False, "Code: %d. Message: %s." % (resp.status_code, resp.text)
             return True, resp.json()

@@ -71,7 +71,8 @@ def test_get_openid_configuration_success(requests_mock):
     requests_mock.assert_called_once_with(
         "GET",
         "https://issuer.example.com/.well-known/openid-configuration",
-        verify=False
+        verify=False,
+        timeout=OpenIDClient.DEFAULT_TIMEOUT
     )
 
 
