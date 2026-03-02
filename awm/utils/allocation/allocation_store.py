@@ -31,7 +31,7 @@ class AllocationStore():
 
     def replace_allocation(self, data: dict, user_info: dict, allocation_id: str | None = None) -> str:
         raise NotImplementedError()
-    
+
     def check_allocation_exists(self, data: dict, user_info: dict) -> str:
         raise NotImplementedError()
 

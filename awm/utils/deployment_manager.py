@@ -337,7 +337,8 @@ class DeploymentsManager:
                 deployment_info = DeploymentInfo(id=deployment_id,
                                                  deployment=deployment,
                                                  status="pending",
-                                                 self_=str(request.url_for("get_deployment", deployment_id=deployment_id)))
+                                                 self_=str(request.url_for("get_deployment",
+                                                                           deployment_id=deployment_id)))
                 data = deployment_info.model_dump_json(exclude_unset=True)
                 awm.logger.debug(f"Storing deployment info: {data}")
                 if self.db.db_type == DataBase.MONGO:
@@ -346,7 +347,8 @@ class DeploymentsManager:
                                            "owner": user_info['sub'],
                                            "created": time.time()})
                 else:
-                    res = self.db.execute("replace into deployments (id, data, created, owner) values (%s, %s, now(), %s)",
+                    res = self.db.execute("replace into deployments (id, data, created, owner)"
+                                          " values (%s, %s, now(), %s)",
                                           (deployment_id, data, user_info['sub']))
                 self.db.close()
                 if not res:
