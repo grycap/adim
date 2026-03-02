@@ -20,10 +20,10 @@ from datetime import datetime
 
 class EoscNodeEnvironment_offer(BaseModel):
     offerId: str
-    offerName: str = None
+    offerName: str | None = None
     offerType: Literal["openstack", "kubernetes"]
     cpus: int | None = Field(None, ge=1)
-    gpus: int = None
+    gpus: int | None = None
     memory: int | None = Field(None, ge=1, description=("RAM quota in GB"))
     fastStorage: int | None = Field(None, description=("SSD or NVMe based (fast) storage quota in GB"))
     bulkStorage: int | None = Field(None, description=("HDD based (slow) storage quota in GB"))
@@ -37,9 +37,9 @@ class EoscNodeEnvironment(BaseModel):
     kind: Literal['EoscNodeEnvironment'] = 'EoscNodeEnvironment'
     offer: EoscNodeEnvironment_offer
     projectId: str
-    hostname: HttpUrl = None
-    provisionedOn: datetime = None
-    expiresOn: datetime = None
+    hostname: HttpUrl | None = None
+    provisionedOn: datetime | None = None
+    expiresOn: datetime | None = None
     nodeName: str | None = Field(None, description="Name of the EOSC node where this environment was allocated")
     nodeId: str = Field(..., description=("URL to the interactive UI of the EOSC "
                                           "node where this environment was allocated"))
@@ -53,13 +53,22 @@ class OpenStackEnvironment(BaseModel):
     kind: Literal['OpenStackEnvironment'] = 'OpenStackEnvironment'
     userName: str
     domain: str
-    domainId: str = None
+    domainId: str | None = None
     tenant: str
-    tenantId: str = None
-    region: str = None
+    tenantId: str | None = None
+    region: str | None = None
     host: HttpUrl
     authVersion: Literal['3.x-oidc'] = '3.x-oidc'
-    apiVersion: str = None
+    apiVersion: str | None = None
+
+
+class EGIComputeEnvironment(OpenStackEnvironment):
+    """Credentials for EGI"""
+    kind: Literal['EGIComputeEnvironment'] = 'EGIComputeEnvironment'
+    userName: Literal["egi.eu"] = "egi.eu"
+    domain: str = Field(..., description="The project name or ID of the EGI allocation")
+    tenant: Literal["openid"] = "openid"
+    authVersion: Literal['3.x-oidc'] = '3.x-oidc'
 
 
 class KubernetesEnvironment(BaseModel):
@@ -70,6 +79,7 @@ class KubernetesEnvironment(BaseModel):
 
 AllocationUnion = Annotated[
     Union[OpenStackEnvironment,
+          EGIComputeEnvironment,
           KubernetesEnvironment,
           EoscNodeEnvironment],
     Field(discriminator='kind')

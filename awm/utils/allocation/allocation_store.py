@@ -15,21 +15,24 @@
 
 import awm
 import os
-from typing import List
+from typing import List, Tuple
 
 
 class AllocationStore():
 
-    def list_allocations(self, user_info: dict, from_: int, limit: int) -> List[dict]:
+    def list_allocations(self, user_info: dict, from_: int, limit: int) -> Tuple[int, List[dict]]:
         raise NotImplementedError()
 
     def get_allocation(self, allocation_id: str, user_info: dict) -> dict:
         raise NotImplementedError()
 
-    def delete_allocation(self, allocation_id: str, user_info: dict = None):
+    def delete_allocation(self, allocation_id: str, user_info: dict):
         raise NotImplementedError()
 
-    def replace_allocation(self, data: dict, user_info: dict, allocation_id: str = None) -> str:
+    def replace_allocation(self, data: dict, user_info: dict, allocation_id: str | None = None) -> str:
+        raise NotImplementedError()
+    
+    def check_allocation_exists(self, data: dict, user_info: dict) -> str:
         raise NotImplementedError()
 
     @staticmethod

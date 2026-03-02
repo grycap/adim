@@ -100,7 +100,7 @@ def get_allocation(request: Request,
                     status_code=200, media_type="application/json")
 
 
-def _check_allocation_in_use(allocation_id: str, user_info: dict) -> Response:
+def _check_allocation_in_use(allocation_id: str, user_info: dict) -> Response | None:
     # check if this allocation is used in any deployment
     try:
         _, deployments = awm.deployments_manager.list_deployments(limit=999999999, user_info=user_info)
@@ -184,6 +184,13 @@ def create_allocation(allocation: Allocation,
     awm.logger.debug(f"Create allocation from user '{user_info.get('sub')}'")
     data = allocation.model_dump(exclude_unset=True, mode="json")
     awm.logger.debug(f"Allocation data: {allocation.model_dump()}")
+
+    found_id = awm.allocation_store.check_allocation_exists(data, user_info)
+    if found_id:
+        url = str(request.url_for("get_allocation", allocation_id=found_id))
+        return Response(status_code=303, media_type="application/json",
+                        headers={"Location": url})
+
     try:
         allocation_id = awm.allocation_store.replace_allocation(data, user_info)
     except Exception as ex:

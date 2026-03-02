@@ -46,7 +46,19 @@ def DELETE_RESPONSES(status_code: int = 204, msg: str = "Deleted") -> Dict[int |
     return responses
 
 
-def POST_RESPONSES(return_type: Any = BaseModel, return_type_2: Any = BaseModel) -> Dict[int | str, Dict[str, Any]]:
+def POST_RESPONSES(return_type: Any = BaseModel, status_code: int = 202,
+                   msg: str = "Accepted") -> Dict[int | str, Dict[str, Any]]:
+    """Standard HTTP error responses for POST operations"""
+    responses = STANDARD_RESPONSES(return_type)
+    del responses[200]
+    responses[status_code] = {"model": return_type, "description": msg}
+    responses[303] = {"description": "See other: the resource already exists",
+                      "headers": {"Location": {"description": "URL of the existing resource",
+                                               "schema": {"type": "string"}}}}
+    return responses
+
+
+def DEP_POST_RESPONSES(return_type: Any = BaseModel, return_type_2: Any = BaseModel) -> Dict[int | str, Dict[str, Any]]:
     """Standard HTTP error responses for POST operations"""
     responses = STANDARD_RESPONSES(return_type_2)
     responses[200] = {"description": "Success"}

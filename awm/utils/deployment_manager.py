@@ -24,7 +24,7 @@ from awm.models.deployment import DeploymentInfo, Deployment, CloudQuota
 from awm.models.tool import ToolInfo
 from awm.models.error import Error
 from awm.models.success import Success
-from awm.models.allocation import Allocation, AllocationUnion, AllocationInfo
+from awm.models.allocation import Allocation, AllocationInfo
 from typing import Tuple, Union
 from awm.utils.db import DataBase
 from awm.utils import ConnectionException, DBConnectionException
@@ -64,9 +64,11 @@ class DeploymentsManager:
         if allocation_info:
             allocation = allocation_info.allocation.root
             cloud_auth_data = {"id": allocation_info.id}
-            if allocation.kind == "OpenStackEnvironment":
+            if allocation.kind in ["OpenStackEnvironment", "EGIComputeEnvironment"]:
                 cloud_auth_data["type"] = "OpenStack"
-                cloud_auth_data["auth_version"] = "3.x_oidc_access_token"
+                cloud_auth_data["auth_version"] = "3.x_password"
+                if allocation.authVersion == '3.x-oidc':
+                    cloud_auth_data["auth_version"] = "3.x_oidc_access_token"
                 cloud_auth_data["username"] = allocation.userName
                 cloud_auth_data["password"] = token
                 cloud_auth_data["tenant"] = allocation.tenant
