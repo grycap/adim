@@ -22,17 +22,16 @@ from awm.utils.node_registry import EOSCNodeRegistry
 from awm.utils import DBConnectionException
 from awm.models.success import Success
 
-from . import DEP_POST_RESPONSES, return_error, STANDARD_RESPONSES, GET_RESPONSES, DELETE_RESPONSES, POST_RESPONSES
+from . import return_error, STANDARD_RESPONSES, GET_RESPONSES, DELETE_RESPONSES, POST_RESPONSES
 
 
 router = APIRouter()
 
 
-def _list_deployments(from_: int = 0, limit: int = 100,
-                      all_nodes: bool = False,
-                      user_info: dict = None, request: Request = None) -> Response:
+def _list_deployments(user_info: dict, request: Request, from_: int = 0,
+                      limit: int = 100, all_nodes: bool = False) -> Response:
     try:
-        count, deployments = awm.deployments_manager.list_deployments(from_, limit, user_info)
+        count, deployments = awm.deployments_manager.list_deployments(user_info, from_, limit)
     except DBConnectionException:
         return return_error("Database connection failed", 503)
 
@@ -61,7 +60,7 @@ def list_deployments(
     user_info=Depends(authenticate)
 ):
     awm.logger.debug(f"Listing deployments from user '{user_info.get('sub')}'")
-    return _list_deployments(from_, limit, all_nodes, user_info, request)
+    return _list_deployments(user_info, request, from_, limit, all_nodes)
 
 
 # GET /deployment/{deployment_id}
@@ -97,7 +96,7 @@ def delete_deployment(deployment_id,
              summary="Deploy workload to an EOSC environment or an infrastructure for which the user has credentials",
              status_code=200,
              response_model=CloudQuota,
-             responses=DEP_POST_RESPONSES(DeploymentId, CloudQuota))
+             responses=POST_RESPONSES(DeploymentId, CloudQuota))
 def deploy_workload(deployment: Deployment,
                     request: Request,
                     dry_run: bool = Query(False, alias="dryRun"),
@@ -111,17 +110,17 @@ def deploy_workload(deployment: Deployment,
         return Response(content=tool, status_code=400, media_type="application/json")
 
     # Get the allocation info from the Allocation
-    allocation, status = awm.deployments_manager.get_allocation(deployment, user_info)
+    allocation_info, status = awm.deployments_manager.get_allocation(deployment, user_info)
     if status != 200:
         awm.logger.warning(f"Allocation {deployment.allocation.id} not found")
-        return allocation, status
+        return allocation_info, status
 
-    if allocation.root.kind == "EoscNodeEnvironment":
+    if allocation_info.allocation.root.kind == "EoscNodeEnvironment":
         awm.logger.error("EOSCNodeEnvironment support not implemented yet")
         raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
 
     try:
-        deployment_info = awm.deployments_manager.update_deployment(deployment, tool, allocation,
+        deployment_info = awm.deployments_manager.update_deployment(deployment, tool, allocation_info,
                                                                     user_info, request, dry_run)
     except DBConnectionException as dbe:
         return return_error(str(dbe), 503)

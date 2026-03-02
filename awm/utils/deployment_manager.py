@@ -32,8 +32,6 @@ from awm.utils import ConnectionException, DBConnectionException
 
 class DeploymentsManager:
 
-    DEFAULT_CLOUD_NAME = "cloud"
-
     def __init__(self, db_url: str, im_url: str):
         self.im_url = im_url
         self.db = DataBase(db_url)
@@ -61,10 +59,11 @@ class DeploymentsManager:
         return False
 
     @staticmethod
-    def get_im_auth_header(token: str, allocation: AllocationUnion | None = None) -> List[Dict[str, str]]:
+    def get_im_auth_header(token: str, allocation_info: AllocationInfo | None = None) -> List[Dict[str, str]]:
         auth_data = [{"type": "InfrastructureManager", "token": token}]
-        if allocation:
-            cloud_auth_data = {"id": DeploymentsManager.DEFAULT_CLOUD_NAME}
+        if allocation_info:
+            allocation = allocation_info.allocation.root
+            cloud_auth_data = {"id": allocation_info.id}
             if allocation.kind == "OpenStackEnvironment":
                 cloud_auth_data["type"] = "OpenStack"
                 cloud_auth_data["auth_version"] = "3.x_oidc_access_token"
@@ -90,8 +89,7 @@ class DeploymentsManager:
             auth_data.append(cloud_auth_data)
         return auth_data
 
-    def list_deployments(self, from_: int = 0, limit: int = 100,
-                         user_info: dict = None) -> Tuple[int, list[DeploymentInfo]]:
+    def list_deployments(self, user_info: dict, from_: int = 0, limit: int = 100) -> Tuple[int, list[DeploymentInfo]]:
         deployments = []
         if self.db.connect():
             if self.db.db_type == DataBase.MONGO:
@@ -129,7 +127,7 @@ class DeploymentsManager:
 
         return count, deployments
 
-    def get_allocation(self, deployment: Deployment, user_info: dict) -> Tuple[Union[Error, Allocation], int]:
+    def get_allocation(self, deployment: Deployment, user_info: dict) -> Tuple[Union[Error, AllocationInfo], int]:
         # Get the allocation info from the Allocation
         try:
             allocation_data = awm.allocation_store.get_allocation(deployment.allocation.id, user_info)
@@ -138,25 +136,24 @@ class DeploymentsManager:
             msg = Error(id="503", description="Allocation Store connection failed: %s." % str(ex))
             return msg, 503
 
-        allocation = Allocation.model_validate(allocation_data)
-
-        if not allocation:
+        if not allocation_data:
             msg = Error(id="400", description="Invalid AllocationId.")
             return msg, 400
 
-        return allocation, 200
+        allocation = Allocation.model_validate(allocation_data)
+        return AllocationInfo(id=deployment.allocation.id, allocation=allocation), 200
 
     def _get_state(self, dep_info: DeploymentInfo, user_info: dict) -> DeploymentInfo:
         try:
             # Get the allocation info from the Allocation
-            allocation, status = self.get_allocation(dep_info.deployment, user_info)
+            allocation_info, status = self.get_allocation(dep_info.deployment, user_info)
             if status != 200:
-                return allocation, status
+                return allocation_info, status
 
-            if allocation.root.kind == "EoscNodeEnvironment":
+            if allocation_info.allocation.root.kind == "EoscNodeEnvironment":
                 raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
 
-            auth_data = self.get_im_auth_header(user_info['token'], allocation.root)
+            auth_data = self.get_im_auth_header(user_info['token'], allocation_info)
             client = IMClient.init_client(self.im_url, auth_data)
             success, state_info = client.get_infra_property(dep_info.id, "state")
             if success:
@@ -239,14 +236,14 @@ class DeploymentsManager:
             return dep_info, status_code
 
         # Get the allocation info from the Allocation
-        allocation, status = self.get_allocation(dep_info.deployment, user_info)
+        allocation_info, status = self.get_allocation(dep_info.deployment, user_info)
         if status != 200:
-            return allocation, status
+            return allocation_info, status
 
-        if allocation.root.kind == "EoscNodeEnvironment":
+        if allocation_info.allocation.root.kind == "EoscNodeEnvironment":
             raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
         else:
-            auth_data = self.get_im_auth_header(user_info['token'], allocation.root)
+            auth_data = self.get_im_auth_header(user_info['token'], allocation_info)
             client = IMClient.init_client(self.im_url, auth_data)
             success, destroy_msg = client.destroy(deployment_id)
 
@@ -315,10 +312,10 @@ class DeploymentsManager:
         return CloudQuota.model_validate(quotas)
 
     def update_deployment(self, deployment: Deployment, tool: ToolInfo,
-                          allocation: AllocationInfo, user_info: dict,
+                          allocation_info: AllocationInfo, user_info: dict,
                           request: Request, dry_run: bool = False) -> DeploymentInfo | CloudQuota:
 
-        auth_data = self.get_im_auth_header(user_info['token'], allocation.root)
+        auth_data = self.get_im_auth_header(user_info['token'], allocation_info)
 
         # Create the infrastructure in the IM
         client = IMClient.init_client(self.im_url, auth_data)
@@ -328,7 +325,7 @@ class DeploymentsManager:
             raise Exception(deployment_id)
 
         if dry_run:
-            success, quotas = client.get_cloud_quotas(self.DEFAULT_CLOUD_NAME)
+            success, quotas = client.get_cloud_quotas(allocation_info.id)
             if not success:
                 awm.logger.error("Could not get cloud quotas: %s", quotas)
                 quotas = {}
