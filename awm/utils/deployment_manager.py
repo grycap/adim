@@ -278,9 +278,44 @@ class DeploymentsManager:
                 temp_inputs[key]["default"] = inputs[key]
         return yaml.safe_dump(template)
 
+    @staticmethod
+    def _compute_resources_to_use(resources: dict, quotas: dict) -> CloudQuota:
+        """Compute the resources to use based on the deployment resources and the current quotas."""
+        # Initialize totals
+        totals = {
+            "cores": 0,
+            "ram": 0.0,
+            "instances": 0,
+            "floating_ips": 0,
+            "volumes": 0,
+            "volume_storage": 0,
+            "security_groups": 2  # default IM value per infrastructure
+        }
+
+        # Compute totals for VMs
+        for vm in resources.get("compute", []):
+            totals["instances"] += 1
+            totals["cores"] += vm.get("cpuCores", 0)
+            totals["ram"] += vm.get("memoryInMegabytes", 0)
+            totals["floating_ips"] += vm.get("publicIP", 0)
+
+        # Compute totals for storage
+        for disk in resources.get("storage", []):
+            totals["volumes"] += 1
+            totals["volume_storage"] += disk.get("sizeInGigabytes", 0)
+
+        # Update quotas with computed totals
+        for key, value in totals.items():
+            if key not in quotas:
+                quotas[key] = {}
+            quotas[key]["to_use"] = value
+
+        # Validate the CloudQuota model
+        return CloudQuota.model_validate(quotas)
+
     def update_deployment(self, deployment: Deployment, tool: ToolInfo,
                           allocation: AllocationInfo, user_info: dict,
-                          request: Request, dry_run: bool = False) -> DeploymentInfo | DeploymentResources:
+                          request: Request, dry_run: bool = False) -> DeploymentInfo | CloudQuota:
 
         auth_data = self.get_im_auth_header(user_info['token'], allocation.root)
 
@@ -292,29 +327,28 @@ class DeploymentsManager:
             raise Exception(deployment_id)
 
         if dry_run:
-            deployment_res = DeploymentResources.model_validate(deployment_id)
             success, quotas = client.get_cloud_quotas("cloud")
-            if success:
-                deployment_res.root["cloud"].quotas = CloudQuota.model_validate(quotas.get("quotas", {}))
-            else:
+            if not success:
                 awm.logger.error(f"Could not get cloud quotas: {quotas}")
-            return deployment_res
+                raise Exception(f"Could not get cloud quotas: {quotas}")
+            else:
+                return self._compute_resources_to_use(list(deployment_id.values())[0], quotas)
         else:
             if self.db.connect():
                 deployment_info = DeploymentInfo(id=deployment_id,
-                                                deployment=deployment,
-                                                status="pending",
-                                                self_=str(request.url_for("get_deployment", deployment_id=deployment_id)))
+                                                 deployment=deployment,
+                                                 status="pending",
+                                                 self_=str(request.url_for("get_deployment", deployment_id=deployment_id)))
                 data = deployment_info.model_dump_json(exclude_unset=True)
                 awm.logger.debug(f"Storing deployment info: {data}")
                 if self.db.db_type == DataBase.MONGO:
                     res = self.db.replace("deployments", {"id": deployment_id},
-                                        {"id": deployment_id, "data": data,
-                                        "owner": user_info['sub'],
-                                        "created": time.time()})
+                                          {"id": deployment_id, "data": data,
+                                           "owner": user_info['sub'],
+                                           "created": time.time()})
                 else:
                     res = self.db.execute("replace into deployments (id, data, created, owner) values (%s, %s, now(), %s)",
-                                        (deployment_id, data, user_info['sub']))
+                                          (deployment_id, data, user_info['sub']))
                 self.db.close()
                 if not res:
                     raise DBConnectionException("Failed to store deployment information in the database")

@@ -57,6 +57,7 @@ class DeploymentInfo(BaseModel):
 class Quota(BaseModel):
     used: int | float = Field(..., description="Amount of the resource currently used")
     limit: int | float = Field(..., description="Maximum amount of the resource available")
+    to_use: int | float | None = Field(None, description="Amount of the resources the user needs with the deployment")
 
 
 class CloudQuota(BaseModel):

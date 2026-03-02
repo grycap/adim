@@ -375,7 +375,7 @@ def test_deploy_workload_dry_run(
             ],
         }
     }
-    im_mock.get_cloud_quotas.return_value = True, {"quotas": {
+    im_mock.get_cloud_quotas.return_value = True, {
         "cores": {"used": 4, "limit": 10},
         "ram": {"used": 8192, "limit": 16384},
         "gpus": {"used": 1, "limit": 4},
@@ -384,7 +384,7 @@ def test_deploy_workload_dry_run(
         "security_groups": {"used": 2, "limit": 10},
         "volumes": {"used": 3, "limit": 10},
         "volume_storage": {"used": 300, "limit": 1000}
-    }}
+    }
 
     payload = ('{"tool": {"kind": "ToolId", "id": "toolid"}, '
                '"allocation": {"kind": "AllocationId", "id": "aid"}}')
@@ -395,4 +395,6 @@ def test_deploy_workload_dry_run(
 
     assert response.status_code == 200
     response_json = response.json()
-    assert response_json["cloud"]["cloudType"] == "OpenStack"
+    assert response_json["cores"]["used"] == 4
+    assert response_json["cores"]["to_use"] == 3
+    assert response_json["memory"]["to_use"] == 6144

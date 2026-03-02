@@ -16,7 +16,7 @@
 import awm
 from fastapi import APIRouter, Query, Depends, Request, Response
 from awm.authorization import authenticate
-from awm.models.deployment import DeploymentInfo, DeploymentId, Deployment, DeploymentResources
+from awm.models.deployment import DeploymentInfo, DeploymentId, Deployment, CloudQuota
 from awm.models.page import PageOfDeployments
 from awm.utils.node_registry import EOSCNodeRegistry
 from awm.utils import DBConnectionException
@@ -96,8 +96,8 @@ def delete_deployment(deployment_id,
 @router.post("/deployments",
              summary="Deploy workload to an EOSC environment or an infrastructure for which the user has credentials",
              status_code=200,
-             response_model=DeploymentId | DeploymentResources,
-             responses=POST_RESPONSES(DeploymentId | DeploymentResources, msg="Deploying"))
+             response_model=DeploymentId | CloudQuota,
+             responses=POST_RESPONSES(DeploymentId | CloudQuota, msg="Deploying"))
 def deploy_workload(deployment: Deployment,
                     request: Request,
                     dry_run: bool = Query(False, alias="dryRun"),
