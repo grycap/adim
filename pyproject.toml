@@ -3,12 +3,12 @@ requires = ["setuptools>=65.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "awm"
+name = "adm"
 dynamic = ["version"]
-description = "EOSC Application Workflow Management API"
+description = "EOSC Application Deployment Management API"
 readme = "README.md"
 requires-python = ">=3.8"
-keywords = ["EOSC", "Application", "Workflow", "Management", "API"]
+keywords = ["EOSC", "Application", "Deployment", "Management", "API"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Web Environment",
@@ -37,7 +37,7 @@ dependencies = [
 ]
 
 [tool.setuptools.dynamic]
-version = {attr = "awm.__version__"}
+version = {attr = "adm.__version__"}
 
 [project.optional-dependencies]
 test = [
@@ -51,10 +51,10 @@ test = [
 ]
 
 [project.scripts]
-awm = "awm.__main__:main"
+adm = "adm.__main__:main"
 
 [tool.setuptools]
-packages = ["awm"]
+packages = ["adm"]
 
 [tool.setuptools.package-data]
-awm = ["py.typed"]
+adm = ["py.typed"]

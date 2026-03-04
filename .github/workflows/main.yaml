@@ -1,4 +1,4 @@
-name: Test AWM
+name: Test ADM
 
 on:
   push:
@@ -25,7 +25,7 @@ jobs:
         run: pycodestyle --max-line-length=120 .
 
       - name: Unit tests
-        run: python -m pytest awm/test --cov=awm --cov-report=term
+        run: python -m pytest adm/test --cov=adm --cov-report=term
 
   sec-tests:
     runs-on: ubuntu-latest
@@ -42,7 +42,7 @@ jobs:
         run: python -m pip install bandit
 
       - name: Security tests
-        run: bandit -r awm -lll -iii -x tests/*
+        run: bandit -r adm -lll -iii -x tests/*
 
   analyze:
     permissions:

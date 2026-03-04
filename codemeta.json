@@ -4,10 +4,10 @@
         "http://schema.org"
     ],
     "@type": "SoftwareSourceCode",
-    "identifier": "awm",
-    "name": "AWM",
+    "identifier": "adm",
+    "name": "ADM",
     "version": "0.4.0",
-    "description": "Implements EOSC Application Workflow Management API.",
+    "description": "Implements EOSC Application Deployment Management API.",
     "license": "Apache license 2.0",
     "author": [
         {
@@ -29,12 +29,12 @@
         }
     ],
     "runtimePlatform": "Python 3",
-    "url": "https://github.com/grycap/awm",
-    "keywords": "EOSC, Workflow Management, TOSCA, Orchestration",
+    "url": "https://github.com/grycap/adm",
+    "keywords": "EOSC, Deployment Management, TOSCA, Orchestration",
     "developmentStatus": "4 - Beta",
     "programmingLanguage": "Python 3, Python 3.8, Python 3.9, Python 3.10, Python 3.11, Python 3.12",
     "applicationCategory": "System, Utilities",
-    "codeRepository": "https://github.com/grycap/awm",
+    "codeRepository": "https://github.com/grycap/adm",
     "copyrightHolder": "GRyCAP-UPV",
     "copyrightYear": 2026,
     "creator": [
@@ -57,5 +57,5 @@
             "email": "micafer1@upv.es"
         }
     ],
-    "readme": "https://github.com/grycap/awm/blob/master/README.md"
+    "readme": "https://github.com/grycap/adm/blob/master/README.md"
 }
