@@ -17,7 +17,7 @@ import hvac
 import json
 import uuid
 import requests
-from typing import List
+from typing import List, Tuple
 from cryptography.fernet import Fernet
 from .allocation_store import AllocationStore
 from awm.utils import VaultConnectionException
@@ -98,7 +98,7 @@ class AllocationStoreVault(AllocationStore):
             return client.secrets.kv.v2, path
         raise VaultConnectionException("Invalid KV version (1 or 2)")
 
-    def list_allocations(self, user_info: dict, from_: int, limit: int) -> List[dict]:
+    def list_allocations(self, user_info: dict, from_: int, limit: int) -> Tuple[int, List[dict]]:
         client, path = self._login(user_info)
 
         try:
@@ -126,7 +126,7 @@ class AllocationStoreVault(AllocationStore):
         else:
             return None
 
-    def delete_allocation(self, allocation_id: str, user_info: dict = None):
+    def delete_allocation(self, allocation_id: str, user_info: dict):
         client, path = self._login(user_info)
 
         creds = client.read_secret(path=path, mount_point=self.mount_point)
@@ -146,7 +146,21 @@ class AllocationStoreVault(AllocationStore):
                                                                        mount_point=self.mount_point)
             response.raise_for_status()
 
-    def replace_allocation(self, data: dict, user_info: dict, allocation_id: str = None) -> str:
+    def check_allocation_exists(self, data: dict, user_info: dict) -> str:
+        client, path = self._login(user_info)
+
+        try:
+            creds = client.read_secret(path=path, mount_point=self.mount_point)
+        except Exception:
+            creds = {}
+
+        for elem in creds["data"].values():
+            if json.loads(self._decrypt(elem)) == data:
+                return elem["id"]
+
+        return ""
+
+    def replace_allocation(self, data: dict, user_info: dict, allocation_id: str | None = None) -> str:
         client, path = self._login(user_info)
         try:
             creds = client.read_secret(path=path, mount_point=self.mount_point)

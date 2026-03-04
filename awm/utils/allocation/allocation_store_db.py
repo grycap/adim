@@ -17,7 +17,7 @@ import awm
 import json
 import time
 import uuid
-from typing import List
+from typing import List, Tuple
 from awm.utils.db import DataBase
 from .allocation_store import AllocationStore
 from awm.utils import DBConnectionException
@@ -52,7 +52,7 @@ class AllocationStoreDB(AllocationStore):
             return True
         return False
 
-    def list_allocations(self, user_info: dict, from_: int, limit: int) -> List[dict]:
+    def list_allocations(self, user_info: dict, from_: int, limit: int) -> Tuple[int, List[dict]]:
         if self.db.connect():
             allocations = []
             if self.db.db_type == DataBase.MONGO:
@@ -96,7 +96,7 @@ class AllocationStoreDB(AllocationStore):
 
         raise DBConnectionException()
 
-    def delete_allocation(self, allocation_id: str, user_info: dict = None):
+    def delete_allocation(self, allocation_id: str, user_info: dict):
         if self.db.connect():
             if self.db.db_type == DataBase.MONGO:
                 self.db.delete("allocations", {"id": allocation_id})
@@ -106,7 +106,25 @@ class AllocationStoreDB(AllocationStore):
         else:
             raise DBConnectionException()
 
-    def replace_allocation(self, data: dict, user_info: dict, allocation_id: str = None) -> str:
+    def check_allocation_exists(self, data: dict, user_info: dict) -> str:
+        if self.db.connect():
+            if self.db.db_type == DataBase.MONGO:
+                res = self.db.find("allocations", {"data": data, "owner": user_info['sub']}, {"id": True})
+            else:
+                res = self.db.select("SELECT id FROM allocations WHERE data = %s and owner = %s",
+                                     (json.dumps(data, sort_keys=True), user_info['sub']))
+            self.db.close()
+            if res:
+                if self.db.db_type == DataBase.MONGO:
+                    return res[0]["id"]
+                else:
+                    return res[0][0]
+            else:
+                return ""
+
+        raise DBConnectionException()
+
+    def replace_allocation(self, data: dict, user_info: dict, allocation_id: str | None = None) -> str:
         if self.db.connect():
             if self.db.db_type == DataBase.MONGO:
                 if allocation_id is None:  # new allocation
@@ -122,10 +140,10 @@ class AllocationStoreDB(AllocationStore):
                 if allocation_id is None:  # new allocation
                     allocation_id = str(uuid.uuid4())
                     sql = "replace into allocations (id, data, owner, created) values (%s, %s, %s, now())"
-                    values = (allocation_id, json.dumps(data), user_info['sub'])
+                    values = (allocation_id, json.dumps(data, sort_keys=True), user_info['sub'])
                 else:  # update existing allocation
                     sql = "update allocations set data = %s where id = %s"
-                    values = (json.dumps(data), allocation_id)
+                    values = (json.dumps(data, sort_keys=True), allocation_id)
                 self.db.execute(sql, values)
             self.db.close()
             return allocation_id

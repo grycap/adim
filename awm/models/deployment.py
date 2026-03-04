@@ -52,3 +52,20 @@ class DeploymentInfo(BaseModel):
                                   description="Endpoint that returns the details of this tool blueprint")
 
     model_config = {"populate_by_name": True}
+
+
+class Quota(BaseModel):
+    used: int | float | None = Field(None, description="Amount of the resource currently used")
+    limit: int | float | None = Field(None, description="Maximum amount of the resource available")
+    to_use: int | float | None = Field(None, description="Amount of the resources the user needs with the deployment")
+
+
+class CloudQuota(BaseModel):
+    cores: Quota = Field(..., description="CPU cores quota")
+    memory: Quota = Field(..., alias="ram", description="Memory quota in megabytes")
+    gpus: Quota | None = Field(None, description="GPU units quota")
+    instances: Quota = Field(..., description="Number of instances quota")
+    floating_ips: Quota | None = Field(None, description="Number of floating IPs quota")
+    security_groups: Quota | None = Field(None, description="Number of security groups quota")
+    volumes: Quota | None = Field(None, description="Number of volumes quota")
+    volume_storage: Quota | None = Field(None, description="Storage in gigabytes quota for volumes")

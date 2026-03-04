@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: EOSC AWM API
   description: EOSC Application Workflow Management API
-  version: 0.1.48
+  version: 0.1.49
 paths:
   /deployments:
     get:
@@ -93,6 +93,14 @@ paths:
       operationId: deploy_workload_deployments_post
       security:
       - OIDC: []
+      parameters:
+      - name: dryRun
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Dryrun
       requestBody:
         required: true
         content:
@@ -100,12 +108,12 @@ paths:
             schema:
               $ref: '#/components/schemas/Deployment'
       responses:
-        '202':
-          description: Deploying
+        '200':
+          description: Success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DeploymentId'
+                $ref: '#/components/schemas/CloudQuota'
         '400':
           description: Invalid parameters or configuration
           content:
@@ -136,6 +144,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '202':
+          description: Deploying
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeploymentId'
         '422':
           description: Validation Error
           content:
@@ -399,6 +413,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '303':
+          description: 'See other: the resource already exists'
+          headers:
+            Location:
+              description: URL of the existing resource
+              schema:
+                type: string
         '422':
           description: Validation Error
           content:
@@ -771,12 +792,14 @@ components:
     Allocation:
       oneOf:
       - $ref: '#/components/schemas/OpenStackEnvironment'
+      - $ref: '#/components/schemas/EGIComputeEnvironment'
       - $ref: '#/components/schemas/KubernetesEnvironment'
       - $ref: '#/components/schemas/EoscNodeEnvironment'
       title: Allocation
       discriminator:
         propertyName: kind
         mapping:
+          EGIComputeEnvironment: '#/components/schemas/EGIComputeEnvironment'
           EoscNodeEnvironment: '#/components/schemas/EoscNodeEnvironment'
           KubernetesEnvironment: '#/components/schemas/KubernetesEnvironment'
           OpenStackEnvironment: '#/components/schemas/OpenStackEnvironment'
@@ -828,6 +851,51 @@ components:
       - id
       - allocation
       title: AllocationInfo
+    CloudQuota:
+      properties:
+        cores:
+          allOf:
+          - $ref: '#/components/schemas/Quota'
+          description: CPU cores quota
+        ram:
+          allOf:
+          - $ref: '#/components/schemas/Quota'
+          description: Memory quota in megabytes
+        gpus:
+          anyOf:
+          - $ref: '#/components/schemas/Quota'
+          - type: 'null'
+          description: GPU units quota
+        instances:
+          allOf:
+          - $ref: '#/components/schemas/Quota'
+          description: Number of instances quota
+        floating_ips:
+          anyOf:
+          - $ref: '#/components/schemas/Quota'
+          - type: 'null'
+          description: Number of floating IPs quota
+        security_groups:
+          anyOf:
+          - $ref: '#/components/schemas/Quota'
+          - type: 'null'
+          description: Number of security groups quota
+        volumes:
+          anyOf:
+          - $ref: '#/components/schemas/Quota'
+          - type: 'null'
+          description: Number of volumes quota
+        volume_storage:
+          anyOf:
+          - $ref: '#/components/schemas/Quota'
+          - type: 'null'
+          description: Storage in gigabytes quota for volumes
+      type: object
+      required:
+      - cores
+      - ram
+      - instances
+      title: CloudQuota
     Deployment:
       properties:
         allocation:
@@ -924,6 +992,72 @@ components:
       - id
       - status
       title: DeploymentInfo
+    EGIComputeEnvironment:
+      properties:
+        kind:
+          type: string
+          enum:
+          - EGIComputeEnvironment
+          const: EGIComputeEnvironment
+          title: Kind
+          default: EGIComputeEnvironment
+        userName:
+          type: string
+          enum:
+          - egi.eu
+          const: egi.eu
+          title: Username
+          default: egi.eu
+        domain:
+          type: string
+          title: Domain
+          description: The project name or ID of the EGI allocation
+        domainId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Domainid
+        tenant:
+          type: string
+          enum:
+          - openid
+          const: openid
+          title: Tenant
+          default: openid
+        tenantId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tenantid
+        region:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Region
+        host:
+          type: string
+          maxLength: 2083
+          minLength: 1
+          format: uri
+          title: Host
+        authVersion:
+          type: string
+          enum:
+          - 3.x-oidc
+          const: 3.x-oidc
+          title: Authversion
+          default: 3.x-oidc
+        apiVersion:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Apiversion
+      type: object
+      required:
+      - domain
+      - host
+      title: EGIComputeEnvironment
+      description: Credentials for EGI
     EoscNodeEnvironment:
       properties:
         kind:
@@ -939,18 +1073,24 @@ components:
           type: string
           title: Projectid
         hostname:
-          type: string
-          maxLength: 2083
-          minLength: 1
-          format: uri
+          anyOf:
+          - type: string
+            maxLength: 2083
+            minLength: 1
+            format: uri
+          - type: 'null'
           title: Hostname
         provisionedOn:
-          type: string
-          format: date-time
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
           title: Provisionedon
         expiresOn:
-          type: string
-          format: date-time
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
           title: Expireson
         nodeName:
           anyOf:
@@ -986,7 +1126,9 @@ components:
           type: string
           title: Offerid
         offerName:
-          type: string
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Offername
         offerType:
           type: string
@@ -1001,7 +1143,9 @@ components:
           - type: 'null'
           title: Cpus
         gpus:
-          type: integer
+          anyOf:
+          - type: integer
+          - type: 'null'
           title: Gpus
         memory:
           anyOf:
@@ -1113,16 +1257,22 @@ components:
           type: string
           title: Domain
         domainId:
-          type: string
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Domainid
         tenant:
           type: string
           title: Tenant
         tenantId:
-          type: string
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Tenantid
         region:
-          type: string
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Region
         host:
           type: string
@@ -1138,7 +1288,9 @@ components:
           title: Authversion
           default: 3.x-oidc
         apiVersion:
-          type: string
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Apiversion
       type: object
       required:
@@ -1310,6 +1462,31 @@ components:
       - elements
       title: PageOfTools
       description: Page of Tools
+    Quota:
+      properties:
+        used:
+          anyOf:
+          - type: integer
+          - type: number
+          - type: 'null'
+          title: Used
+          description: Amount of the resource currently used
+        limit:
+          anyOf:
+          - type: integer
+          - type: number
+          - type: 'null'
+          title: Limit
+          description: Maximum amount of the resource available
+        to_use:
+          anyOf:
+          - type: integer
+          - type: number
+          - type: 'null'
+          title: To Use
+          description: Amount of the resources the user needs with the deployment
+      type: object
+      title: Quota
     Success:
       properties:
         message:

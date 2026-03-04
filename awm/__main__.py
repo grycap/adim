@@ -24,7 +24,7 @@ def create_app():
     fapp = FastAPI(
         title="EOSC AWM API",
         description="EOSC Application Workflow Management API",
-        version="0.1.48",
+        version="0.1.49",
         docs_url="/",
         root_path=os.getenv("ROOT_PATH", "")
     )

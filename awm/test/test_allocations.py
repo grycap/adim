@@ -366,7 +366,7 @@ def test_delete_allocation_sql(check_oidc_mock, list_deployments_mock, client, h
 
 def test_create_allocation(check_oidc_mock, uuid_mock, client, headers, requests_post_mock,
                            seed_allocations, allocation_payload):
-    seed_allocations([])
+    seed_allocations([([], 0), ALLOC_1])
     response = client.post('/allocations', headers=headers, json=allocation_payload)
     assert response.status_code == 201
     assert response.json() == {'id': 'new-id', 'infoLink': 'http://testserver/allocation/new-id'}
@@ -375,18 +375,18 @@ def test_create_allocation(check_oidc_mock, uuid_mock, client, headers, requests
 @pytest.mark.parametrize("backend_type", ["db"], indirect=True)
 def test_create_allocation_sql(check_oidc_mock, time_mock, uuid_mock, db_mock, client,
                                headers, seed_allocations, allocation_payload):
-    seed_allocations([])
+    seed_allocations([([], 0), ALLOC_1])
     client.post('/allocations', headers=headers, json=allocation_payload)
     db_mock.execute.assert_called_with(
         "replace into allocations (id, data, owner, created) values (%s, %s, %s, now())",
-        ('new-id', '{"kind": "KubernetesEnvironment", "host": "http://k8s.io/"}', 'user123')
+        ('new-id', '{"host": "http://k8s.io/", "kind": "KubernetesEnvironment"}', 'user123')
     )
 
 
 @pytest.mark.parametrize("backend_type", ["mongo"], indirect=True)
 def test_create_allocation_mongo(check_oidc_mock, time_mock, uuid_mock, db_mock, client,
                                  headers, seed_allocations, allocation_payload):
-    seed_allocations([])
+    seed_allocations([([], 0), ALLOC_1])
     client.post('/allocations', headers=headers, json=allocation_payload)
     db_mock.replace.assert_called_with(
         "allocations", {"id": "new-id"}, {"id": "new-id", "data": {"kind": "KubernetesEnvironment",
@@ -398,11 +398,12 @@ def test_create_allocation_mongo(check_oidc_mock, time_mock, uuid_mock, db_mock,
 @pytest.mark.parametrize("backend_type", ["vault"], indirect=True)
 def test_create_allocation_vault(check_oidc_mock, time_mock, uuid_mock, vault_mock, client, headers,
                                  requests_post_mock, seed_allocations, allocation_payload):
-    seed_allocations([])
+    seed_allocations([([], 0), ALLOC_1])
     client.post('/allocations', headers=headers, json=allocation_payload)
     vault_mock.secrets.kv.v1.create_or_update_secret.assert_called_with(
         'users/user123/allocations',
-        {'new-id': '{"kind": "KubernetesEnvironment", "host": "http://k8s.io/"}'},
+        {'id1': '{"kind": "KubernetesEnvironment", "host": "http://k8s.io"}',
+         'new-id': '{"kind": "KubernetesEnvironment", "host": "http://k8s.io/"}'},
         mount_point='/secrets'
     )
 
@@ -410,7 +411,7 @@ def test_create_allocation_vault(check_oidc_mock, time_mock, uuid_mock, vault_mo
 @pytest.mark.parametrize("backend_type", ["enc_vault"], indirect=True)
 def test_create_allocation_enc_vault(check_oidc_mock, time_mock, uuid_mock, vault_mock, client, headers,
                                      requests_post_mock, seed_allocations, allocation_payload):
-    seed_allocations([])
+    seed_allocations([([], 0), ALLOC_1])
     client.post('/allocations', headers=headers, json=allocation_payload)
     value = vault_mock.secrets.kv.v1.create_or_update_secret.call_args_list[0][0][1]
     key = Fernet(AllocationStoreVault.DEFAULT_KEY)
@@ -431,11 +432,11 @@ def test_update_allocation(check_oidc_mock, list_deployments_mock, db_mock, clie
 @pytest.mark.parametrize("backend_type", ["db"], indirect=True)
 def test_update_allocation_sql(check_oidc_mock, list_deployments_mock, db_mock, client, headers,
                                seed_allocations, allocation_payload):
-    seed_allocations([ALLOC_3, ALLOC_3])
+    seed_allocations([ALLOC_3, ALLOC_3, ALLOC_3])
 
     client.put('/allocation/id1', headers=headers, json=allocation_payload)
 
     db_mock.execute.assert_called_with(
         "update allocations set data = %s where id = %s",
-        ('{"kind": "KubernetesEnvironment", "host": "http://k8s.io/"}', 'id1')
+        ('{"host": "http://k8s.io/", "kind": "KubernetesEnvironment"}', 'id1')
     )
