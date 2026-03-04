@@ -316,7 +316,8 @@ def test_deploy_workload(
                '"allocation": {"kind": "AllocationId", "id": "aid"}}')
 
     response = client.post("/deployments",
-                           headers={"Authorization": "Bearer token"},
+                           headers={"Authorization": "Bearer token",
+                                    "Content-Type": "application/json"},
                            content=payload)
 
     assert response.status_code == 202
@@ -329,12 +330,13 @@ def test_deploy_workload_inputs(
 ):
     im_mock.create.return_value = True, "new_dep_id"
 
-    payload = ('{"tool": {"kind": "ToolId", "id": "toolid"}, '
+    payload = ('{"tool": {"kind": "ToolId", "id": "toolid"},'
                '"allocation": {"kind": "AllocationId", "id": "aid"},'
                '"inputs": {"num_cpus": 4}}')
 
     response = client.post("/deployments",
-                           headers={"Authorization": "Bearer token"},
+                           headers={"Authorization": "Bearer token",
+                                    "Content-Type": "application/json"},
                            content=payload)
 
     assert response.status_code == 202
@@ -390,7 +392,8 @@ def test_deploy_workload_dry_run(
                '"allocation": {"kind": "AllocationId", "id": "aid"}}')
 
     response = client.post("/deployments?dryRun=true",
-                           headers={"Authorization": "Bearer token"},
+                           headers={"Authorization": "Bearer token",
+                                    "Content-Type": "application/json"},
                            content=payload)
 
     assert response.status_code == 200

@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Literal, Dict, Any, List
-from pydantic import BaseModel, Field, HttpUrl, RootModel
+from typing import Literal, Dict, Any
+from pydantic import BaseModel, Field, HttpUrl
 from awm.models.allocation import AllocationId
 from awm.models.tool import ToolId
 
