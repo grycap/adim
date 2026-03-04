@@ -1,4 +1,4 @@
-name: SQAaaS ADM
+name: SQAaaS ADIM
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
         id: tox_unit_test
         with:
           name: tox_unit_test
-          container: "ghcr.io/grycap/adm:test"
+          container: "ghcr.io/grycap/awm:test"
           tool: commands
           commands: pip install tox && tox -e py3
 

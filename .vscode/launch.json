@@ -10,7 +10,7 @@
             "request": "launch",
             "module": "uvicorn",
             "args": [
-                "adm.__main__:app",
+                "adim.__main__:app",
                 "--reload",
                 "--port",
                 "8000"
