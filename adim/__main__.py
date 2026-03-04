@@ -23,7 +23,8 @@ from adim.routers import deployments, allocations, tools, service
 def create_app():
     fapp = FastAPI(
         title="ADIM API",
-        description="Application Deployment with Infrastructure Manager implements EOSC Application Deployment Management API",
+        description=("Application Deployment with Infrastructure Manager "
+                     "implements EOSC Application Deployment Management API"),
         version="0.1.49",
         docs_url="/",
         root_path=os.getenv("ROOT_PATH", "")

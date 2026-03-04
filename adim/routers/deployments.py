@@ -121,7 +121,7 @@ def deploy_workload(deployment: Deployment,
 
     try:
         deployment_info = adim.deployments_manager.update_deployment(deployment, tool, allocation_info,
-                                                                    user_info, request, dry_run)
+                                                                     user_info, request, dry_run)
     except DBConnectionException as dbe:
         return return_error(str(dbe), 503)
     except Exception as e:

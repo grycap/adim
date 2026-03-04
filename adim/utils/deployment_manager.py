@@ -168,7 +168,7 @@ class DeploymentsManager:
                 if success:
                     if dep_info.id not in infras:
                         adim.logger.info(f"Deployment {dep_info.id} not found in IM."
-                                        " Setting status to 'deleted'")
+                                         " Setting status to 'deleted'")
                         dep_info.status = "deleted"
                 else:
                     adim.logger.error(f"Could not list infrastructures: {infras}")
