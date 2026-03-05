@@ -1,11 +1,12 @@
 # ADIM
 
 [![Test ADIM](https://github.com/grycap/adim/actions/workflows/main.yaml/badge.svg)](https://github.com/grycap/adim/actions/workflows/main.yaml)
-[![SQAaaS badge shields.io](https://github.com/EOSC-synergy/adim.assess.sqaaas/raw/v0.4.0/.badge/status_shields.svg)](https://sqaaas.eosc-synergy.eu/#/full-assessment/report/https://raw.githubusercontent.com/eosc-synergy/adim.assess.sqaaas/v0.4.0/.report/assessment_output.json)
+[![SQAaaS badge shields.io](https://github.com/EOSC-synergy/adim.assess.sqaaas/raw/v0.5.0/.badge/status_shields.svg)](https://sqaaas.eosc-synergy.eu/#/full-assessment/report/https://raw.githubusercontent.com/eosc-synergy/adim.assess.sqaaas/v0.5.0/.report/assessment_output.json)
 
 ## Overview
 
-Implements EOSC Application Deployment Management API.
+Application Deployment with Infrastructure Manager implements
+EOSC Application Deployment Management API.
 
 ## Requirements
 
