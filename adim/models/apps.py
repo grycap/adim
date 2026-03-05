@@ -18,19 +18,19 @@ from pydantic import BaseModel, Field, EmailStr, HttpUrl
 from datetime import datetime
 
 
-class ToolId(BaseModel):
-    kind: Literal['ToolId'] = 'ToolId'
-    id: str = Field(..., description="Unique identifier for this tool blueprint")
+class ApplicationId(BaseModel):
+    kind: Literal['ApplicationId'] = 'ApplicationId'
+    id: str = Field(..., description="Unique identifier for this application")
     version: str = 'latest'
-    infoLink: HttpUrl | None = Field(None, description="URL that returns the full details of this tool blueprint")
+    infoLink: HttpUrl | None = Field(None, description="URL that returns the full details of this application")
 
 
-class ToolInfo(BaseModel):
-    kind: Literal['ToolInfo'] = 'ToolInfo'
+class ApplicationInfo(BaseModel):
+    kind: Literal['ApplicationInfo'] = 'ApplicationInfo'
     id: str
     nodeId: str = None
     type: Literal["vm", "container"]
-    blueprint: str = Field(..., description="Blueprint of the tool's workload")
+    blueprint: str = Field(..., description="Blueprint of the application's workload")
     blueprintType: Literal["tosca", "ansible", "helm"]
     name: str = None
     description: str = None
@@ -49,9 +49,9 @@ class ToolInfo(BaseModel):
     validated: bool = False
     validatedOn: datetime = None
     self_: HttpUrl | None = Field(None, alias="self",
-                                  description="Endpoint that returns the details of this tool blueprint")
+                                  description="Endpoint that returns the details of this application")
 
     model_config = {"populate_by_name": True}
 
 
-Tool = Union[ToolId, ToolInfo]
+Application = Union[ApplicationId, ApplicationInfo]

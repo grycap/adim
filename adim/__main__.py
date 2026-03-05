@@ -17,7 +17,7 @@
 import os
 import yaml
 from fastapi import FastAPI
-from adim.routers import deployments, allocations, tools, service
+from adim.routers import deployments, allocations, applications, service
 
 
 def create_app():
@@ -41,8 +41,8 @@ def create_app():
     )
 
     fapp.include_router(
-        tools.router,
-        tags=["Tools"]
+        applications.router,
+        tags=["Applications"]
     )
 
     fapp.include_router(

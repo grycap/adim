@@ -58,8 +58,8 @@ def list_allocations(
 
     if all_nodes:
         adim.logger.debug(f"Listing allocations in all EOSC nodes for user '{user_info.get('sub')}'")
-        remote_count, remote_tools = EOSCNodeRegistry.list_allocations(from_, limit, count, user_info)
-        res.extend(remote_tools)
+        remote_count, remote_allocations = EOSCNodeRegistry.list_allocations(from_, limit, count, user_info)
+        res.extend(remote_allocations)
         count += remote_count
 
     page = PageOfAllocations(from_=from_, limit=limit, elements=res, count=count)

@@ -19,14 +19,14 @@ from pydantic import BaseModel, HttpUrl
 from typing import List, Tuple, Union
 from adim.models.page import PageOfItems
 from adim.models.allocation import AllocationInfo
-from adim.models.tool import ToolInfo
+from adim.models.apps import ApplicationInfo
 from adim.models.deployment import DeploymentInfo
 
 
 logger = logging.getLogger(__name__)
 
 
-ItemInfo = Union[AllocationInfo, ToolInfo, DeploymentInfo]
+ItemInfo = Union[AllocationInfo, ApplicationInfo, DeploymentInfo]
 
 
 class EOSCNode(BaseModel):
@@ -35,9 +35,9 @@ class EOSCNode(BaseModel):
     nodeName: str = None
     admAPI: HttpUrl
 
-    def list_tools(self, from_: int, limit: int, count: int, token: str) -> Tuple[int, List[ToolInfo]]:
-        """Return the list of tools of this node"""
-        return self.list_items("tools", from_, limit, count, token)
+    def list_applications(self, from_: int, limit: int, count: int, token: str) -> Tuple[int, List[ApplicationInfo]]:
+        """Return the list of applications of this node"""
+        return self.list_items("applications", from_, limit, count, token)
 
     def list_allocations(self, from_: int, limit: int, count: int, token: str) -> Tuple[int, List[AllocationInfo]]:
         """Return the list of allocations of this node"""
@@ -99,9 +99,9 @@ class EOSCNodeRegistry():
         return EOSCNodeRegistry.list_items("allocations", from_, limit, count, user_info)
 
     @staticmethod
-    def list_tools(from_: int, limit: int, count: int, user_info) -> Tuple[int, List[ToolInfo]]:
-        """Return the list of remote tools"""
-        return EOSCNodeRegistry.list_items("tools", from_, limit, count, user_info)
+    def list_applications(from_: int, limit: int, count: int, user_info) -> Tuple[int, List[ApplicationInfo]]:
+        """Return the list of remote applications"""
+        return EOSCNodeRegistry.list_items("applications", from_, limit, count, user_info)
 
     @staticmethod
     def list_deployments(from_: int, limit: int, count: int, user_info) -> Tuple[int, List[DeploymentInfo]]:

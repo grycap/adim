@@ -17,7 +17,7 @@ import os
 import logging
 from dotenv import load_dotenv
 from adim.utils.deployment_manager import DeploymentsManager
-from adim.utils.tool.tool_store import ToolStore
+from adim.utils.application.app_store import ApplicationStore
 from adim.utils.allocation.allocation_store import AllocationStore
 
 __version__ = "0.5.0"
@@ -43,5 +43,5 @@ allocation_store = AllocationStore.get_allocation_store()
 # Initialize deployments manager
 deployments_manager = DeploymentsManager.get_deployments_manager()
 
-# Initialize tool store
-tool_store = ToolStore.get_tool_store()
+# Initialize application store
+application_store = ApplicationStore.get_application_store()

@@ -16,7 +16,7 @@
 from typing import Literal, Dict, Any
 from pydantic import BaseModel, Field, HttpUrl
 from adim.models.allocation import AllocationId
-from adim.models.tool import ToolId
+from adim.models.apps import ApplicationId
 
 
 class DeploymentId(BaseModel):
@@ -27,14 +27,14 @@ class DeploymentId(BaseModel):
 
 class Deployment(BaseModel):
     allocation: AllocationId
-    tool: ToolId
+    application: ApplicationId
     inputs: Dict[str, Any] | None = Field(None, description="Input values for the template",
                                           json_schema_extra={"type": "object", "additionalProperties": {}})
 
 
 class DeploymentInfo(BaseModel):
     deployment: Deployment
-    id: str = Field(..., description="Unique identifier for this tool blueprint")
+    id: str = Field(..., description="Unique identifier for this deployment")
     status: Literal["unknown",
                     "pending",
                     "running",
@@ -49,7 +49,7 @@ class DeploymentInfo(BaseModel):
     outputs: Dict[str, Any] | None = Field(None, description="Deployed Template output values",
                                            json_schema_extra={"type": "object", "additionalProperties": {}})
     self_: HttpUrl | None = Field(None, alias="self",
-                                  description="Endpoint that returns the details of this tool blueprint")
+                                  description="Endpoint that returns the details of this deployment")
 
     model_config = {"populate_by_name": True}
 

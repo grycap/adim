@@ -99,7 +99,7 @@ def requests_get_mock(mocker):
 
 def _get_deployment_info(dep_id="dep_id"):
     return (f'{{"id": "{dep_id}", '
-            '"deployment": {"tool": {"kind": "ToolId", "id": "toolid", '
+            '"deployment": {"application": {"kind": "ApplicationId", "id": "appid", '
             '"version": "latest", "infoLink": "http://some.url"}, '
             '"allocation": {"kind": "AllocationId", "id": "aid", "infoLink": "http://some.url"}}, '
             f'"status": "pending", "self_": "http://some.url/deployment/{dep_id}"}}')
@@ -234,7 +234,7 @@ def test_get_deployment(client, db_mock, check_oidc_mock, im_mock, allocation_mo
 
     assert response.status_code == 200
     assert response.json()["status"] == "running"
-    assert response.json()["deployment"]["tool"]["id"] == "toolid"
+    assert response.json()["deployment"]["application"]["id"] == "appid"
     assert response.json()["details"] == "contmsg"
     assert response.json()["outputs"] == {"output1": "value1"}
 
@@ -260,7 +260,7 @@ def test_get_deployment_no_im(client, db_mock, check_oidc_mock, im_mock, allocat
 
     assert response.status_code == 200
     assert response.json()["status"] == "deleted"
-    assert response.json()["deployment"]["tool"]["id"] == "toolid"
+    assert response.json()["deployment"]["application"]["id"] == "appid"
 
     db_mock.select.assert_called_with(
         "SELECT data FROM deployments WHERE id = %s and owner = %s",
@@ -286,9 +286,9 @@ def test_delete_deployment(client, db_mock, check_oidc_mock, im_mock, ost_alloca
 
 
 @pytest.fixture
-def get_tool_mock(mocker):
-    tool = MagicMock()
-    tool.blueprint = """
+def get_application_mock(mocker):
+    application = MagicMock()
+    application.blueprint = """
 tosca_definitions_version: tosca_simple_yaml_1_0
 topology_template:
   inputs:
@@ -297,7 +297,7 @@ topology_template:
       description: Number of virtual cpus for the VM
       default: 2
     """
-    return mocker.patch("adim.tool_store.get_tool", return_value=(tool, 200))
+    return mocker.patch("adim.application_store.get_application", return_value=(application, 200))
 
 
 @pytest.fixture
@@ -308,11 +308,11 @@ def allocation_mock_router(mocker):
 
 
 def test_deploy_workload(
-    client, db_mock, check_oidc_mock, im_mock, get_tool_mock, allocation_mock_router
+    client, db_mock, check_oidc_mock, im_mock, get_application_mock, allocation_mock_router
 ):
     im_mock.create.return_value = True, "new_dep_id"
 
-    payload = ('{"tool": {"kind": "ToolId", "id": "toolid"}, '
+    payload = ('{"application": {"kind": "ApplicationId", "id": "appid"}, '
                '"allocation": {"kind": "AllocationId", "id": "aid"}}')
 
     response = client.post("/deployments",
@@ -326,11 +326,11 @@ def test_deploy_workload(
 
 
 def test_deploy_workload_inputs(
-    client, db_mock, check_oidc_mock, im_mock, get_tool_mock, allocation_mock_router
+    client, db_mock, check_oidc_mock, im_mock, get_application_mock, allocation_mock_router
 ):
     im_mock.create.return_value = True, "new_dep_id"
 
-    payload = ('{"tool": {"kind": "ToolId", "id": "toolid"},'
+    payload = ('{"application": {"kind": "ApplicationId", "id": "appid"},'
                '"allocation": {"kind": "AllocationId", "id": "aid"},'
                '"inputs": {"num_cpus": 4}}')
 
@@ -355,7 +355,7 @@ topology_template:
 
 
 def test_deploy_workload_dry_run(
-    client, db_mock, check_oidc_mock, im_mock, get_tool_mock, allocation_mock_router
+    client, db_mock, check_oidc_mock, im_mock, get_application_mock, allocation_mock_router
 ):
     im_mock.create.return_value = True, {
         "cloud": {
@@ -388,7 +388,7 @@ def test_deploy_workload_dry_run(
         "volume_storage": {"used": 300, "limit": 1000}
     }
 
-    payload = ('{"tool": {"kind": "ToolId", "id": "toolid"}, '
+    payload = ('{"application": {"kind": "ApplicationId", "id": "appid"}, '
                '"allocation": {"kind": "AllocationId", "id": "aid"}}')
 
     response = client.post("/deployments?dryRun=true",

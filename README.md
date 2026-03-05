@@ -26,9 +26,9 @@ VAULT_URL=https://secrets.egi.eu
 ENCRYPT_KEY=3JSvUdOsAlvSNVYvBwHWE-iKdWkhq4C_LmjRcpuycT0=
 #ROOT_PATH=/adim
 # git or rc
-TOOL_STORE=git
-# In case of git, the repository where to store the tools
-TOOLS_REPO="https://github.com/grycap/tosca/blob/eosc_lot1/templates/"
+APPLICATIONS_STORE=git
+# In case of git, the repository where to store the applications
+APPLICATIONS_REPO="https://github.com/grycap/tosca/blob/eosc_lot1/templates/"
 # In case of RC, the URL of the Resource Catalog API
 RESOURCE_CATALOG="https://providers.sandbox.eosc-beyond.eu/api"
 # Comma separated list of OIDC issuers to accept tokens from

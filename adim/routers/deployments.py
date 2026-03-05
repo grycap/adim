@@ -36,8 +36,8 @@ def _list_deployments(user_info: dict, request: Request, from_: int = 0,
         return return_error("Database connection failed", 503)
 
     if all_nodes:
-        remote_count, remote_tools = EOSCNodeRegistry.list_deployments(from_, limit, count, user_info)
-        deployments.extend(remote_tools)
+        remote_count, remote_applications = EOSCNodeRegistry.list_deployments(from_, limit, count, user_info)
+        deployments.extend(remote_applications)
         count += remote_count
 
     page = PageOfDeployments(from_=from_, limit=limit, elements=deployments, count=count, self_=str(request.url))
@@ -103,11 +103,11 @@ def deploy_workload(deployment: Deployment,
                     user_info=Depends(authenticate)):
     """Deploy workload to an EOSC environment or an infrastructure for which the user has credentials"""
     adim.logger.debug(f"Creating deployment from user '{user_info.get('sub')}'")
-    # Get the Tool from the ID
-    tool, status_code = adim.tool_store.get_tool(deployment.tool.id, deployment.tool.version, request)
+    # Get the Application from the ID
+    application, status_code = adim.application_store.get_application(deployment.application.id, deployment.application.version, request)
     if status_code != 200:
-        adim.logger.warning(f"Tool {deployment.tool.id} not found")
-        return Response(content=tool, status_code=400, media_type="application/json")
+        adim.logger.warning(f"Application {deployment.application.id} not found")
+        return Response(content=application, status_code=400, media_type="application/json")
 
     # Get the allocation info from the Allocation
     allocation_info, status = adim.deployments_manager.get_allocation(deployment, user_info)
@@ -120,7 +120,7 @@ def deploy_workload(deployment: Deployment,
         raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
 
     try:
-        deployment_info = adim.deployments_manager.update_deployment(deployment, tool, allocation_info,
+        deployment_info = adim.deployments_manager.update_deployment(deployment, application, allocation_info,
                                                                      user_info, request, dry_run)
     except DBConnectionException as dbe:
         return return_error(str(dbe), 503)

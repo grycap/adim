@@ -16,8 +16,8 @@
 import adim
 from fastapi import APIRouter, Query, Depends, Request, Response
 from adim.authorization import authenticate
-from adim.models.tool import ToolInfo
-from adim.models.page import PageOfTools
+from adim.models.apps import ApplicationInfo
+from adim.models.page import PageOfApplications
 from adim.utils.node_registry import EOSCNodeRegistry
 from adim.utils import ConnectionException
 from . import return_error, STANDARD_RESPONSES, GET_RESPONSES
@@ -26,11 +26,11 @@ from . import return_error, STANDARD_RESPONSES, GET_RESPONSES
 router = APIRouter()
 
 
-# GET /tools
-@router.get("/tools",
-            summary="List all tool blueprints",
-            responses=STANDARD_RESPONSES(PageOfTools))
-def list_tools(
+# GET /applications
+@router.get("/applications",
+            summary="List all application blueprints",
+            responses=STANDARD_RESPONSES(PageOfApplications))
+def list_applications(
     request: Request,
     from_: int = Query(0, alias="from", ge=0,
                        description="Index of the first element to return"),
@@ -40,36 +40,36 @@ def list_tools(
     user_info=Depends(authenticate)
 ):
     try:
-        adim.logger.debug(f"Listing tools from user '{user_info.get('sub')}'")
-        total, count, tools = adim.tool_store.list_tools(request, from_, limit, user_info)
+        adim.logger.debug(f"Listing applications from user '{user_info.get('sub')}'")
+        total, count, applications = adim.application_store.list_applications(request, from_, limit, user_info)
     except ConnectionException as ex:
         return return_error("Repository connection failed: %s" % ex, 503)
 
     remote_count = 0
     if all_nodes:
-        remote_count, remote_tools = EOSCNodeRegistry.list_tools(from_, limit, count, user_info)
-        tools.extend(remote_tools)
+        remote_count, remote_applications = EOSCNodeRegistry.list_applications(from_, limit, count, user_info)
+        applications.extend(remote_applications)
 
-    page = PageOfTools(from_=from_, limit=limit, elements=tools, count=total + remote_count)
+    page = PageOfApplications(from_=from_, limit=limit, elements=applications, count=total + remote_count)
     page.set_next_and_prev_pages(request, all_nodes)
     return Response(content=page.model_dump_json(exclude_unset=True, by_alias=True), status_code=200,
                     media_type="application/json")
 
 
-# GET /tool/{tool_id}
-@router.get("/tool/{tool_id}",
-            summary="Get information about a tool blueprint",
-            responses=GET_RESPONSES(ToolInfo))
-def get_tool(tool_id: str,
+# GET /application/{application_id}
+@router.get("/application/{application_id}",
+            summary="Get information about an application blueprint",
+            responses=GET_RESPONSES(ApplicationInfo))
+def get_application(application_id: str,
              request: Request,
              version: str = Query("latest", description="If missing, the latest version will be returned"),
              user_info=Depends(authenticate)):
-    """Get information about an existing tool blueprint"""
+    """Get information about an existing application blueprint"""
     try:
-        adim.logger.debug(f"Getting tool {tool_id} from user '{user_info.get('sub')}'")
-        tool_or_msg, status_code = adim.tool_store.get_tool(tool_id, version, request)
+        adim.logger.debug(f"Getting application {application_id} from user '{user_info.get('sub')}'")
+        application_or_msg, status_code = adim.application_store.get_application(application_id, version, request)
     except ConnectionException as ex:
         return return_error("Repository connection failed: %s" % ex, 503)
 
-    return Response(content=tool_or_msg.model_dump_json(exclude_unset=True, by_alias=True),
+    return Response(content=application_or_msg.model_dump_json(exclude_unset=True, by_alias=True),
                     status_code=status_code, media_type="application/json")
