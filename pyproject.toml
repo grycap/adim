@@ -3,12 +3,12 @@ requires = ["setuptools>=65.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "awm"
+name = "adim"
 dynamic = ["version"]
-description = "EOSC Application Workflow Management API"
+description = "Application Deployment with Infrastructure Manager implements EOSC Application Deployment Management API"
 readme = "README.md"
 requires-python = ">=3.8"
-keywords = ["EOSC", "Application", "Workflow", "Management", "API"]
+keywords = ["EOSC", "Application", "Deployment", "Management", "API"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Web Environment",
@@ -37,7 +37,7 @@ dependencies = [
 ]
 
 [tool.setuptools.dynamic]
-version = {attr = "awm.__version__"}
+version = {attr = "adim.__version__"}
 
 [project.optional-dependencies]
 test = [
@@ -51,10 +51,10 @@ test = [
 ]
 
 [project.scripts]
-awm = "awm.__main__:main"
+adim = "adim.__main__:main"
 
 [tool.setuptools]
-packages = ["awm"]
+packages = ["adim"]
 
 [tool.setuptools.package-data]
-awm = ["py.typed"]
+adim = ["py.typed"]
