@@ -27,7 +27,6 @@ from adim.models.allocation import AllocationId
 from adim.utils.node_registry import EOSCNode
 from adim.utils.db import DataBase
 from adim.utils.allocation.allocation_store_vault import AllocationStoreVault
-from adim.utils.allocation.allocation_store import AllocationStore
 import adim
 
 
