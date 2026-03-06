@@ -31,7 +31,8 @@ class Repository():
 
     @staticmethod
     def create(repository_url):
-        if "github.com" or "githubusercontent.com" in repository_url:
+        url = urlparse(repository_url)
+        if url.netloc.endswith("github.com") or url.netloc.endswith("githubusercontent.com"):
             return GitHubRepository(repository_url)
         else:
             return Repository(repository_url)
@@ -44,12 +45,12 @@ class GitHubRepository(Repository):
 
     def _getRepoDetails(self):
         url = urlparse(self.repository_url)
-        if "githubusercontent.com" in self.repository_url:
+        if url.netloc.endswith("githubusercontent.com"):
             owner = url.path.split("/")[1]
             repo = url.path.split("/")[2]
             branch = url.path.split("/")[3]
             path = "/".join(url.path.split("/")[4:])
-        elif "github.com" in self.repository_url:
+        elif url.netloc.endswith("github.com"):
             owner = url.path.split("/")[1]
             repo = url.path.split("/")[2]
             branch = url.path.split("/")[4]
