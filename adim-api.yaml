@@ -376,7 +376,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Allocation-Input'
+              oneOf:
+              - $ref: '#/components/schemas/OpenStackEnvironment'
+              - $ref: '#/components/schemas/EGIComputeEnvironment'
+              - $ref: '#/components/schemas/KubernetesEnvironment'
+              - $ref: '#/components/schemas/EoscNodeEnvironment'
+              discriminator:
+                propertyName: kind
+                mapping:
+                  OpenStackEnvironment: '#/components/schemas/OpenStackEnvironment'
+                  EGIComputeEnvironment: '#/components/schemas/EGIComputeEnvironment'
+                  KubernetesEnvironment: '#/components/schemas/KubernetesEnvironment'
+                  EoscNodeEnvironment: '#/components/schemas/EoscNodeEnvironment'
+              title: Allocation
       responses:
         '201':
           description: Accepted
@@ -448,7 +460,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AllocationInfo'
+                oneOf:
+                - $ref: '#/components/schemas/OpenStackEnvironment'
+                - $ref: '#/components/schemas/EGIComputeEnvironment'
+                - $ref: '#/components/schemas/KubernetesEnvironment'
+                - $ref: '#/components/schemas/EoscNodeEnvironment'
+                discriminator:
+                  propertyName: kind
+                  mapping:
+                    OpenStackEnvironment: '#/components/schemas/OpenStackEnvironment'
+                    EGIComputeEnvironment: '#/components/schemas/EGIComputeEnvironment'
+                    KubernetesEnvironment: '#/components/schemas/KubernetesEnvironment'
+                    EoscNodeEnvironment: '#/components/schemas/EoscNodeEnvironment'
+                title: Response 200 Get Allocation Allocation  Allocation Id  Get
         '400':
           description: Invalid parameters or configuration
           content:
@@ -509,14 +533,38 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Allocation-Input'
+              oneOf:
+              - $ref: '#/components/schemas/OpenStackEnvironment'
+              - $ref: '#/components/schemas/EGIComputeEnvironment'
+              - $ref: '#/components/schemas/KubernetesEnvironment'
+              - $ref: '#/components/schemas/EoscNodeEnvironment'
+              discriminator:
+                propertyName: kind
+                mapping:
+                  OpenStackEnvironment: '#/components/schemas/OpenStackEnvironment'
+                  EGIComputeEnvironment: '#/components/schemas/EGIComputeEnvironment'
+                  KubernetesEnvironment: '#/components/schemas/KubernetesEnvironment'
+                  EoscNodeEnvironment: '#/components/schemas/EoscNodeEnvironment'
+              title: Allocation
       responses:
         '200':
           description: Success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AllocationInfo'
+                oneOf:
+                - $ref: '#/components/schemas/OpenStackEnvironment'
+                - $ref: '#/components/schemas/EGIComputeEnvironment'
+                - $ref: '#/components/schemas/KubernetesEnvironment'
+                - $ref: '#/components/schemas/EoscNodeEnvironment'
+                discriminator:
+                  propertyName: kind
+                  mapping:
+                    OpenStackEnvironment: '#/components/schemas/OpenStackEnvironment'
+                    EGIComputeEnvironment: '#/components/schemas/EGIComputeEnvironment'
+                    KubernetesEnvironment: '#/components/schemas/KubernetesEnvironment'
+                    EoscNodeEnvironment: '#/components/schemas/EoscNodeEnvironment'
+                title: Response 200 Update Allocation Allocation  Allocation Id  Put
         '400':
           description: Invalid parameters or configuration
           content:
@@ -549,6 +597,12 @@ paths:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: In use
           content:
             application/json:
               schema:
@@ -616,6 +670,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '409':
+          description: In use
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '422':
           description: Validation Error
           content:
@@ -658,6 +718,27 @@ paths:
           type: boolean
           default: false
           title: Allnodes
+      - name: includePublished
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Includepublished
+      - name: includePersonal
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Includepersonal
+      - name: onlyFavorites
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Onlyfavorites
       responses:
         '200':
           description: Success
@@ -787,37 +868,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Success'
+                type: string
+                title: Response 200 Version Version Get
 components:
   schemas:
-    Allocation-Input:
-      oneOf:
-      - $ref: '#/components/schemas/OpenStackEnvironment'
-      - $ref: '#/components/schemas/EGIComputeEnvironment'
-      - $ref: '#/components/schemas/KubernetesEnvironment'
-      - $ref: '#/components/schemas/EoscNodeEnvironment'
-      title: Allocation
-      discriminator:
-        propertyName: kind
-        mapping:
-          EGIComputeEnvironment: '#/components/schemas/EGIComputeEnvironment'
-          EoscNodeEnvironment: '#/components/schemas/EoscNodeEnvironment'
-          KubernetesEnvironment: '#/components/schemas/KubernetesEnvironment'
-          OpenStackEnvironment: '#/components/schemas/OpenStackEnvironment'
-    Allocation-Output:
-      oneOf:
-      - $ref: '#/components/schemas/OpenStackEnvironment'
-      - $ref: '#/components/schemas/EGIComputeEnvironment'
-      - $ref: '#/components/schemas/KubernetesEnvironment'
-      - $ref: '#/components/schemas/EoscNodeEnvironment'
-      title: Allocation
-      discriminator:
-        propertyName: kind
-        mapping:
-          EGIComputeEnvironment: '#/components/schemas/EGIComputeEnvironment'
-          EoscNodeEnvironment: '#/components/schemas/EoscNodeEnvironment'
-          KubernetesEnvironment: '#/components/schemas/KubernetesEnvironment'
-          OpenStackEnvironment: '#/components/schemas/OpenStackEnvironment'
     AllocationId:
       properties:
         kind:
@@ -830,40 +884,17 @@ components:
           title: Id
           description: Unique identifier for this allocation
         infoLink:
-          anyOf:
-          - type: string
-            maxLength: 2083
-            minLength: 1
-            format: uri
-          - type: 'null'
+          type: string
+          maxLength: 2083
+          minLength: 1
+          format: uri
           title: Infolink
           description: Endpoint that returns more details about this entity
       type: object
       required:
       - id
+      - infoLink
       title: AllocationId
-    AllocationInfo:
-      properties:
-        id:
-          type: string
-          title: Id
-          description: Unique identifier for this allocation
-        self:
-          anyOf:
-          - type: string
-            maxLength: 2083
-            minLength: 1
-            format: uri
-          - type: 'null'
-          title: Self
-          description: Endpoint that returns the details of this allocation
-        allocation:
-          $ref: '#/components/schemas/Allocation-Output'
-      type: object
-      required:
-      - id
-      - allocation
-      title: AllocationInfo
     CloudQuota:
       properties:
         cores:
@@ -914,11 +945,10 @@ components:
           $ref: '#/components/schemas/ToolId'
         inputs:
           anyOf:
-          - additionalProperties: true
-            type: object
+          - items:
+              $ref: '#/components/schemas/Property'
+            type: array
           - type: 'null'
-          additionalProperties: {}
-          type: object
           title: Inputs
           description: Input values for the template
       type: object
@@ -938,26 +968,40 @@ components:
           title: Kind
           default: DeploymentId
         infoLink:
-          anyOf:
-          - type: string
-            maxLength: 2083
-            minLength: 1
-            format: uri
-          - type: 'null'
+          type: string
+          maxLength: 2083
+          minLength: 1
+          format: uri
           title: Infolink
           description: Endpoint that returns more details about this entity
       type: object
       required:
       - id
+      - infoLink
       title: DeploymentId
     DeploymentInfo:
       properties:
-        deployment:
-          $ref: '#/components/schemas/Deployment'
+        allocation:
+          $ref: '#/components/schemas/AllocationId'
+        tool:
+          $ref: '#/components/schemas/ToolId'
+        inputs:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/Property'
+            type: array
+          - type: 'null'
+          title: Inputs
+          description: Input values for the template
+        kind:
+          type: string
+          const: DeploymentInfo
+          title: Kind
+          default: DeploymentInfo
         id:
           type: string
           title: Id
-          description: Unique identifier for this tool blueprint
+          description: Unique identifier for this deployment
         status:
           type: string
           enum:
@@ -980,27 +1024,26 @@ components:
           description: Additional information about the deployment status
         outputs:
           anyOf:
-          - additionalProperties: true
-            type: object
+          - items:
+              $ref: '#/components/schemas/Property'
+            type: array
           - type: 'null'
-          additionalProperties: {}
-          type: object
           title: Outputs
-          description: Deployed Template output values
+          description: Output values from the deployed template
         self:
-          anyOf:
-          - type: string
-            maxLength: 2083
-            minLength: 1
-            format: uri
-          - type: 'null'
+          type: string
+          maxLength: 2083
+          minLength: 1
+          format: uri
           title: Self
           description: Endpoint that returns the details of this tool blueprint
       type: object
       required:
-      - deployment
+      - allocation
+      - tool
       - id
       - status
+      - self
       title: DeploymentInfo
     EGIComputeEnvironment:
       properties:
@@ -1098,6 +1141,16 @@ components:
           - type: 'null'
           title: Nodename
           description: Name of the EOSC node where this environment was allocated
+        nodeUI:
+          anyOf:
+          - type: string
+            maxLength: 2083
+            minLength: 1
+            format: uri
+          - type: 'null'
+          title: Nodeui
+          description: URL to the interactive UI of the EOSC node where this environment
+            was allocated
         nodeId:
           type: string
           title: Nodeid
@@ -1338,7 +1391,19 @@ components:
           description: Endpoint that returns the next page
         elements:
           items:
-            $ref: '#/components/schemas/AllocationInfo'
+            oneOf:
+            - $ref: '#/components/schemas/OpenStackEnvironment'
+            - $ref: '#/components/schemas/EGIComputeEnvironment'
+            - $ref: '#/components/schemas/KubernetesEnvironment'
+            - $ref: '#/components/schemas/EoscNodeEnvironment'
+            title: AllocationInfo
+            discriminator:
+              propertyName: kind
+              mapping:
+                EGIComputeEnvironment: '#/components/schemas/EGIComputeEnvironment'
+                EoscNodeEnvironment: '#/components/schemas/EoscNodeEnvironment'
+                KubernetesEnvironment: '#/components/schemas/KubernetesEnvironment'
+                OpenStackEnvironment: '#/components/schemas/OpenStackEnvironment'
           type: array
           title: Elements
       type: object
@@ -1457,6 +1522,23 @@ components:
       - elements
       title: PageOfTools
       description: Page of Tools
+    Property:
+      properties:
+        name:
+          type: string
+          title: Name
+        value:
+          anyOf:
+          - type: string
+          - type: integer
+          - type: number
+          - type: boolean
+          title: Value
+      type: object
+      required:
+      - name
+      - value
+      title: Property
     Quota:
       properties:
         used:
@@ -1507,17 +1589,16 @@ components:
           title: Version
           default: latest
         infoLink:
-          anyOf:
-          - type: string
-            maxLength: 2083
-            minLength: 1
-            format: uri
-          - type: 'null'
+          type: string
+          maxLength: 2083
+          minLength: 1
+          format: uri
           title: Infolink
           description: URL that returns the full details of this tool blueprint
       type: object
       required:
       - id
+      - infoLink
       title: ToolId
     ToolInfo:
       properties:
@@ -1642,11 +1723,6 @@ components:
         type:
           type: string
           title: Error Type
-        input:
-          title: Input
-        ctx:
-          type: object
-          title: Context
       type: object
       required:
       - loc

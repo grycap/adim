@@ -14,7 +14,7 @@
 # limitations under the License.
 
 from typing import Union, Literal, Annotated
-from pydantic import BaseModel, Field, HttpUrl, RootModel
+from pydantic import BaseModel, Field, HttpUrl, TypeAdapter
 from datetime import datetime
 
 
@@ -41,6 +41,7 @@ class EoscNodeEnvironment(BaseModel):
     provisionedOn: datetime | None = None
     expiresOn: datetime | None = None
     nodeName: str | None = Field(None, description="Name of the EOSC node where this environment was allocated")
+    nodeUI: HttpUrl | None = Field(None, description="URL to the interactive UI of the EOSC node where this environment was allocated")
     nodeId: str = Field(..., description=("URL to the interactive UI of the EOSC "
                                           "node where this environment was allocated"))
     admApi: HttpUrl = Field(..., description=("Base URL for the ADM API of the EOSC node where this "
@@ -77,29 +78,29 @@ class KubernetesEnvironment(BaseModel):
     host: HttpUrl
 
 
-AllocationUnion = Annotated[
+Allocation = Annotated[
     Union[OpenStackEnvironment,
           EGIComputeEnvironment,
           KubernetesEnvironment,
           EoscNodeEnvironment],
-    Field(discriminator='kind')
+    Field(discriminator='kind', title='Allocation')
 ]
 
-
-class Allocation(RootModel[AllocationUnion]):
-    pass
+AllocationAdapter = TypeAdapter(Allocation)
 
 
 class AllocationId(BaseModel):
     kind: Literal['AllocationId'] = 'AllocationId'
     id: str = Field(..., description="Unique identifier for this allocation")
-    infoLink: HttpUrl | None = Field(None, description="Endpoint that returns more details about this entity")
+    infoLink: HttpUrl = Field(None, description="Endpoint that returns more details about this entity")
 
 
-class AllocationInfo(BaseModel):
-    id: str = Field(..., description="Unique identifier for this allocation")
-    self_: HttpUrl | None = Field(None, alias="self",
-                                  description="Endpoint that returns the details of this allocation")
-    allocation: Allocation
+AllocationInfo = Annotated[
+    Union[OpenStackEnvironment,
+          EGIComputeEnvironment,
+          KubernetesEnvironment,
+          EoscNodeEnvironment],
+    Field(discriminator="kind", title="AllocationInfo"),
+]
 
-    model_config = {"populate_by_name": True}
+AllocationInfoAdapter = TypeAdapter(AllocationInfo)

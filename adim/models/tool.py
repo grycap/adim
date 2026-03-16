@@ -22,7 +22,7 @@ class ToolId(BaseModel):
     kind: Literal['ToolId'] = 'ToolId'
     id: str = Field(..., description="Unique identifier for this tool blueprint")
     version: str = 'latest'
-    infoLink: HttpUrl | None = Field(None, description="URL that returns the full details of this tool blueprint")
+    infoLink: HttpUrl = Field(..., description="URL that returns the full details of this tool blueprint")
 
 
 class ToolInfo(BaseModel):

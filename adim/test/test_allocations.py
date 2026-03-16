@@ -21,7 +21,7 @@ from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
 from adim.__main__ import create_app
-from adim.models.deployment import DeploymentInfo, Deployment
+from adim.models.deployment import DeploymentInfo
 from adim.models.tool import ToolId
 from adim.models.allocation import AllocationId
 from adim.utils.node_registry import EOSCNode
@@ -114,10 +114,8 @@ def allocation_payload():
 
 
 def _allocation_data(aid="id1"):
-    return {'allocation': {'host': 'http://k8s.io/',
-                           'kind': 'KubernetesEnvironment'},
-            'id': aid,
-            'self': f'http://testserver/allocation/{aid}'}
+    return {'host': 'http://k8s.io/',
+            'kind': 'KubernetesEnvironment'}
 
 
 @pytest.fixture(params=["db", "mongo", "vault", "enc_vault"])
@@ -340,12 +338,11 @@ def test_delete_allocation(check_oidc_mock, list_deployments_mock, client, heade
         200,
         [
             DeploymentInfo(
-                deployment=Deployment(
-                    allocation=AllocationId(kind="AllocationId", id="id1", infoLink="http://some.url/"),
-                    tool=ToolId(kind="ToolId", id="toolid", version="latest", infoLink="http://some.url/")
-                ),
+                allocation=AllocationId(kind="AllocationId", id="id1", infoLink="http://some.url/"),
+                tool=ToolId(kind="ToolId", id="toolid", version="latest", infoLink="http://some.url/"),
                 id="dep_id",
-                status="pending"
+                status="pending",
+                self_="http://some.url/"
             )
         ]
     )

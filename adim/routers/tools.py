@@ -37,6 +37,9 @@ def list_tools(
     limit: int = Query(100, alias="limit", ge=1,
                        description="Maximum number of elements to return"),
     all_nodes: bool = Query(False, alias="allNodes"),
+    include_published: bool = Query(False, alias="includePublished"),
+    include_personal: bool = Query(False, alias="includePersonal"),
+    only_favorites: bool = Query(False, alias="onlyFavorites"),
     user_info=Depends(authenticate)
 ):
     try:

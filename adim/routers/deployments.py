@@ -115,7 +115,7 @@ def deploy_workload(deployment: Deployment,
         adim.logger.warning(f"Allocation {deployment.allocation.id} not found")
         return allocation_info, status
 
-    if allocation_info.allocation.root.kind == "EoscNodeEnvironment":
+    if allocation_info.kind == "EoscNodeEnvironment":
         adim.logger.error("EOSCNodeEnvironment support not implemented yet")
         raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
 
