@@ -48,7 +48,11 @@ def list_allocations(
 
     res = []
     for elem in allocations:
-        allocation_info = AllocationInfo.model_validate(elem['data'])
+        allocation_info = AllocationInfo(
+            id=elem['id'],
+            allocation=Allocation.model_validate(elem['data']),
+            self=str(request.url_for("get_allocation", allocation_id=elem['id']))
+        )
         res.append(allocation_info)
 
     if all_nodes:
@@ -72,7 +76,11 @@ def _get_allocation_info(allocation_id: str, user_info: dict, request: Request) 
     if not allocation_data:
         return None
 
-    return AllocationInfo.model_validate(allocation_data)
+    return AllocationInfo(
+        id=allocation_id,
+        allocation=Allocation.model_validate(allocation_data),
+        self=str(request.url_for("get_allocation", allocation_id=allocation_id))
+    )
 
 
 # GET /allocation/{allocation_id}

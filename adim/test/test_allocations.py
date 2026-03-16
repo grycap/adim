@@ -115,7 +115,9 @@ def allocation_payload():
 
 def _allocation_data(aid="id1"):
     return {'host': 'http://k8s.io/',
-            'kind': 'KubernetesEnvironment'}
+            'kind': 'KubernetesEnvironment',
+            'self': f'http://testserver/allocation/{aid}',
+            'id': aid}
 
 
 @pytest.fixture(params=["db", "mongo", "vault", "enc_vault"])
@@ -127,6 +129,7 @@ ALLOC_1 = (
     [{
         "id": "id1",
         "data": {"kind": "KubernetesEnvironment", "host": "http://k8s.io"},
+        "self": "http://testserver/allocation/id1"
     }],
     1,
 )
@@ -140,6 +143,7 @@ ALLOC_3 = (
     [{
         "id": "id1",
         "data": {"kind": "KubernetesEnvironment", "host": "http://k8s.io"},
+        "self": "http://testserver/allocation/id1"
     }],
     None,
 )
