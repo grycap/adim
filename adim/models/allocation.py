@@ -95,7 +95,7 @@ AllocationAdapter = TypeAdapter(Allocation)
 class AllocationId(BaseModel):
     kind: Literal['AllocationId'] = 'AllocationId'
     id: str = Field(..., description="Unique identifier for this allocation")
-    infoLink: HttpUrl = Field(None, description="Endpoint that returns more details about this entity")
+    infoLink: HttpUrl = Field(..., description="Endpoint that returns more details about this entity")
 
 
 # This model is used because the API response for AllocationInfo includes both the allocation data
