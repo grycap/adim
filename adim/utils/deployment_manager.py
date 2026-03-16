@@ -17,7 +17,7 @@ import adim
 import os
 import time
 import yaml
-from typing import Dict, Any, List
+from typing import Dict, List
 from fastapi import Request
 from imclient import IMClient
 from adim.models.deployment import DeploymentInfo, Deployment, CloudQuota, Property
@@ -27,7 +27,7 @@ from adim.models.success import Success
 from adim.models.allocation import AllocationInfo, Allocation
 from typing import Tuple, Union
 from adim.utils.db import DataBase
-from adim.utils import ConnectionException, DBConnectionException
+from adim.utils import ConnectionException, DBConnectionException, IMConnectionException
 
 
 class DeploymentsManager:
@@ -166,14 +166,23 @@ class DeploymentsManager:
 
             auth_data = self.get_im_auth_header(user_info['token'], allocation_info, dep_info.allocation.id)
             client = IMClient.init_client(self.im_url, auth_data)
-            success, state_info = client.get_infra_property(dep_info.id, "state")
+            try:
+                success, state_info = client.get_infra_property(dep_info.id, "state")
+            except Exception as ex:
+                adim.logger.error(f"Error connecting to infrastructure: {str(ex)}")
+                raise IMConnectionException("Infrastructure Manager connection failed: %s" % str(ex))
+
             if success:
                 dep_info.status = state_info.get('state')
             else:
                 dep_info.status = "unknown"
                 adim.logger.error(f"Could not retrieve deployment status: {state_info}")
                 # Check if the infrastructure still exists
-                success, infras = client.list_infras()
+                try:
+                    success, infras = client.list_infras()
+                except Exception as ex:
+                    adim.logger.error(f"Error connecting to infrastructure: {str(ex)}")
+                    raise IMConnectionException("Infrastructure Manager connection failed: %s" % str(ex))
                 if success:
                     if dep_info.id not in infras:
                         adim.logger.info(f"Deployment {dep_info.id} not found in IM."
@@ -182,13 +191,21 @@ class DeploymentsManager:
                 else:
                     adim.logger.error(f"Could not list infrastructures: {infras}")
 
-            success, outputs = client.get_infra_property(dep_info.id, "outputs")
+            try:
+                success, outputs = client.get_infra_property(dep_info.id, "outputs")
+            except Exception as ex:
+                adim.logger.error(f"Error connecting to infrastructure: {str(ex)}")
+                raise IMConnectionException("Infrastructure Manager connection failed: %s" % str(ex))
             if success:
                 dep_info.outputs = [Property(name=k, value=v) for k, v in outputs.items()]
             else:
                 adim.logger.error(f"Could not get deployment outputs: {outputs}")
 
-            success, cont_msg = client.get_infra_property(dep_info.id, "contmsg")
+            try:
+                success, cont_msg = client.get_infra_property(dep_info.id, "contmsg")
+            except Exception as ex:
+                adim.logger.error(f"Error connecting to infrastructure: {str(ex)}")
+                raise IMConnectionException("Infrastructure Manager connection failed: %s" % str(ex))
             if success:
                 dep_info.details = cont_msg
             else:
@@ -256,7 +273,11 @@ class DeploymentsManager:
         else:
             auth_data = self.get_im_auth_header(user_info['token'], allocation_info, dep_info.allocation.id)
             client = IMClient.init_client(self.im_url, auth_data)
-            success, destroy_msg = client.destroy(deployment_id)
+            try:
+                success, destroy_msg = client.destroy(deployment_id)
+            except Exception as ex:
+                adim.logger.error(f"Error connecting to infrastructure: {str(ex)}")
+                raise IMConnectionException("Infrastructure Manager connection failed: %s" % str(ex))
 
             if not success:
                 msg = Error(id="400", description=destroy_msg)
@@ -332,7 +353,11 @@ class DeploymentsManager:
         # Create the infrastructure in the IM
         client = IMClient.init_client(self.im_url, auth_data)
         template = self._get_template(tool.blueprint, deployment.inputs)
-        success, deployment_id = client.create(template, "yaml", True, dry_run)
+        try:
+            success, deployment_id = client.create(template, "yaml", True, dry_run)
+        except Exception as ex:
+            adim.logger.error(f"Error creating infrastructure: {str(ex)}")
+            raise IMConnectionException("Infrastructure Manager connection failed: %s" % str(ex))
         if not success:
             raise Exception(deployment_id)
 

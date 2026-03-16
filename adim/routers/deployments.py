@@ -19,7 +19,7 @@ from adim.authorization import authenticate
 from adim.models.deployment import DeploymentInfo, DeploymentId, Deployment, CloudQuota
 from adim.models.page import PageOfDeployments
 from adim.utils.node_registry import EOSCNodeRegistry
-from adim.utils import DBConnectionException
+from adim.utils import ConnectionException, DBConnectionException
 from adim.models.success import Success
 
 from . import return_error, STANDARD_RESPONSES, GET_RESPONSES, DELETE_RESPONSES, DEP_POST_RESPONSES
@@ -122,7 +122,7 @@ def deploy_workload(deployment: Deployment,
     try:
         deployment_info = adim.deployments_manager.update_deployment(deployment, tool, allocation_info,
                                                                      user_info, request, dry_run)
-    except DBConnectionException as dbe:
+    except ConnectionException as dbe:
         return return_error(str(dbe), 503)
     except Exception as e:
         return return_error(str(e), 400)
