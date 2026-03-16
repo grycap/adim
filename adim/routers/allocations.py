@@ -16,7 +16,7 @@
 import adim
 from fastapi import APIRouter, Query, Depends, Request, Response
 from adim.authorization import authenticate
-from adim.models.allocation import AllocationInfo, Allocation, AllocationId, AllocationInfoAdapter
+from adim.models.allocation import AllocationInfo, Allocation, AllocationId
 from adim.models.page import PageOfAllocations
 from adim.models.success import Success
 from adim.utils.node_registry import EOSCNodeRegistry
@@ -48,7 +48,7 @@ def list_allocations(
 
     res = []
     for elem in allocations:
-        allocation_info = AllocationInfoAdapter.validate_python(elem['data'])
+        allocation_info = AllocationInfo.model_validate(elem['data'])
         res.append(allocation_info)
 
     if all_nodes:
@@ -72,13 +72,13 @@ def _get_allocation_info(allocation_id: str, user_info: dict, request: Request) 
     if not allocation_data:
         return None
 
-    return AllocationInfoAdapter.validate_python(allocation_data)
+    return AllocationInfo.model_validate(allocation_data)
 
 
 # GET /allocation/{allocation_id}
 @router.get("/allocation/{allocation_id}",
             summary="Get information about an existing deployment",
-            responses=GET_RESPONSES(AllocationInfoAdapter))
+            responses=GET_RESPONSES(AllocationInfo))
 def get_allocation(request: Request,
                    allocation_id,
                    user_info=Depends(authenticate)):

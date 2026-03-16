@@ -24,7 +24,7 @@ from adim.models.deployment import DeploymentInfo, Deployment, CloudQuota, Prope
 from adim.models.tool import ToolInfo
 from adim.models.error import Error
 from adim.models.success import Success
-from adim.models.allocation import AllocationInfo, AllocationInfoAdapter
+from adim.models.allocation import AllocationInfo
 from typing import Tuple, Union
 from adim.utils.db import DataBase
 from adim.utils import ConnectionException, DBConnectionException
@@ -146,7 +146,7 @@ class DeploymentsManager:
             msg = Error(id="400", description="Invalid AllocationId.")
             return msg, 400
 
-        allocation = AllocationInfoAdapter.validate_python(allocation_data)
+        allocation = AllocationInfo.model_validate(allocation_data)
         return allocation, 200
 
     def _get_state(self, dep_info: DeploymentInfo, user_info: dict) -> DeploymentInfo:

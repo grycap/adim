@@ -460,19 +460,7 @@ paths:
           content:
             application/json:
               schema:
-                oneOf:
-                - $ref: '#/components/schemas/OpenStackEnvironment'
-                - $ref: '#/components/schemas/EGIComputeEnvironment'
-                - $ref: '#/components/schemas/KubernetesEnvironment'
-                - $ref: '#/components/schemas/EoscNodeEnvironment'
-                discriminator:
-                  propertyName: kind
-                  mapping:
-                    OpenStackEnvironment: '#/components/schemas/OpenStackEnvironment'
-                    EGIComputeEnvironment: '#/components/schemas/EGIComputeEnvironment'
-                    KubernetesEnvironment: '#/components/schemas/KubernetesEnvironment'
-                    EoscNodeEnvironment: '#/components/schemas/EoscNodeEnvironment'
-                title: Response 200 Get Allocation Allocation  Allocation Id  Get
+                $ref: '#/components/schemas/AllocationInfo'
         '400':
           description: Invalid parameters or configuration
           content:
@@ -552,19 +540,7 @@ paths:
           content:
             application/json:
               schema:
-                oneOf:
-                - $ref: '#/components/schemas/OpenStackEnvironment'
-                - $ref: '#/components/schemas/EGIComputeEnvironment'
-                - $ref: '#/components/schemas/KubernetesEnvironment'
-                - $ref: '#/components/schemas/EoscNodeEnvironment'
-                discriminator:
-                  propertyName: kind
-                  mapping:
-                    OpenStackEnvironment: '#/components/schemas/OpenStackEnvironment'
-                    EGIComputeEnvironment: '#/components/schemas/EGIComputeEnvironment'
-                    KubernetesEnvironment: '#/components/schemas/KubernetesEnvironment'
-                    EoscNodeEnvironment: '#/components/schemas/EoscNodeEnvironment'
-                title: Response 200 Update Allocation Allocation  Allocation Id  Put
+                $ref: '#/components/schemas/AllocationInfo'
         '400':
           description: Invalid parameters or configuration
           content:
@@ -893,8 +869,27 @@ components:
       type: object
       required:
       - id
-      - infoLink
       title: AllocationId
+    AllocationInfo:
+      allOf:
+      - $ref: '#/components/schemas/Allocation'
+      - properties:
+          id:
+            type: string
+            title: Id
+            description: Unique identifier for this allocation
+          self:
+            type: string
+            maxLength: 2083
+            minLength: 1
+            format: uri
+            title: Self
+            description: Endpoint that returns more details about this entity
+        type: object
+        required:
+        - id
+        - self
+      title: AllocationInfo
     CloudQuota:
       properties:
         cores:
@@ -1391,19 +1386,7 @@ components:
           description: Endpoint that returns the next page
         elements:
           items:
-            oneOf:
-            - $ref: '#/components/schemas/OpenStackEnvironment'
-            - $ref: '#/components/schemas/EGIComputeEnvironment'
-            - $ref: '#/components/schemas/KubernetesEnvironment'
-            - $ref: '#/components/schemas/EoscNodeEnvironment'
-            title: AllocationInfo
-            discriminator:
-              propertyName: kind
-              mapping:
-                EGIComputeEnvironment: '#/components/schemas/EGIComputeEnvironment'
-                EoscNodeEnvironment: '#/components/schemas/EoscNodeEnvironment'
-                KubernetesEnvironment: '#/components/schemas/KubernetesEnvironment'
-                OpenStackEnvironment: '#/components/schemas/OpenStackEnvironment'
+            $ref: '#/components/schemas/AllocationInfo'
           type: array
           title: Elements
       type: object
