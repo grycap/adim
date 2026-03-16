@@ -48,8 +48,8 @@ class DeploymentInfo(Deployment):
                     "unconfigured",
                     "deleting",
                     "deleted"]
-    details: str | None = Field(None, description="Additional information about the deployment status")
-    outputs: List[Property] | None = Field(None, description="Output values from the deployed template")
+    details: str = Field("", description="Additional information about the deployment status")
+    outputs: List[Property] = Field([], description="Output values from the deployed template")
     self_: HttpUrl = Field(..., alias="self", description="Endpoint that returns the details of this tool blueprint")
 
     model_config = {"populate_by_name": True}

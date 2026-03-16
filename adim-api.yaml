@@ -1012,19 +1012,17 @@ components:
           - deleted
           title: Status
         details:
-          anyOf:
-          - type: string
-          - type: 'null'
+          type: string
           title: Details
           description: Additional information about the deployment status
+          default: ''
         outputs:
-          anyOf:
-          - items:
-              $ref: '#/components/schemas/Property'
-            type: array
-          - type: 'null'
+          items:
+            $ref: '#/components/schemas/Property'
+          type: array
           title: Outputs
           description: Output values from the deployed template
+          default: []
         self:
           type: string
           maxLength: 2083
