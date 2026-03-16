@@ -14,7 +14,7 @@
 # limitations under the License.
 
 from typing import Any, Union, Literal, Annotated
-from pydantic import BaseModel, Field, HttpUrl, TypeAdapter, model_validator, model_serializer
+from pydantic import BaseModel, Field, HttpUrl, RootModel, model_validator, model_serializer
 from datetime import datetime
 
 from pydantic_core import CoreSchema
@@ -81,15 +81,25 @@ class KubernetesEnvironment(BaseModel):
     host: HttpUrl
 
 
-Allocation = Annotated[
-    Union[OpenStackEnvironment,
-          EGIComputeEnvironment,
-          KubernetesEnvironment,
-          EoscNodeEnvironment],
-    Field(discriminator='kind', title='Allocation')
+AllocationValue = Annotated[
+    Union[
+        OpenStackEnvironment,
+        EGIComputeEnvironment,
+        KubernetesEnvironment,
+        EoscNodeEnvironment,
+    ],
+    Field(discriminator='kind'),
 ]
 
-AllocationAdapter = TypeAdapter(Allocation)
+
+class Allocation(RootModel[AllocationValue]):
+    root: AllocationValue
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.root, name)
+
+    def model_dump(self, *args, **kwargs):
+        return self.root.model_dump(*args, **kwargs)
 
 
 class AllocationId(BaseModel):
@@ -154,11 +164,12 @@ class AllocationInfo(BaseModel):
         json_schema = handler(core_schema)
         resolved_schema = handler.resolve_ref_schema(json_schema)
         properties = resolved_schema.get("properties", {})
+        allocation_schema = properties.get("allocation", {"$ref": "#/components/schemas/Allocation"})
 
         return {
             "title": "AllocationInfo",
             "allOf": [
-                {"$ref": "#/components/schemas/Allocation"},
+                allocation_schema,
                 {
                     "type": "object",
                     "properties": {
