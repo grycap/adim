@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Literal
+from typing import List, Literal, Any
 from pydantic import BaseModel, Field, HttpUrl
 from adim.models.allocation import AllocationId
 from adim.models.tool import ToolId
@@ -27,7 +27,7 @@ class DeploymentId(BaseModel):
 
 class Property(BaseModel):
     name: str
-    value: str | int | float | bool
+    value: Any
 
 class Deployment(BaseModel):
     allocation: AllocationId
