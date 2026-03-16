@@ -25,7 +25,7 @@ def create_app():
         title="ADIM API",
         description=("Application Deployment with Infrastructure Manager "
                      "implements EOSC Application Deployment Management API"),
-        version="0.1.49",
+        version="1.0.49",
         docs_url="/",
         root_path=os.getenv("ROOT_PATH", ""),
         separate_input_output_schemas=False,
