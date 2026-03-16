@@ -60,7 +60,7 @@ def list_tools(
 
 
 # GET /tool/{tool_id}
-@router.get("/tool/{tool_id}",
+@router.get("/tool/{tool_id:path}",
             summary="Get information about a tool blueprint",
             responses=GET_RESPONSES(ToolInfo))
 def get_tool(tool_id: str,
