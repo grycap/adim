@@ -29,3 +29,9 @@ class VaultConnectionException(ConnectionException):
     def __init__(self, msg="Vault Connection failed"):
         ConnectionException.__init__(self, msg)
         self.message = msg
+
+
+class IMConnectionException(ConnectionException):
+    def __init__(self, msg="Infrastructure Manager connection failed"):
+        ConnectionException.__init__(self, msg)
+        self.message = msg

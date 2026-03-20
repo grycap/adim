@@ -6,7 +6,7 @@
     "@type": "SoftwareSourceCode",
     "identifier": "adim",
     "name": "ADIM",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "description": "Application Deployment with Infrastructure Manager implements EOSC Application Deployment Management API.",
     "license": "Apache license 2.0",
     "author": [

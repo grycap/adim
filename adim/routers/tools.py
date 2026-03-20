@@ -37,6 +37,9 @@ def list_tools(
     limit: int = Query(100, alias="limit", ge=1,
                        description="Maximum number of elements to return"),
     all_nodes: bool = Query(False, alias="allNodes"),
+    include_published: bool = Query(True, alias="includePublished"),
+    include_personal: bool = Query(False, alias="includePersonal"),
+    only_favorites: bool = Query(False, alias="onlyFavorites"),
     user_info=Depends(authenticate)
 ):
     try:
@@ -57,7 +60,7 @@ def list_tools(
 
 
 # GET /tool/{tool_id}
-@router.get("/tool/{tool_id}",
+@router.get("/tool/{tool_id:path}",
             summary="Get information about a tool blueprint",
             responses=GET_RESPONSES(ToolInfo))
 def get_tool(tool_id: str,

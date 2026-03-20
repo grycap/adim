@@ -48,11 +48,10 @@ def list_allocations(
 
     res = []
     for elem in allocations:
-        allocation = Allocation.model_validate(elem['data'])
         allocation_info = AllocationInfo(
             id=elem['id'],
-            self_=str(request.url_for("get_allocation", allocation_id=elem['id'])),
-            allocation=allocation
+            allocation=Allocation.model_validate(elem['data']),
+            self=str(request.url_for("get_allocation", allocation_id=elem['id']))
         )
         res.append(allocation_info)
 
@@ -68,19 +67,20 @@ def list_allocations(
                     status_code=200, media_type="application/json")
 
 
-def _get_allocation_info(allocation_id: str, user_info: dict, request: Request) -> AllocationInfo:
+def _get_allocation_info(allocation_id: str, user_info: dict, request: Request) -> AllocationInfo | None:
     try:
         allocation_data = adim.allocation_store.get_allocation(allocation_id, user_info)
     except ConnectionException as ex:
         return return_error(str(ex), 503)
 
-    allocation = Allocation.model_validate(allocation_data)
-    allocation_info = AllocationInfo(
+    if not allocation_data:
+        return None
+
+    return AllocationInfo(
         id=allocation_id,
-        self_=str(request.url_for("get_allocation", allocation_id=allocation_id)),
-        allocation=allocation
+        allocation=Allocation.model_validate(allocation_data),
+        self=str(request.url_for("get_allocation", allocation_id=allocation_id))
     )
-    return allocation_info
 
 
 # GET /allocation/{allocation_id}
@@ -108,7 +108,7 @@ def _check_allocation_in_use(allocation_id: str, user_info: dict) -> Response | 
         return return_error("Database connection failed", 503)
 
     for dep_info in deployments:
-        if dep_info.deployment.allocation.id == allocation_id:
+        if dep_info.allocation.id == allocation_id:
             return return_error("Allocation in use", 409)
 
     return None
@@ -117,7 +117,7 @@ def _check_allocation_in_use(allocation_id: str, user_info: dict) -> Response | 
 # PUT /allocation/{allocation_id}
 @router.put("/allocation/{allocation_id}",
             summary="Update existing environment of the user",
-            responses=GET_RESPONSES(AllocationInfo))
+            responses=GET_RESPONSES(AllocationInfo, True))
 def update_allocation(allocation_id,
                       allocation: Allocation,
                       request: Request,
@@ -147,7 +147,7 @@ def update_allocation(allocation_id,
 @router.delete("/allocation/{allocation_id}",
                summary="Remove existing environment of the user",
                response_model=Success,
-               responses=DELETE_RESPONSES(200))
+               responses=DELETE_RESPONSES(200, in_use=True))
 def delete_allocation(allocation_id,
                       user_info=Depends(authenticate)):
     """Remove existing environment of the user"""
