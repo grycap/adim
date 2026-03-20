@@ -99,10 +99,10 @@ def requests_get_mock(mocker):
 
 def _get_deployment_info(dep_id="dep_id"):
     return (f'{{"id": "{dep_id}", '
-            '"deployment": {"application": {"kind": "ApplicationId", "id": "appid", '
+            '"application": {"kind": "ApplicationId", "id": "appid", '
             '"version": "latest", "infoLink": "http://some.url"}, '
-            '"allocation": {"kind": "AllocationId", "id": "aid", "infoLink": "http://some.url"}}, '
-            f'"status": "pending", "self_": "http://some.url/deployment/{dep_id}"}}')
+            '"allocation": {"kind": "AllocationId", "id": "aid", "infoLink": "http://some.url"}, '
+            f'"status": "pending", "self": "http://some.url/deployment/{dep_id}"}}')
 
 
 def test_list_deployments(client, db_mock, check_oidc_mock, seed_deployments):
@@ -234,9 +234,9 @@ def test_get_deployment(client, db_mock, check_oidc_mock, im_mock, allocation_mo
 
     assert response.status_code == 200
     assert response.json()["status"] == "running"
-    assert response.json()["deployment"]["application"]["id"] == "appid"
+    assert response.json()["application"]["id"] == "appid"
     assert response.json()["details"] == "contmsg"
-    assert response.json()["outputs"] == {"output1": "value1"}
+    assert response.json()["outputs"] == [{"name": "output1", "value": "value1"}]
 
     db_mock.select.assert_called_with(
         "SELECT data FROM deployments WHERE id = %s and owner = %s",
@@ -260,7 +260,7 @@ def test_get_deployment_no_im(client, db_mock, check_oidc_mock, im_mock, allocat
 
     assert response.status_code == 200
     assert response.json()["status"] == "deleted"
-    assert response.json()["deployment"]["application"]["id"] == "appid"
+    assert response.json()["application"]["id"] == "appid"
 
     db_mock.select.assert_called_with(
         "SELECT data FROM deployments WHERE id = %s and owner = %s",
@@ -312,8 +312,8 @@ def test_deploy_workload(
 ):
     im_mock.create.return_value = True, "new_dep_id"
 
-    payload = ('{"application": {"kind": "ApplicationId", "id": "appid"}, '
-               '"allocation": {"kind": "AllocationId", "id": "aid"}}')
+    payload = ('{"application": {"kind": "ApplicationId", "id": "appid", "infoLink": "http://some.url/"}, '
+               '"allocation": {"kind": "AllocationId", "id": "aid", "infoLink": "http://some.url/"}}')
 
     response = client.post("/deployments",
                            headers={"Authorization": "Bearer token",
@@ -330,9 +330,9 @@ def test_deploy_workload_inputs(
 ):
     im_mock.create.return_value = True, "new_dep_id"
 
-    payload = ('{"application": {"kind": "ApplicationId", "id": "appid"},'
-               '"allocation": {"kind": "AllocationId", "id": "aid"},'
-               '"inputs": {"num_cpus": 4}}')
+    payload = ('{"application": {"kind": "ApplicationId", "id": "appid", "infoLink": "http://some.url/"}, '
+               '"allocation": {"kind": "AllocationId", "id": "aid", "infoLink": "http://some.url/"}, '
+               '"inputs": [{"name": "num_cpus", "value": 4}]}')
 
     response = client.post("/deployments",
                            headers={"Authorization": "Bearer token",
@@ -388,8 +388,8 @@ def test_deploy_workload_dry_run(
         "volume_storage": {"used": 300, "limit": 1000}
     }
 
-    payload = ('{"application": {"kind": "ApplicationId", "id": "appid"}, '
-               '"allocation": {"kind": "AllocationId", "id": "aid"}}')
+    payload = ('{"application": {"kind": "ApplicationId", "id": "appid", "infoLink": "http://some.url/"}, '
+               '"allocation": {"kind": "AllocationId", "id": "aid", "infoLink": "http://some.url/"}}')
 
     response = client.post("/deployments?dryRun=true",
                            headers={"Authorization": "Bearer token",

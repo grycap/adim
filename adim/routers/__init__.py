@@ -31,16 +31,19 @@ def STANDARD_RESPONSES(return_type: Any = BaseModel) -> Dict[int | str, Dict[str
     }
 
 
-def GET_RESPONSES(return_type: Any = BaseModel) -> Dict[int | str, Dict[str, Any]]:
+def GET_RESPONSES(return_type: Any = BaseModel, in_use: bool = False) -> Dict[int | str, Dict[str, Any]]:
     """Standard HTTP error responses for GET operations"""
     responses = STANDARD_RESPONSES(return_type)
     responses[404] = {"model": Error, "description": "Not found"}
+    if in_use:
+        responses[409] = {"model": Error, "description": "In use"}
     return responses
 
 
-def DELETE_RESPONSES(status_code: int = 204, msg: str = "Deleted") -> Dict[int | str, Dict[str, Any]]:
+def DELETE_RESPONSES(status_code: int = 204, msg: str = "Deleted",
+                     in_use: bool = False) -> Dict[int | str, Dict[str, Any]]:
     """Standard HTTP error responses for DELETE operations"""
-    responses = GET_RESPONSES(BaseModel)
+    responses = GET_RESPONSES(BaseModel, in_use)
     del responses[200]
     responses[status_code] = {"description": msg}
     return responses

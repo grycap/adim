@@ -19,7 +19,7 @@ from adim.authorization import authenticate
 from adim.models.deployment import DeploymentInfo, DeploymentId, Deployment, CloudQuota
 from adim.models.page import PageOfDeployments
 from adim.utils.node_registry import EOSCNodeRegistry
-from adim.utils import DBConnectionException
+from adim.utils import ConnectionException
 from adim.models.success import Success
 
 from . import return_error, STANDARD_RESPONSES, GET_RESPONSES, DELETE_RESPONSES, DEP_POST_RESPONSES
@@ -32,8 +32,8 @@ def _list_deployments(user_info: dict, request: Request, from_: int = 0,
                       limit: int = 100, all_nodes: bool = False) -> Response:
     try:
         count, deployments = adim.deployments_manager.list_deployments(user_info, from_, limit)
-    except DBConnectionException:
-        return return_error("Database connection failed", 503)
+    except ConnectionException as ex:
+        return return_error(f"Connection failed: {str(ex)}", 503)
 
     if all_nodes:
         remote_count, remote_applications = EOSCNodeRegistry.list_deployments(from_, limit, count, user_info)
@@ -115,14 +115,14 @@ def deploy_workload(deployment: Deployment,
         adim.logger.warning(f"Allocation {deployment.allocation.id} not found")
         return allocation_info, status
 
-    if allocation_info.allocation.root.kind == "EoscNodeEnvironment":
+    if allocation_info.kind == "EoscNodeEnvironment":
         adim.logger.error("EOSCNodeEnvironment support not implemented yet")
         raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
 
     try:
         deployment_info = adim.deployments_manager.update_deployment(deployment, application, allocation_info,
                                                                      user_info, request, dry_run)
-    except DBConnectionException as dbe:
+    except ConnectionException as dbe:
         return return_error(str(dbe), 503)
     except Exception as e:
         return return_error(str(e), 400)

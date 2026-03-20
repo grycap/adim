@@ -37,6 +37,9 @@ def list_applications(
     limit: int = Query(100, alias="limit", ge=1,
                        description="Maximum number of elements to return"),
     all_nodes: bool = Query(False, alias="allNodes"),
+    include_published: bool = Query(True, alias="includePublished"),
+    include_personal: bool = Query(False, alias="includePersonal"),
+    only_favorites: bool = Query(False, alias="onlyFavorites"),
     user_info=Depends(authenticate)
 ):
     try:
@@ -57,7 +60,7 @@ def list_applications(
 
 
 # GET /application/{application_id}
-@router.get("/application/{application_id}",
+@router.get("/application/{application_id:path}",
             summary="Get information about an application blueprint",
             responses=GET_RESPONSES(ApplicationInfo))
 def get_application(application_id: str,

@@ -20,7 +20,7 @@ from urllib.parse import urlparse
 class Repository():
 
     def __init__(self, repository_url):
-        self.cache_session = requests_cache.CachedSession('oai_cache', cache_control=True, expire_after=3600)
+        self.cache_session = requests_cache.CachedSession('git_cache', cache_control=True, expire_after=3600)
         self.repository_url = repository_url[:-1] if repository_url.endswith("/") else repository_url
 
     def list(self):
@@ -32,25 +32,26 @@ class Repository():
     @staticmethod
     def create(repository_url):
         url = urlparse(repository_url)
-        if url.netloc.endswith("github.com") or url.netloc.endswith("githubusercontent.com"):
+        if url.netloc in ["github.com", "raw.githubusercontent.com"]:
             return GitHubRepository(repository_url)
         else:
             return Repository(repository_url)
 
 
 class GitHubRepository(Repository):
+    """Class to interact with GitHub repositories."""
 
     API_URL = "https://api.github.com"
     RAW_URL = "https://raw.githubusercontent.com"
 
     def _getRepoDetails(self):
         url = urlparse(self.repository_url)
-        if url.netloc.endswith("githubusercontent.com"):
+        if url.netloc == "raw.githubusercontent.com":
             owner = url.path.split("/")[1]
             repo = url.path.split("/")[2]
-            branch = url.path.split("/")[3]
-            path = "/".join(url.path.split("/")[4:])
-        elif url.netloc.endswith("github.com"):
+            branch = url.path.split("/")[5]
+            path = "/".join(url.path.split("/")[6:])
+        elif url.netloc == "github.com":
             owner = url.path.split("/")[1]
             repo = url.path.split("/")[2]
             branch = url.path.split("/")[4]

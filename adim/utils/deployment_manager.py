@@ -17,17 +17,17 @@ import adim
 import os
 import time
 import yaml
-from typing import Dict, Any, List
+from typing import Dict, List
 from fastapi import Request
 from imclient import IMClient
-from adim.models.deployment import DeploymentInfo, Deployment, CloudQuota
+from adim.models.deployment import DeploymentInfo, Deployment, CloudQuota, Property
 from adim.models.apps import ApplicationInfo
 from adim.models.error import Error
 from adim.models.success import Success
-from adim.models.allocation import Allocation, AllocationInfo
+from adim.models.allocation import AllocationInfo, Allocation
 from typing import Tuple, Union
 from adim.utils.db import DataBase
-from adim.utils import ConnectionException, DBConnectionException
+from adim.utils import ConnectionException, DBConnectionException, IMConnectionException
 
 
 class DeploymentsManager:
@@ -59,11 +59,15 @@ class DeploymentsManager:
         return False
 
     @staticmethod
-    def get_im_auth_header(token: str, allocation_info: AllocationInfo | None = None) -> List[Dict[str, str]]:
+    def get_im_auth_header(
+        token: str,
+        allocation_info: AllocationInfo | None = None,
+        allocation_id: str | None = None,
+    ) -> List[Dict[str, str]]:
         auth_data = [{"type": "InfrastructureManager", "token": token}]
         if allocation_info:
-            allocation = allocation_info.allocation.root
-            cloud_auth_data = {"id": allocation_info.id}
+            allocation = allocation_info
+            cloud_auth_data = {"id": allocation_id} if allocation_id else {}
             if allocation.kind in ["OpenStackEnvironment", "EGIComputeEnvironment"]:
                 cloud_auth_data["type"] = "OpenStack"
                 cloud_auth_data["auth_version"] = "3.x_password"
@@ -142,29 +146,43 @@ class DeploymentsManager:
             msg = Error(id="400", description="Invalid AllocationId.")
             return msg, 400
 
-        allocation = Allocation.model_validate(allocation_data)
-        return AllocationInfo(id=deployment.allocation.id, allocation=allocation), 200
+        # Build AllocationInfo with required fields
+        allocation_info = AllocationInfo(
+            id=deployment.allocation.id,
+            allocation=Allocation.model_validate(allocation_data),
+            self=f"http://allocation/{deployment.allocation.id}"
+        )
+        return allocation_info, 200
 
     def _get_state(self, dep_info: DeploymentInfo, user_info: dict) -> DeploymentInfo:
         try:
             # Get the allocation info from the Allocation
-            allocation_info, status = self.get_allocation(dep_info.deployment, user_info)
+            allocation_info, status = self.get_allocation(dep_info, user_info)
             if status != 200:
                 return allocation_info, status
 
-            if allocation_info.allocation.root.kind == "EoscNodeEnvironment":
+            if allocation_info.kind == "EoscNodeEnvironment":
                 raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
 
-            auth_data = self.get_im_auth_header(user_info['token'], allocation_info)
+            auth_data = self.get_im_auth_header(user_info['token'], allocation_info, dep_info.allocation.id)
             client = IMClient.init_client(self.im_url, auth_data)
-            success, state_info = client.get_infra_property(dep_info.id, "state")
+            try:
+                success, state_info = client.get_infra_property(dep_info.id, "state")
+            except Exception as ex:
+                adim.logger.error(f"Error connecting to infrastructure: {str(ex)}")
+                raise IMConnectionException("Infrastructure Manager connection failed: %s" % str(ex))
+
             if success:
                 dep_info.status = state_info.get('state')
             else:
                 dep_info.status = "unknown"
                 adim.logger.error(f"Could not retrieve deployment status: {state_info}")
                 # Check if the infrastructure still exists
-                success, infras = client.list_infras()
+                try:
+                    success, infras = client.list_infras()
+                except Exception as ex:
+                    adim.logger.error(f"Error connecting to infrastructure: {str(ex)}")
+                    raise IMConnectionException("Infrastructure Manager connection failed: %s" % str(ex))
                 if success:
                     if dep_info.id not in infras:
                         adim.logger.info(f"Deployment {dep_info.id} not found in IM."
@@ -173,13 +191,21 @@ class DeploymentsManager:
                 else:
                     adim.logger.error(f"Could not list infrastructures: {infras}")
 
-            success, outputs = client.get_infra_property(dep_info.id, "outputs")
+            try:
+                success, outputs = client.get_infra_property(dep_info.id, "outputs")
+            except Exception as ex:
+                adim.logger.error(f"Error connecting to infrastructure: {str(ex)}")
+                raise IMConnectionException("Infrastructure Manager connection failed: %s" % str(ex))
             if success:
-                dep_info.outputs = outputs
+                dep_info.outputs = [Property(name=k, value=v) for k, v in outputs.items()]
             else:
                 adim.logger.error(f"Could not get deployment outputs: {outputs}")
 
-            success, cont_msg = client.get_infra_property(dep_info.id, "contmsg")
+            try:
+                success, cont_msg = client.get_infra_property(dep_info.id, "contmsg")
+            except Exception as ex:
+                adim.logger.error(f"Error connecting to infrastructure: {str(ex)}")
+                raise IMConnectionException("Infrastructure Manager connection failed: %s" % str(ex))
             if success:
                 dep_info.details = cont_msg
             else:
@@ -238,16 +264,20 @@ class DeploymentsManager:
             return dep_info, status_code
 
         # Get the allocation info from the Allocation
-        allocation_info, status = self.get_allocation(dep_info.deployment, user_info)
+        allocation_info, status = self.get_allocation(dep_info, user_info)
         if status != 200:
             return allocation_info, status
 
-        if allocation_info.allocation.root.kind == "EoscNodeEnvironment":
+        if allocation_info.kind == "EoscNodeEnvironment":
             raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
         else:
-            auth_data = self.get_im_auth_header(user_info['token'], allocation_info)
+            auth_data = self.get_im_auth_header(user_info['token'], allocation_info, dep_info.allocation.id)
             client = IMClient.init_client(self.im_url, auth_data)
-            success, destroy_msg = client.destroy(deployment_id)
+            try:
+                success, destroy_msg = client.destroy(deployment_id)
+            except Exception as ex:
+                adim.logger.error(f"Error connecting to infrastructure: {str(ex)}")
+                raise IMConnectionException("Infrastructure Manager connection failed: %s" % str(ex))
 
             if not success:
                 msg = Error(id="400", description=destroy_msg)
@@ -267,15 +297,16 @@ class DeploymentsManager:
         return msg, 202
 
     @staticmethod
-    def _get_template(blueprint: str, inputs: Dict[str, Any]) -> str:
+    def _get_template(blueprint: str, inputs: list | None) -> str:
         if not inputs:
             return blueprint
-        adim.logger.debug(f"Input values: {inputs}")
+        inputs_dict = {p.name: p.value for p in inputs}
+        adim.logger.debug(f"Input values: {inputs_dict}")
         template = yaml.safe_load(blueprint)
         temp_inputs = template.get("topology_template", {}).get("inputs", {})
         for key in list(temp_inputs.keys()):
-            if key in inputs:
-                temp_inputs[key]["default"] = inputs[key]
+            if key in inputs_dict:
+                temp_inputs[key]["default"] = inputs_dict[key]
         return yaml.safe_dump(template)
 
     @staticmethod
@@ -317,7 +348,7 @@ class DeploymentsManager:
                           allocation_info: AllocationInfo, user_info: dict,
                           request: Request, dry_run: bool = False) -> DeploymentInfo | CloudQuota:
 
-        auth_data = self.get_im_auth_header(user_info['token'], allocation_info)
+        auth_data = self.get_im_auth_header(user_info['token'], allocation_info, deployment.allocation.id)
 
         # Create the infrastructure in the IM
         client = IMClient.init_client(self.im_url, auth_data)
@@ -327,7 +358,7 @@ class DeploymentsManager:
             raise Exception(deployment_id)
 
         if dry_run:
-            success, quotas = client.get_cloud_quotas(allocation_info.id)
+            success, quotas = client.get_cloud_quotas(deployment.allocation.id)
             if not success:
                 adim.logger.error("Could not get cloud quotas: %s", quotas)
                 quotas = {}
@@ -335,7 +366,9 @@ class DeploymentsManager:
         else:
             if self.db.connect():
                 deployment_info = DeploymentInfo(id=deployment_id,
-                                                 deployment=deployment,
+                                                 allocation=deployment.allocation,
+                                                 application=deployment.application,
+                                                 inputs=deployment.inputs,
                                                  status="pending",
                                                  self_=str(request.url_for("get_deployment",
                                                                            deployment_id=deployment_id)))

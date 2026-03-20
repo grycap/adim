@@ -22,7 +22,7 @@ class ApplicationId(BaseModel):
     kind: Literal['ApplicationId'] = 'ApplicationId'
     id: str = Field(..., description="Unique identifier for this application")
     version: str = 'latest'
-    infoLink: HttpUrl | None = Field(None, description="URL that returns the full details of this application")
+    infoLink: HttpUrl = Field(..., description="URL that returns the full details of this tool blueprint")
 
 
 class ApplicationInfo(BaseModel):

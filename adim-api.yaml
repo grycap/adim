@@ -3,7 +3,7 @@ info:
   title: ADIM API
   description: Application Deployment with Infrastructure Manager implements EOSC
     Application Deployment Management API
-  version: 0.1.49
+  version: 1.0.49
 paths:
   /deployments:
     get:
@@ -376,7 +376,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Allocation-Input'
+              $ref: '#/components/schemas/Allocation'
       responses:
         '201':
           description: Accepted
@@ -509,7 +509,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Allocation-Input'
+              $ref: '#/components/schemas/Allocation'
       responses:
         '200':
           description: Success
@@ -549,6 +549,12 @@ paths:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: In use
           content:
             application/json:
               schema:
@@ -616,6 +622,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '409':
+          description: In use
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '422':
           description: Validation Error
           content:
@@ -658,6 +670,27 @@ paths:
           type: boolean
           default: false
           title: Allnodes
+      - name: includePublished
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: true
+          title: Includepublished
+      - name: includePersonal
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Includepersonal
+      - name: onlyFavorites
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Onlyfavorites
       responses:
         '200':
           description: Success
@@ -787,24 +820,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Success'
+                type: string
+                title: Response 200 Version Version Get
 components:
   schemas:
-    Allocation-Input:
-      oneOf:
-      - $ref: '#/components/schemas/OpenStackEnvironment'
-      - $ref: '#/components/schemas/EGIComputeEnvironment'
-      - $ref: '#/components/schemas/KubernetesEnvironment'
-      - $ref: '#/components/schemas/EoscNodeEnvironment'
-      title: Allocation
-      discriminator:
-        propertyName: kind
-        mapping:
-          EGIComputeEnvironment: '#/components/schemas/EGIComputeEnvironment'
-          EoscNodeEnvironment: '#/components/schemas/EoscNodeEnvironment'
-          KubernetesEnvironment: '#/components/schemas/KubernetesEnvironment'
-          OpenStackEnvironment: '#/components/schemas/OpenStackEnvironment'
-    Allocation-Output:
+    Allocation:
       oneOf:
       - $ref: '#/components/schemas/OpenStackEnvironment'
       - $ref: '#/components/schemas/EGIComputeEnvironment'
@@ -822,6 +842,8 @@ components:
       properties:
         kind:
           type: string
+          enum:
+          - AllocationId
           const: AllocationId
           title: Kind
           default: AllocationId
@@ -830,44 +852,43 @@ components:
           title: Id
           description: Unique identifier for this allocation
         infoLink:
-          anyOf:
-          - type: string
-            maxLength: 2083
-            minLength: 1
-            format: uri
-          - type: 'null'
+          type: string
+          maxLength: 2083
+          minLength: 1
+          format: uri
           title: Infolink
           description: Endpoint that returns more details about this entity
       type: object
       required:
       - id
+      - infoLink
       title: AllocationId
     AllocationInfo:
-      properties:
-        id:
-          type: string
-          title: Id
-          description: Unique identifier for this allocation
-        self:
-          anyOf:
-          - type: string
+      allOf:
+      - $ref: '#/components/schemas/Allocation'
+      - properties:
+          id:
+            type: string
+            title: Id
+            description: Unique identifier for this allocation
+          self:
+            type: string
             maxLength: 2083
             minLength: 1
             format: uri
-          - type: 'null'
-          title: Self
-          description: Endpoint that returns the details of this allocation
-        allocation:
-          $ref: '#/components/schemas/Allocation-Output'
-      type: object
-      required:
-      - id
-      - allocation
+            title: Self
+            description: Endpoint that returns more details about this entity
+        type: object
+        required:
+        - id
+        - self
       title: AllocationInfo
     ApplicationId:
       properties:
         kind:
           type: string
+          enum:
+          - ApplicationId
           const: ApplicationId
           title: Kind
           default: ApplicationId
@@ -880,22 +901,23 @@ components:
           title: Version
           default: latest
         infoLink:
-          anyOf:
-          - type: string
-            maxLength: 2083
-            minLength: 1
-            format: uri
-          - type: 'null'
+          type: string
+          maxLength: 2083
+          minLength: 1
+          format: uri
           title: Infolink
-          description: URL that returns the full details of this application
+          description: URL that returns the full details of this tool blueprint
       type: object
       required:
       - id
+      - infoLink
       title: ApplicationId
     ApplicationInfo:
       properties:
         kind:
           type: string
+          enum:
+          - ApplicationInfo
           const: ApplicationInfo
           title: Kind
           default: ApplicationInfo
@@ -1003,10 +1025,12 @@ components:
     CloudQuota:
       properties:
         cores:
-          $ref: '#/components/schemas/Quota'
+          allOf:
+          - $ref: '#/components/schemas/Quota'
           description: CPU cores quota
         ram:
-          $ref: '#/components/schemas/Quota'
+          allOf:
+          - $ref: '#/components/schemas/Quota'
           description: Memory quota in megabytes
         gpus:
           anyOf:
@@ -1014,7 +1038,8 @@ components:
           - type: 'null'
           description: GPU units quota
         instances:
-          $ref: '#/components/schemas/Quota'
+          allOf:
+          - $ref: '#/components/schemas/Quota'
           description: Number of instances quota
         floating_ips:
           anyOf:
@@ -1050,11 +1075,10 @@ components:
           $ref: '#/components/schemas/ApplicationId'
         inputs:
           anyOf:
-          - additionalProperties: true
-            type: object
+          - items:
+              $ref: '#/components/schemas/Property'
+            type: array
           - type: 'null'
-          additionalProperties: {}
-          type: object
           title: Inputs
           description: Input values for the template
       type: object
@@ -1070,26 +1094,44 @@ components:
           description: Unique identifier for this deployment
         kind:
           type: string
+          enum:
+          - DeploymentId
           const: DeploymentId
           title: Kind
           default: DeploymentId
         infoLink:
-          anyOf:
-          - type: string
-            maxLength: 2083
-            minLength: 1
-            format: uri
-          - type: 'null'
+          type: string
+          maxLength: 2083
+          minLength: 1
+          format: uri
           title: Infolink
           description: Endpoint that returns more details about this entity
       type: object
       required:
       - id
+      - infoLink
       title: DeploymentId
     DeploymentInfo:
       properties:
-        deployment:
-          $ref: '#/components/schemas/Deployment'
+        allocation:
+          $ref: '#/components/schemas/AllocationId'
+        application:
+          $ref: '#/components/schemas/ApplicationId'
+        inputs:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/Property'
+            type: array
+          - type: 'null'
+          title: Inputs
+          description: Input values for the template
+        kind:
+          type: string
+          enum:
+          - DeploymentInfo
+          const: DeploymentInfo
+          title: Kind
+          default: DeploymentInfo
         id:
           type: string
           title: Id
@@ -1109,44 +1151,45 @@ components:
           - deleted
           title: Status
         details:
-          anyOf:
-          - type: string
-          - type: 'null'
+          type: string
           title: Details
           description: Additional information about the deployment status
+          default: ''
         outputs:
-          anyOf:
-          - additionalProperties: true
-            type: object
-          - type: 'null'
-          additionalProperties: {}
-          type: object
+          items:
+            $ref: '#/components/schemas/Property'
+          type: array
           title: Outputs
-          description: Deployed Template output values
+          description: Output values from the deployed template
+          default: []
         self:
-          anyOf:
-          - type: string
-            maxLength: 2083
-            minLength: 1
-            format: uri
-          - type: 'null'
+          type: string
+          maxLength: 2083
+          minLength: 1
+          format: uri
           title: Self
-          description: Endpoint that returns the details of this deployment
+          description: Endpoint that returns the details of this tool blueprint
       type: object
       required:
-      - deployment
+      - allocation
+      - application
       - id
       - status
+      - self
       title: DeploymentInfo
     EGIComputeEnvironment:
       properties:
         kind:
           type: string
+          enum:
+          - EGIComputeEnvironment
           const: EGIComputeEnvironment
           title: Kind
           default: EGIComputeEnvironment
         userName:
           type: string
+          enum:
+          - egi.eu
           const: egi.eu
           title: Username
           default: egi.eu
@@ -1161,6 +1204,8 @@ components:
           title: Domainid
         tenant:
           type: string
+          enum:
+          - openid
           const: openid
           title: Tenant
           default: openid
@@ -1182,6 +1227,8 @@ components:
           title: Host
         authVersion:
           type: string
+          enum:
+          - 3.x-oidc
           const: 3.x-oidc
           title: Authversion
           default: 3.x-oidc
@@ -1200,6 +1247,8 @@ components:
       properties:
         kind:
           type: string
+          enum:
+          - EoscNodeEnvironment
           const: EoscNodeEnvironment
           title: Kind
           default: EoscNodeEnvironment
@@ -1234,6 +1283,16 @@ components:
           - type: 'null'
           title: Nodename
           description: Name of the EOSC node where this environment was allocated
+        nodeUI:
+          anyOf:
+          - type: string
+            maxLength: 2083
+            minLength: 1
+            format: uri
+          - type: 'null'
+          title: Nodeui
+          description: URL to the interactive UI of the EOSC node where this environment
+            was allocated
         nodeId:
           type: string
           title: Nodeid
@@ -1342,8 +1401,7 @@ components:
           default: Error
         details:
           anyOf:
-          - additionalProperties: true
-            type: object
+          - type: object
           - type: 'null'
           title: Details
           description: Additional details about the error
@@ -1362,6 +1420,8 @@ components:
       properties:
         kind:
           type: string
+          enum:
+          - KubernetesEnvironment
           const: KubernetesEnvironment
           title: Kind
           default: KubernetesEnvironment
@@ -1380,6 +1440,8 @@ components:
       properties:
         kind:
           type: string
+          enum:
+          - OpenStackEnvironment
           const: OpenStackEnvironment
           title: Kind
           default: OpenStackEnvironment
@@ -1415,6 +1477,8 @@ components:
           title: Host
         authVersion:
           type: string
+          enum:
+          - 3.x-oidc
           const: 3.x-oidc
           title: Authversion
           default: 3.x-oidc
@@ -1593,6 +1657,18 @@ components:
       - elements
       title: PageOfDeployments
       description: Page of Deployments
+    Property:
+      properties:
+        name:
+          type: string
+          title: Name
+        value:
+          title: Value
+      type: object
+      required:
+      - name
+      - value
+      title: Property
     Quota:
       properties:
         used:
@@ -1642,6 +1718,11 @@ components:
         type:
           type: string
           title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
       type: object
       required:
       - loc

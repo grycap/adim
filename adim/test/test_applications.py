@@ -88,6 +88,11 @@ def seed_apps(backend_type, repo_mock, requests_get_mock, monkeypatch):
     return _seed
 
 
+@pytest.fixture
+def seed_tools(seed_apps):
+    return seed_apps
+
+
 @pytest.mark.parametrize("backend_type", ["git", "rc"], indirect=True)
 def test_list_applications(client, check_oidc_mock, backend_type, repo_mock, requests_get_mock,
                     headers, seed_apps):
@@ -251,3 +256,38 @@ def test_get_application(client, check_oidc_mock, backend_type, repo_mock, reque
     assert response.json()["name"] == "NAME"
     assert response.json()["id"] == application_id
     assert response.json()["blueprintType"] == "tosca"
+
+
+@pytest.mark.parametrize("backend_type", ["git", "rc"], indirect=True)
+def test_get_application_with_encoded_slash_id(client, check_oidc_mock, backend_type,
+                                               repo_mock, requests_get_mock, headers, seed_tools):
+    blueprint = "description: DESC\nmetadata:\n  template_name: NAME"
+    application_id_encoded = "templates%2Fhtcondor_cluster.yml"
+    application_id_decoded = "templates/htcondor_cluster.yml"
+
+    if backend_type == "git":
+        resp = MagicMock(status_code=200,
+                         json=MagicMock(return_value={
+                             "sha": "version",
+                             "content": base64.b64encode(
+                                 blueprint.encode()
+                             ).decode()
+                         }))
+        seed_tools([resp])
+
+    else:  # rc
+        resp = MagicMock(status_code=200)
+        resp.text = blueprint
+        resp.json.return_value = {
+            "id": application_id_decoded,
+            "version": "version",
+            "url": "http://catalog.url/tool1"
+        }
+        resp_get = MagicMock(status_code=200)
+        resp_get.text = blueprint
+        seed_tools([resp, resp_get])
+
+    response = client.get(f"/application/{application_id_encoded}", headers=headers)
+    assert response.status_code == 200
+    assert response.json()["id"] == application_id_decoded
+    assert response.json()["self"].endswith(f"/application/{application_id_encoded}?version=version")

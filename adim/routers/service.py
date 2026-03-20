@@ -14,7 +14,7 @@
 # limitations under the License.
 
 from fastapi import APIRouter
-from adim.models.success import Success
+from adim.models import Version
 from adim import __version__
 
 
@@ -24,7 +24,7 @@ router = APIRouter()
 # GET /version
 @router.get("/version",
             summary="Return service version information",
-            responses={200: {"model": Success,
+            responses={200: {"model": Version,
                              "description": "Success"}})
 def version():
-    return Success(message=__version__)
+    return Version(__version__)

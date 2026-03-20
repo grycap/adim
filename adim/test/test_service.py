@@ -36,4 +36,4 @@ def test_version(client, headers):
     """
     response = client.get('/version', headers=headers)
     assert response.status_code == 200
-    assert response.json() == {'message': __version__}
+    assert response.text == f'"{__version__}"'

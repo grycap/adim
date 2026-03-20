@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Literal, Dict, Any
+from typing import List, Literal, Any
 from pydantic import BaseModel, Field, HttpUrl
 from adim.models.allocation import AllocationId
 from adim.models.apps import ApplicationId
@@ -22,18 +22,22 @@ from adim.models.apps import ApplicationId
 class DeploymentId(BaseModel):
     id: str = Field(..., description="Unique identifier for this deployment")
     kind: Literal["DeploymentId"] = "DeploymentId"
-    infoLink: HttpUrl | None = Field(None, description="Endpoint that returns more details about this entity")
+    infoLink: HttpUrl = Field(..., description="Endpoint that returns more details about this entity")
+
+
+class Property(BaseModel):
+    name: str
+    value: Any
 
 
 class Deployment(BaseModel):
     allocation: AllocationId
     application: ApplicationId
-    inputs: Dict[str, Any] | None = Field(None, description="Input values for the template",
-                                          json_schema_extra={"type": "object", "additionalProperties": {}})
+    inputs: List[Property] | None = Field(None, description="Input values for the template")
 
 
-class DeploymentInfo(BaseModel):
-    deployment: Deployment
+class DeploymentInfo(Deployment):
+    kind: Literal["DeploymentInfo"] = "DeploymentInfo"
     id: str = Field(..., description="Unique identifier for this deployment")
     status: Literal["unknown",
                     "pending",
@@ -45,11 +49,9 @@ class DeploymentInfo(BaseModel):
                     "unconfigured",
                     "deleting",
                     "deleted"]
-    details: str | None = Field(None, description="Additional information about the deployment status")
-    outputs: Dict[str, Any] | None = Field(None, description="Deployed Template output values",
-                                           json_schema_extra={"type": "object", "additionalProperties": {}})
-    self_: HttpUrl | None = Field(None, alias="self",
-                                  description="Endpoint that returns the details of this deployment")
+    details: str = Field("", description="Additional information about the deployment status")
+    outputs: List[Property] = Field([], description="Output values from the deployed template")
+    self_: HttpUrl = Field(..., alias="self", description="Endpoint that returns the details of this tool blueprint")
 
     model_config = {"populate_by_name": True}
 
