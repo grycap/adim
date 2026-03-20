@@ -64,9 +64,9 @@ def list_applications(
             summary="Get information about an application blueprint",
             responses=GET_RESPONSES(ApplicationInfo))
 def get_application(application_id: str,
-             request: Request,
-             version: str = Query("latest", description="If missing, the latest version will be returned"),
-             user_info=Depends(authenticate)):
+                    request: Request,
+                    version: str = Query("latest", description="If missing, the latest version will be returned"),
+                    user_info=Depends(authenticate)):
     """Get information about an existing application blueprint"""
     try:
         adim.logger.debug(f"Getting application {application_id} from user '{user_info.get('sub')}'")

@@ -104,7 +104,8 @@ def deploy_workload(deployment: Deployment,
     """Deploy workload to an EOSC environment or an infrastructure for which the user has credentials"""
     adim.logger.debug(f"Creating deployment from user '{user_info.get('sub')}'")
     # Get the Application from the ID
-    application, status_code = adim.application_store.get_application(deployment.application.id, deployment.application.version, request)
+    application, status_code = adim.application_store.get_application(deployment.application.id,
+                                                                      deployment.application.version, request)
     if status_code != 200:
         adim.logger.warning(f"Application {deployment.application.id} not found")
         return Response(content=application, status_code=400, media_type="application/json")

@@ -343,7 +343,8 @@ def test_delete_allocation(check_oidc_mock, list_deployments_mock, client, heade
         [
             DeploymentInfo(
                 allocation=AllocationId(kind="AllocationId", id="id1", infoLink="http://some.url/"),
-                application=ApplicationId(kind="ApplicationId", id="appid", version="latest", infoLink="http://some.url/"),
+                application=ApplicationId(kind="ApplicationId", id="appid", version="latest",
+                                          infoLink="http://some.url/"),
                 id="dep_id",
                 status="pending",
                 self_="http://some.url/"

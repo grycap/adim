@@ -90,7 +90,7 @@ class ApplicationStoreGit(ApplicationStore):
             version = response.json().get("sha")
 
         app = self.get_application_info({"path": repo_application_id, "version": version,
-                                           "template": template}, request)
+                                         "template": template}, request)
         return app, 200
 
     def _list(self, request: Request, from_: int, limit: int, user_info: dict) -> List[ApplicationInfo]:
@@ -98,6 +98,6 @@ class ApplicationStoreGit(ApplicationStore):
         res = []
         for _, elem in repo.list().items():
             app = self.get_application_info({"path": elem['path'], "version": elem['sha'],
-                                               "template": repo.get(elem['path']).text}, request)
+                                             "template": repo.get(elem['path']).text}, request)
             res.append(app)
         return res

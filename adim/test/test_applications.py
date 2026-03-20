@@ -95,7 +95,7 @@ def seed_tools(seed_apps):
 
 @pytest.mark.parametrize("backend_type", ["git", "rc"], indirect=True)
 def test_list_applications(client, check_oidc_mock, backend_type, repo_mock, requests_get_mock,
-                    headers, seed_apps):
+                           headers, seed_apps):
     blueprint = "description: DESC\nmetadata:\n  template_name: NAME"
 
     if backend_type == "git":
