@@ -21,7 +21,7 @@ from typing import Dict, List
 from fastapi import Request
 from imclient import IMClient
 from adim.models.deployment import DeploymentInfo, Deployment, CloudQuota, Property
-from adim.models.tool import ToolInfo
+from adim.models.apps import ApplicationInfo
 from adim.models.error import Error
 from adim.models.success import Success
 from adim.models.allocation import AllocationInfo, Allocation
@@ -344,7 +344,7 @@ class DeploymentsManager:
         # Validate the CloudQuota model
         return CloudQuota.model_validate(quotas)
 
-    def update_deployment(self, deployment: Deployment, tool: ToolInfo,
+    def update_deployment(self, deployment: Deployment, application: ApplicationInfo,
                           allocation_info: AllocationInfo, user_info: dict,
                           request: Request, dry_run: bool = False) -> DeploymentInfo | CloudQuota:
 
@@ -352,12 +352,8 @@ class DeploymentsManager:
 
         # Create the infrastructure in the IM
         client = IMClient.init_client(self.im_url, auth_data)
-        template = self._get_template(tool.blueprint, deployment.inputs)
-        try:
-            success, deployment_id = client.create(template, "yaml", True, dry_run)
-        except Exception as ex:
-            adim.logger.error(f"Error creating infrastructure: {str(ex)}")
-            raise IMConnectionException("Infrastructure Manager connection failed: %s" % str(ex))
+        template = self._get_template(application.blueprint, deployment.inputs)
+        success, deployment_id = client.create(template, "yaml", True, dry_run)
         if not success:
             raise Exception(deployment_id)
 
@@ -371,7 +367,7 @@ class DeploymentsManager:
             if self.db.connect():
                 deployment_info = DeploymentInfo(id=deployment_id,
                                                  allocation=deployment.allocation,
-                                                 tool=deployment.tool,
+                                                 application=deployment.application,
                                                  inputs=deployment.inputs,
                                                  status="pending",
                                                  self_=str(request.url_for("get_deployment",

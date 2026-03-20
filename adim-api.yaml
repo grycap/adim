@@ -634,12 +634,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /tools:
+  /applications:
     get:
       tags:
-      - Tools
-      summary: List all tool blueprints
-      operationId: list_tools_tools_get
+      - Applications
+      summary: List all application blueprints
+      operationId: list_applications_applications_get
       security:
       - OIDC: []
       parameters:
@@ -697,7 +697,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PageOfTools'
+                $ref: '#/components/schemas/PageOfApplications'
         '400':
           description: Invalid parameters or configuration
           content:
@@ -734,22 +734,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /tool/{tool_id}:
+  /application/{application_id}:
     get:
       tags:
-      - Tools
-      summary: Get information about a tool blueprint
-      description: Get information about an existing tool blueprint
-      operationId: get_tool_tool__tool_id__get
+      - Applications
+      summary: Get information about an application blueprint
+      description: Get information about an existing application blueprint
+      operationId: get_application_application__application_id__get
       security:
       - OIDC: []
       parameters:
-      - name: tool_id
+      - name: application_id
         in: path
         required: true
         schema:
           type: string
-          title: Tool Id
+          title: Application Id
       - name: version
         in: query
         required: false
@@ -765,7 +765,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ToolInfo'
+                $ref: '#/components/schemas/ApplicationInfo'
         '400':
           description: Invalid parameters or configuration
           content:
@@ -842,6 +842,8 @@ components:
       properties:
         kind:
           type: string
+          enum:
+          - AllocationId
           const: AllocationId
           title: Kind
           default: AllocationId
@@ -881,13 +883,154 @@ components:
         - id
         - self
       title: AllocationInfo
+    ApplicationId:
+      properties:
+        kind:
+          type: string
+          enum:
+          - ApplicationId
+          const: ApplicationId
+          title: Kind
+          default: ApplicationId
+        id:
+          type: string
+          title: Id
+          description: Unique identifier for this application
+        version:
+          type: string
+          title: Version
+          default: latest
+        infoLink:
+          type: string
+          maxLength: 2083
+          minLength: 1
+          format: uri
+          title: Infolink
+          description: URL that returns the full details of this tool blueprint
+      type: object
+      required:
+      - id
+      - infoLink
+      title: ApplicationId
+    ApplicationInfo:
+      properties:
+        kind:
+          type: string
+          enum:
+          - ApplicationInfo
+          const: ApplicationInfo
+          title: Kind
+          default: ApplicationInfo
+        id:
+          type: string
+          title: Id
+        nodeId:
+          type: string
+          title: Nodeid
+        type:
+          type: string
+          enum:
+          - vm
+          - container
+          title: Type
+        blueprint:
+          type: string
+          title: Blueprint
+          description: Blueprint of the application's workload
+        blueprintType:
+          type: string
+          enum:
+          - tosca
+          - ansible
+          - helm
+          title: Blueprinttype
+        name:
+          type: string
+          title: Name
+        description:
+          type: string
+          title: Description
+        published:
+          type: boolean
+          title: Published
+        favorite:
+          type: boolean
+          title: Favorite
+        authorName:
+          type: string
+          title: Authorname
+        authorEmail:
+          type: string
+          format: email
+          title: Authoremail
+        organisation:
+          type: string
+          title: Organisation
+        keywords:
+          items:
+            type: string
+          type: array
+          title: Keywords
+          default: []
+        license:
+          type: string
+          title: License
+        version:
+          type: string
+          title: Version
+        versionFrom:
+          type: string
+          format: date-time
+          title: Versionfrom
+        versionLatest:
+          type: string
+          format: date-time
+          title: Versionlatest
+        repository:
+          type: string
+          maxLength: 2083
+          minLength: 1
+          format: uri
+          title: Repository
+        helpdesk:
+          type: string
+          maxLength: 2083
+          minLength: 1
+          format: uri
+          title: Helpdesk
+        validated:
+          type: boolean
+          title: Validated
+          default: false
+        validatedOn:
+          type: string
+          format: date-time
+          title: Validatedon
+        self:
+          anyOf:
+          - type: string
+            maxLength: 2083
+            minLength: 1
+            format: uri
+          - type: 'null'
+          title: Self
+          description: Endpoint that returns the details of this application
+      type: object
+      required:
+      - id
+      - type
+      - blueprint
+      - blueprintType
+      title: ApplicationInfo
     CloudQuota:
       properties:
         cores:
-          $ref: '#/components/schemas/Quota'
+          allOf:
+          - $ref: '#/components/schemas/Quota'
           description: CPU cores quota
         ram:
-          $ref: '#/components/schemas/Quota'
+          allOf:
+          - $ref: '#/components/schemas/Quota'
           description: Memory quota in megabytes
         gpus:
           anyOf:
@@ -895,7 +1038,8 @@ components:
           - type: 'null'
           description: GPU units quota
         instances:
-          $ref: '#/components/schemas/Quota'
+          allOf:
+          - $ref: '#/components/schemas/Quota'
           description: Number of instances quota
         floating_ips:
           anyOf:
@@ -927,8 +1071,8 @@ components:
       properties:
         allocation:
           $ref: '#/components/schemas/AllocationId'
-        tool:
-          $ref: '#/components/schemas/ToolId'
+        application:
+          $ref: '#/components/schemas/ApplicationId'
         inputs:
           anyOf:
           - items:
@@ -940,7 +1084,7 @@ components:
       type: object
       required:
       - allocation
-      - tool
+      - application
       title: Deployment
     DeploymentId:
       properties:
@@ -950,6 +1094,8 @@ components:
           description: Unique identifier for this deployment
         kind:
           type: string
+          enum:
+          - DeploymentId
           const: DeploymentId
           title: Kind
           default: DeploymentId
@@ -969,8 +1115,8 @@ components:
       properties:
         allocation:
           $ref: '#/components/schemas/AllocationId'
-        tool:
-          $ref: '#/components/schemas/ToolId'
+        application:
+          $ref: '#/components/schemas/ApplicationId'
         inputs:
           anyOf:
           - items:
@@ -981,6 +1127,8 @@ components:
           description: Input values for the template
         kind:
           type: string
+          enum:
+          - DeploymentInfo
           const: DeploymentInfo
           title: Kind
           default: DeploymentInfo
@@ -1024,7 +1172,7 @@ components:
       type: object
       required:
       - allocation
-      - tool
+      - application
       - id
       - status
       - self
@@ -1033,11 +1181,15 @@ components:
       properties:
         kind:
           type: string
+          enum:
+          - EGIComputeEnvironment
           const: EGIComputeEnvironment
           title: Kind
           default: EGIComputeEnvironment
         userName:
           type: string
+          enum:
+          - egi.eu
           const: egi.eu
           title: Username
           default: egi.eu
@@ -1052,6 +1204,8 @@ components:
           title: Domainid
         tenant:
           type: string
+          enum:
+          - openid
           const: openid
           title: Tenant
           default: openid
@@ -1073,6 +1227,8 @@ components:
           title: Host
         authVersion:
           type: string
+          enum:
+          - 3.x-oidc
           const: 3.x-oidc
           title: Authversion
           default: 3.x-oidc
@@ -1091,6 +1247,8 @@ components:
       properties:
         kind:
           type: string
+          enum:
+          - EoscNodeEnvironment
           const: EoscNodeEnvironment
           title: Kind
           default: EoscNodeEnvironment
@@ -1243,8 +1401,7 @@ components:
           default: Error
         details:
           anyOf:
-          - additionalProperties: true
-            type: object
+          - type: object
           - type: 'null'
           title: Details
           description: Additional details about the error
@@ -1263,6 +1420,8 @@ components:
       properties:
         kind:
           type: string
+          enum:
+          - KubernetesEnvironment
           const: KubernetesEnvironment
           title: Kind
           default: KubernetesEnvironment
@@ -1281,6 +1440,8 @@ components:
       properties:
         kind:
           type: string
+          enum:
+          - OpenStackEnvironment
           const: OpenStackEnvironment
           title: Kind
           default: OpenStackEnvironment
@@ -1316,6 +1477,8 @@ components:
           title: Host
         authVersion:
           type: string
+          enum:
+          - 3.x-oidc
           const: 3.x-oidc
           title: Authversion
           default: 3.x-oidc
@@ -1386,6 +1549,60 @@ components:
       - elements
       title: PageOfAllocations
       description: Page of Allocations
+    PageOfApplications:
+      properties:
+        from:
+          type: integer
+          title: From
+          description: Index of the first element to return
+        limit:
+          type: integer
+          title: Limit
+          description: Maximum number of elements to return
+        count:
+          type: integer
+          title: Count
+          description: Total number of elements
+        self:
+          anyOf:
+          - type: string
+            maxLength: 2083
+            minLength: 1
+            format: uri
+          - type: 'null'
+          title: Self
+          description: Endpoint that returned this page
+        prevPage:
+          anyOf:
+          - type: string
+            maxLength: 2083
+            minLength: 1
+            format: uri
+          - type: 'null'
+          title: Prevpage
+          description: Endpoint that returns the previous page
+        nextPage:
+          anyOf:
+          - type: string
+            maxLength: 2083
+            minLength: 1
+            format: uri
+          - type: 'null'
+          title: Nextpage
+          description: Endpoint that returns the next page
+        elements:
+          items:
+            $ref: '#/components/schemas/ApplicationInfo'
+          type: array
+          title: Elements
+      type: object
+      required:
+      - from
+      - limit
+      - count
+      - elements
+      title: PageOfApplications
+      description: Page of Applications
     PageOfDeployments:
       properties:
         from:
@@ -1440,60 +1657,6 @@ components:
       - elements
       title: PageOfDeployments
       description: Page of Deployments
-    PageOfTools:
-      properties:
-        from:
-          type: integer
-          title: From
-          description: Index of the first element to return
-        limit:
-          type: integer
-          title: Limit
-          description: Maximum number of elements to return
-        count:
-          type: integer
-          title: Count
-          description: Total number of elements
-        self:
-          anyOf:
-          - type: string
-            maxLength: 2083
-            minLength: 1
-            format: uri
-          - type: 'null'
-          title: Self
-          description: Endpoint that returned this page
-        prevPage:
-          anyOf:
-          - type: string
-            maxLength: 2083
-            minLength: 1
-            format: uri
-          - type: 'null'
-          title: Prevpage
-          description: Endpoint that returns the previous page
-        nextPage:
-          anyOf:
-          - type: string
-            maxLength: 2083
-            minLength: 1
-            format: uri
-          - type: 'null'
-          title: Nextpage
-          description: Endpoint that returns the next page
-        elements:
-          items:
-            $ref: '#/components/schemas/ToolInfo'
-          type: array
-          title: Elements
-      type: object
-      required:
-      - from
-      - limit
-      - count
-      - elements
-      title: PageOfTools
-      description: Page of Tools
     Property:
       properties:
         name:
@@ -1540,141 +1703,6 @@ components:
           default: Success
       type: object
       title: Success
-    ToolId:
-      properties:
-        kind:
-          type: string
-          const: ToolId
-          title: Kind
-          default: ToolId
-        id:
-          type: string
-          title: Id
-          description: Unique identifier for this tool blueprint
-        version:
-          type: string
-          title: Version
-          default: latest
-        infoLink:
-          type: string
-          maxLength: 2083
-          minLength: 1
-          format: uri
-          title: Infolink
-          description: URL that returns the full details of this tool blueprint
-      type: object
-      required:
-      - id
-      - infoLink
-      title: ToolId
-    ToolInfo:
-      properties:
-        kind:
-          type: string
-          const: ToolInfo
-          title: Kind
-          default: ToolInfo
-        id:
-          type: string
-          title: Id
-        nodeId:
-          type: string
-          title: Nodeid
-        type:
-          type: string
-          enum:
-          - vm
-          - container
-          title: Type
-        blueprint:
-          type: string
-          title: Blueprint
-          description: Blueprint of the tool's workload
-        blueprintType:
-          type: string
-          enum:
-          - tosca
-          - ansible
-          - helm
-          title: Blueprinttype
-        name:
-          type: string
-          title: Name
-        description:
-          type: string
-          title: Description
-        published:
-          type: boolean
-          title: Published
-        favorite:
-          type: boolean
-          title: Favorite
-        authorName:
-          type: string
-          title: Authorname
-        authorEmail:
-          type: string
-          format: email
-          title: Authoremail
-        organisation:
-          type: string
-          title: Organisation
-        keywords:
-          items:
-            type: string
-          type: array
-          title: Keywords
-          default: []
-        license:
-          type: string
-          title: License
-        version:
-          type: string
-          title: Version
-        versionFrom:
-          type: string
-          format: date-time
-          title: Versionfrom
-        versionLatest:
-          type: string
-          format: date-time
-          title: Versionlatest
-        repository:
-          type: string
-          maxLength: 2083
-          minLength: 1
-          format: uri
-          title: Repository
-        helpdesk:
-          type: string
-          maxLength: 2083
-          minLength: 1
-          format: uri
-          title: Helpdesk
-        validated:
-          type: boolean
-          title: Validated
-          default: false
-        validatedOn:
-          type: string
-          format: date-time
-          title: Validatedon
-        self:
-          anyOf:
-          - type: string
-            maxLength: 2083
-            minLength: 1
-            format: uri
-          - type: 'null'
-          title: Self
-          description: Endpoint that returns the details of this tool blueprint
-      type: object
-      required:
-      - id
-      - type
-      - blueprint
-      - blueprintType
-      title: ToolInfo
     ValidationError:
       properties:
         loc:
@@ -1690,6 +1718,11 @@ components:
         type:
           type: string
           title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
       type: object
       required:
       - loc

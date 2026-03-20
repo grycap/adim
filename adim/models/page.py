@@ -16,7 +16,7 @@
 from typing import List, Union
 from pydantic import BaseModel, Field, HttpUrl
 from adim.models.allocation import AllocationInfo
-from adim.models.tool import ToolInfo
+from adim.models.apps import ApplicationInfo
 from adim.models.deployment import DeploymentInfo
 from fastapi import Request
 
@@ -54,11 +54,11 @@ class PageOfDeployments(Page):
     elements: List[DeploymentInfo]
 
 
-class PageOfTools(Page):
-    """Page of Tools"""
-    elements: List[ToolInfo]
+class PageOfApplications(Page):
+    """Page of Applications"""
+    elements: List[ApplicationInfo]
 
 
 class PageOfItems(Page):
     """Generic Page of any item"""
-    elements: List[Union[AllocationInfo, DeploymentInfo, ToolInfo]]
+    elements: List[Union[AllocationInfo, DeploymentInfo, ApplicationInfo]]

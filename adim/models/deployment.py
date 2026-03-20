@@ -16,7 +16,7 @@
 from typing import List, Literal, Any
 from pydantic import BaseModel, Field, HttpUrl
 from adim.models.allocation import AllocationId
-from adim.models.tool import ToolId
+from adim.models.apps import ApplicationId
 
 
 class DeploymentId(BaseModel):
@@ -32,7 +32,7 @@ class Property(BaseModel):
 
 class Deployment(BaseModel):
     allocation: AllocationId
-    tool: ToolId
+    application: ApplicationId
     inputs: List[Property] | None = Field(None, description="Input values for the template")
 
 
