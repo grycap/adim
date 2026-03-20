@@ -6,7 +6,7 @@
 ## Overview
 
 Application Deployment with Infrastructure Manager implements
-EOSC Application Deployment Management API.
+[EOSC Application Deployment Management API](https://github.com/EGI-Federation/eosc-application-deployment-manager).
 
 ## Requirements
 
