@@ -29,6 +29,7 @@ class Property(BaseModel):
     name: str
     value: Any
 
+
 class Deployment(BaseModel):
     allocation: AllocationId
     tool: ToolId

@@ -44,7 +44,8 @@ class EoscNodeEnvironment(BaseModel):
     provisionedOn: datetime | None = None
     expiresOn: datetime | None = None
     nodeName: str | None = Field(None, description="Name of the EOSC node where this environment was allocated")
-    nodeUI: HttpUrl | None = Field(None, description="URL to the interactive UI of the EOSC node where this environment was allocated")
+    nodeUI: HttpUrl | None = Field(None, description=("URL to the interactive UI of the EOSC node where "
+                                                      "this environment was allocated"))
     nodeId: str = Field(..., description=("URL to the interactive UI of the EOSC "
                                           "node where this environment was allocated"))
     admApi: HttpUrl = Field(..., description=("Base URL for the ADM API of the EOSC node where this "

@@ -40,7 +40,8 @@ def GET_RESPONSES(return_type: Any = BaseModel, in_use: bool = False) -> Dict[in
     return responses
 
 
-def DELETE_RESPONSES(status_code: int = 204, msg: str = "Deleted", in_use: bool = False) -> Dict[int | str, Dict[str, Any]]:
+def DELETE_RESPONSES(status_code: int = 204, msg: str = "Deleted",
+                     in_use: bool = False) -> Dict[int | str, Dict[str, Any]]:
     """Standard HTTP error responses for DELETE operations"""
     responses = GET_RESPONSES(BaseModel, in_use)
     del responses[200]
