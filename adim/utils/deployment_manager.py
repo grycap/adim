@@ -67,7 +67,7 @@ class DeploymentsManager:
         auth_data = [{"type": "InfrastructureManager", "token": token}]
         if allocation_info:
             allocation = allocation_info
-            cloud_auth_data = {"id": allocation_id} if allocation_id else {}
+            cloud_auth_data = {"id": f"id-{allocation_id}"} if allocation_id else {}
             if allocation.kind in ["OpenStackEnvironment", "EGIComputeEnvironment"]:
                 cloud_auth_data["type"] = "OpenStack"
                 cloud_auth_data["auth_version"] = "3.x_password"
@@ -360,7 +360,7 @@ class DeploymentsManager:
             raise Exception(deployment_id)
 
         if dry_run:
-            success, quotas = client.get_cloud_quotas(deployment.allocation.id)
+            success, quotas = client.get_cloud_quotas(f"id-{deployment.allocation.id}")
             if not success:
                 adim.logger.error("Could not get cloud quotas: %s", quotas)
                 quotas = {}
