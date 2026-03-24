@@ -88,7 +88,7 @@ class ApplicationStoreRC(ApplicationStore):
             adim.logger.error("Failed to get application info: %s", e)
             raise ConnectionException(f"Failed to get application info: {e}")
 
-        if response.status_code == 404:
+        if response.status_code in [404, 500]:
             msg = Error(id="404", description="Application not found")
             return msg, 404
         if response.status_code != 200:
