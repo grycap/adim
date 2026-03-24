@@ -108,13 +108,15 @@ def deploy_workload(deployment: Deployment,
                                                                       deployment.application.version, request)
     if status_code != 200:
         adim.logger.warning(f"Application {deployment.application.id} not found")
-        return Response(content=application, status_code=400, media_type="application/json")
+        return Response(content=application.model_dump_json(exclude_unset=True),
+                        status_code=400, media_type="application/json")
 
     # Get the allocation info from the Allocation
     allocation_info, status = adim.deployments_manager.get_allocation(deployment, user_info)
     if status != 200:
         adim.logger.warning(f"Allocation {deployment.allocation.id} not found")
-        return allocation_info, status
+        return Response(content=allocation_info.model_dump_json(exclude_unset=True),
+                        status_code=status, media_type="application/json")
 
     if allocation_info.kind == "EoscNodeEnvironment":
         adim.logger.error("EOSCNodeEnvironment support not implemented yet")
