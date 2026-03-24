@@ -82,8 +82,14 @@ class KubernetesEnvironment(BaseModel):
     host: HttpUrl
 
 
+class DummyEnvironment(BaseModel):
+    """Dummy environment for testing purposes"""
+    kind: Literal['DummyEnvironment'] = 'DummyEnvironment'
+
+
 AllocationValue = Annotated[
     Union[
+        DummyEnvironment,
         OpenStackEnvironment,
         EGIComputeEnvironment,
         KubernetesEnvironment,

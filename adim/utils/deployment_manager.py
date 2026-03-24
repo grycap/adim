@@ -90,6 +90,8 @@ class DeploymentsManager:
                 cloud_auth_data["type"] = "Kubernetes"
                 cloud_auth_data["host"] = str(allocation.host)
                 cloud_auth_data["token"] = token
+            elif allocation.kind == "DummyEnvironment":
+                cloud_auth_data["type"] = "Dummy"
             else:
                 raise ValueError("Allocation kind not supported")
             auth_data.append(cloud_auth_data)
