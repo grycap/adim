@@ -54,6 +54,11 @@ Check Valid OIDC Token
     ${headers}=    Generate ADIM Auth Header
     Set Suite Variable    ${ADIM_AUTH_HEADER}    ${headers}
 
+ADIM API Request Without Auth Returns 401
+    [Documentation]    Check that requests without Authorization header return 401.
+    ${response}=    GET    ${ADIM_ENDPOINT}/allocations    expected_status=401
+    Should Be Equal As Integers    ${response.status_code}    401
+
 ADIM API Version
     [Documentation]    Check API version endpoint.
     ${response}=    GET  ${ADIM_ENDPOINT}/version  expected_status=200
@@ -80,6 +85,12 @@ ADIM API List Allocations Pagination
     Dictionary Should Contain Key    ${payload}    elements
     ${page_size}=    Get Length    ${payload}[elements]
     Should Be True    ${page_size} <= 1
+
+ADIM API Get Nonexistent Allocation Returns 404
+    [Documentation]    Check that GET request for nonexistent allocation returns 404.
+    ${response}=    GET    ${ADIM_ENDPOINT}/allocation/__robot_nonexistent_allocation__    expected_status=404    headers=${ADIM_AUTH_HEADER}
+    ${error}=    Set Variable    ${response.json()}
+    Dictionary Should Contain Key    ${error}    id
 
 ADIM API Create Allocation
     [Documentation]    Create one configured allocation.
@@ -127,6 +138,12 @@ ADIM API List Applications Pagination
     ${page_size}=    Get Length    ${payload}[elements]
     Should Be True    ${page_size} <= 1
 
+ADIM API Get Nonexistent Application Returns 404
+    [Documentation]    Check that GET request for nonexistent application returns 404.
+    ${response}=    GET    ${ADIM_ENDPOINT}/application/__robot_nonexistent_application__    expected_status=404    headers=${ADIM_AUTH_HEADER}
+    ${error}=    Set Variable    ${response.json()}
+    Dictionary Should Contain Key    ${error}    id
+
 ADIM API Get Application
     [Documentation]    Get one application when list endpoint returns elements.
     Skip If    '${APPLICATION_ID}' == 'None'    No applications available in the configured backend.
@@ -154,6 +171,12 @@ ADIM API List Deployments Pagination
     Dictionary Should Contain Key    ${payload}    elements
     ${page_size}=    Get Length    ${payload}[elements]
     Should Be True    ${page_size} <= 1
+
+ADIM API Get Nonexistent Deployment Returns 404
+    [Documentation]    Check that GET request for nonexistent deployment returns 404.
+    ${response}=    GET    ${ADIM_ENDPOINT}/deployment/__robot_nonexistent_deployment__    expected_status=404    headers=${ADIM_AUTH_HEADER}
+    ${error}=    Set Variable    ${response.json()}
+    Dictionary Should Contain Key    ${error}    id
 
 ADIM API Deploy Invalid Application Returns Error
     [Documentation]    Deploy with a non-existing application id and expect 400.
