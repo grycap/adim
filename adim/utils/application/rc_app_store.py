@@ -46,7 +46,10 @@ class ApplicationStoreRC(ApplicationStore):
 
     @staticmethod
     def get_application_info(elem: dict, request: Request) -> ApplicationInfo:
-        tosca = yaml.safe_load(requests.get(ApplicationStoreRC._convert_url_to_raw(elem['url']), timeout=10).text)
+        blueprint_text = requests.get(ApplicationStoreRC._convert_url_to_raw(elem['url']), timeout=10).text
+        tosca = yaml.safe_load(blueprint_text)
+        if not isinstance(tosca, dict):
+            raise ValueError("Blueprint document is not a YAML object")
         metadata = tosca.get("metadata", {})
         application_id = elem['id'].replace("/", "%2F")
         url = str(request.url_for("get_application", application_id=application_id))
@@ -96,7 +99,12 @@ class ApplicationStoreRC(ApplicationStore):
             msg = Error(id="503", description="Failed to fetch application")
             return msg, 503
 
-        app = self.get_application_info(response.json(), request)
+        try:
+            app = self.get_application_info(response.json(), request)
+        except Exception as ex:
+            adim.logger.error("Invalid application blueprint for '%s': %s", repo_application_id, ex)
+            msg = Error(id="503", description=f"Invalid application blueprint: {ex}")
+            return msg, 503
         return app, 200
 
     def _list(self, request: Request, from_: int, limit: int, user_info: dict) -> List[ApplicationInfo]:
@@ -104,6 +112,10 @@ class ApplicationStoreRC(ApplicationStore):
         response.raise_for_status()
         res = []
         for elem in response.json().get("results", []):
-            app = self.get_application_info(elem, request)
-            res.append(app)
+            try:
+                app = self.get_application_info(elem, request)
+                res.append(app)
+            except Exception as ex:
+                app_id = elem.get("id", "unknown")
+                adim.logger.warning("Skipping invalid application '%s' from resource catalog: %s", app_id, ex)
         return res
