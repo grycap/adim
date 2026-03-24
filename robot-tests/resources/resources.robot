@@ -1,0 +1,65 @@
+*** Settings ***
+
+Library    Collections
+Library    DateTime
+Library    RequestsLibrary
+
+*** Variables *** 
+
+${ADIM_ENDPOINT}=       %{adim_endpoint}
+${OIDC_ACCESS_TOKEN}=   %{oidc_access_token}
+
+*** Keywords ***
+
+Decode JWT Token
+    [Documentation]    Decode a JWT token and returns its payload.
+    [Arguments]    ${token}
+    ${parts}=    Split String    ${token}    .
+    ${payload_b64}=    Get From List    ${parts}    1
+    ${decoded}=    Evaluate    __import__("json").loads(__import__("base64").urlsafe_b64decode("${payload_b64}" + "=" * (-len("${payload_b64}") % 4)).decode("utf-8"))
+    RETURN    ${decoded}
+
+Check JWT Expiration
+    [Documentation]    Check if a JWT token includes an exp claim and is not expired.
+    [Arguments]    ${token}
+    ${status}    ${decoded_token}=    Run Keyword And Ignore Error    Decode JWT Token    ${token}
+    Run Keyword If    '${status}' == 'FAIL'    Log    Token is not a JWT or could not be decoded; skipping expiration check.    WARN
+    Return From Keyword If    '${status}' == 'FAIL'
+    ${has_exp}=    Run Keyword And Return Status    Dictionary Should Contain Key    ${decoded_token}    exp
+    Run Keyword If    not ${has_exp}    Log    JWT does not include exp claim; skipping expiration check.    WARN
+    Return From Keyword If    not ${has_exp}
+    ${expiry_time}=    Get From Dictionary    ${decoded_token}    exp
+    ${current_time}=    Get Current Date    result_format=epoch
+    Should Be True    ${expiry_time} > ${current_time}    Token is expired
+
+Generate ADIM Auth Header
+    [Documentation]    Build Authorization header for ADIM OpenID Connect Bearer auth.
+    ${headers}=    Create Dictionary
+    ...    Authorization=Bearer ${OIDC_ACCESS_TOKEN}
+    ...    Content-Type=application/json
+    RETURN    ${headers}
+
+Create Dummy Allocation
+    [Documentation]    Create a Dummy allocation and return the allocation id.
+    [Arguments]    ${headers}
+    ${payload}=    Evaluate    {"kind": "DummyEnvironment"}
+    ${response}=    POST    ${ADIM_ENDPOINT}/allocations    headers=${headers}    json=${payload}    expected_status=anything
+    Should Be True    ${response.status_code} == 201 or ${response.status_code} == 303
+
+    IF    ${response.status_code} == 201
+        ${json_payload}=    Set Variable    ${response.json()}
+        ${allocation_id}=    Set Variable    ${json_payload}[id]
+    ELSE
+        ${location}=    Get From Dictionary    ${response.headers}    Location
+        ${parts}=    Split String    ${location}    /
+        ${allocation_id}=    Get From List    ${parts}    -1
+    END
+
+    RETURN    ${allocation_id}
+
+Delete Allocation If Present
+    [Documentation]    Delete an allocation id if present and ignore 404 in cleanup.
+    [Arguments]    ${headers}    ${allocation_id}
+    Return From Keyword If    '${allocation_id}' == 'None'
+    ${response}=    DELETE    ${ADIM_ENDPOINT}/allocation/${allocation_id}    headers=${headers}    expected_status=anything
+    Should Be True    ${response.status_code} == 200 or ${response.status_code} == 404
