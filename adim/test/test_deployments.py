@@ -24,6 +24,7 @@ from adim.__main__ import create_app
 from adim.utils.db import DataBase
 from adim.utils.node_registry import EOSCNode
 from adim.utils.deployment_manager import DeploymentsManager
+from adim.models.error import Error
 
 
 @pytest.fixture
@@ -323,6 +324,41 @@ def test_deploy_workload(
     assert response.status_code == 202
     assert response.json()["id"] == "new_dep_id"
     assert response.json()["infoLink"] == "http://testserver/deployment/new_dep_id"
+
+
+def test_deploy_workload_invalid_allocation(
+    client, db_mock, check_oidc_mock, get_application_mock, mocker
+):
+    mocker.patch("adim.allocation_store.get_allocation", return_value=None)
+
+    payload = ('{"application": {"kind": "ApplicationId", "id": "appid", "infoLink": "http://some.url/"}, '
+               '"allocation": {"kind": "AllocationId", "id": "missing-aid", "infoLink": "http://some.url/"}}')
+
+    response = client.post("/deployments",
+                           headers={"Authorization": "Bearer token",
+                                    "Content-Type": "application/json"},
+                           content=payload)
+
+    assert response.status_code == 400
+    assert response.json() == {"id": "400", "description": "Invalid AllocationId."}
+
+
+def test_deploy_workload_invalid_application(
+    client, db_mock, check_oidc_mock, allocation_mock_router, mocker
+):
+    mocker.patch("adim.application_store.get_application",
+                 return_value=(Error(id="404", description="Application not found"), 404))
+
+    payload = ('{"application": {"kind": "ApplicationId", "id": "missing-app", "infoLink": "http://some.url/"}, '
+               '"allocation": {"kind": "AllocationId", "id": "aid", "infoLink": "http://some.url/"}}')
+
+    response = client.post("/deployments",
+                           headers={"Authorization": "Bearer token",
+                                    "Content-Type": "application/json"},
+                           content=payload)
+
+    assert response.status_code == 400
+    assert response.json() == {"id": "404", "description": "Application not found"}
 
 
 def test_deploy_workload_inputs(
