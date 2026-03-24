@@ -69,6 +69,18 @@ ADIM API List Allocations
     Dictionary Should Contain Key    ${payload}    from
     Dictionary Should Contain Key    ${payload}    limit
 
+ADIM API List Allocations Pagination
+    [Documentation]    Check allocations list pagination parameters from and limit.
+    ${params}=    Create Dictionary    from=0    limit=1
+    ${response}=    GET    ${ADIM_ENDPOINT}/allocations    params=${params}    expected_status=200    headers=${ADIM_AUTH_HEADER}
+    ${payload}=    Set Variable    ${response.json()}
+    Should Be Equal As Integers    ${payload}[from]    0
+    Should Be Equal As Integers    ${payload}[limit]    1
+    Dictionary Should Contain Key    ${payload}    count
+    Dictionary Should Contain Key    ${payload}    elements
+    ${page_size}=    Get Length    ${payload}[elements]
+    Should Be True    ${page_size} <= 1
+
 ADIM API Create Allocation
     [Documentation]    Create one configured allocation.
     ${allocation_id}=    Create Configured Allocation    ${ADIM_AUTH_HEADER}
@@ -84,6 +96,15 @@ ADIM API Get Allocation
     Should Be Equal    ${payload}[id]    ${ALLOCATION_ID}
     Should Be Equal    ${payload}[kind]    ${ALLOCATION_KIND}
 
+ADIM API Update Allocation
+    [Documentation]    Update created allocation using the configured payload.
+    ${update_payload}=    Get Configured Allocation Payload
+    ${response}=    PUT    ${ADIM_ENDPOINT}/allocation/${ALLOCATION_ID}    headers=${ADIM_AUTH_HEADER}    json=${update_payload}    expected_status=200
+    ${payload}=    Set Variable    ${response.json()}
+    Should Be Equal    ${payload}[id]    ${ALLOCATION_ID}
+    Should Be Equal    ${payload}[kind]    ${ALLOCATION_KIND}
+    Dictionary Should Contain Key    ${payload}    self
+
 ADIM API List Applications
     [Documentation]    Check applications list endpoint and keep one id for follow-up get.
     ${response}=    GET    ${ADIM_ENDPOINT}/applications    expected_status=200    headers=${ADIM_AUTH_HEADER}
@@ -93,6 +114,18 @@ ADIM API List Applications
     ${has_elements}=    Evaluate    len($payload["elements"]) > 0
     Run Keyword If    ${has_elements}    Set Suite Variable    ${APPLICATION_ID}    ${payload}[elements][0][id]
     Run Keyword If    not ${has_elements}    Set Suite Variable    ${APPLICATION_ID}    None
+
+ADIM API List Applications Pagination
+    [Documentation]    Check applications list pagination parameters from and limit.
+    ${params}=    Create Dictionary    from=0    limit=1
+    ${response}=    GET    ${ADIM_ENDPOINT}/applications    params=${params}    expected_status=200    headers=${ADIM_AUTH_HEADER}
+    ${payload}=    Set Variable    ${response.json()}
+    Should Be Equal As Integers    ${payload}[from]    0
+    Should Be Equal As Integers    ${payload}[limit]    1
+    Dictionary Should Contain Key    ${payload}    count
+    Dictionary Should Contain Key    ${payload}    elements
+    ${page_size}=    Get Length    ${payload}[elements]
+    Should Be True    ${page_size} <= 1
 
 ADIM API Get Application
     [Documentation]    Get one application when list endpoint returns elements.
@@ -109,6 +142,18 @@ ADIM API List Deployments
     ${payload}=    Set Variable    ${response.json()}
     Dictionary Should Contain Key    ${payload}    count
     Dictionary Should Contain Key    ${payload}    elements
+
+ADIM API List Deployments Pagination
+    [Documentation]    Check deployments list pagination parameters from and limit.
+    ${params}=    Create Dictionary    from=0    limit=1
+    ${response}=    GET    ${ADIM_ENDPOINT}/deployments    params=${params}    expected_status=200    headers=${ADIM_AUTH_HEADER}
+    ${payload}=    Set Variable    ${response.json()}
+    Should Be Equal As Integers    ${payload}[from]    0
+    Should Be Equal As Integers    ${payload}[limit]    1
+    Dictionary Should Contain Key    ${payload}    count
+    Dictionary Should Contain Key    ${payload}    elements
+    ${page_size}=    Get Length    ${payload}[elements]
+    Should Be True    ${page_size} <= 1
 
 ADIM API Deploy Invalid Application Returns Error
     [Documentation]    Deploy with a non-existing application id and expect 400.
@@ -148,6 +193,24 @@ ADIM API Create Deployment
     ${dep}=    Set Variable    ${response.json()}
     Dictionary Should Contain Key    ${dep}    id
     Set Suite Variable    ${DEPLOYMENT_ID}    ${dep}[id]
+
+ADIM API Get Deployment
+    [Documentation]    Retrieve the created deployment.
+    Skip If    '${DEPLOYMENT_ID}' == 'None'    Deployment was not created in previous test.
+    ${response}=    GET    ${ADIM_ENDPOINT}/deployment/${DEPLOYMENT_ID}    expected_status=200    headers=${ADIM_AUTH_HEADER}
+    ${payload}=    Set Variable    ${response.json()}
+    Should Be Equal    ${payload}[id]    ${DEPLOYMENT_ID}
+    Should Be Equal    ${payload}[application][id]    ${APPLICATION_ID}
+    Should Be Equal    ${payload}[allocation][id]    ${ALLOCATION_ID}
+    Dictionary Should Contain Key    ${payload}    status
+
+ADIM API Update In Use Allocation Returns 409
+    [Documentation]    Check allocation cannot be updated while used by a deployment.
+    Skip If    '${DEPLOYMENT_ID}' == 'None'    Deployment was not created in previous test.
+    ${update_payload}=    Get Configured Allocation Payload
+    ${response}=    PUT    ${ADIM_ENDPOINT}/allocation/${ALLOCATION_ID}    headers=${ADIM_AUTH_HEADER}    json=${update_payload}    expected_status=409
+    ${error}=    Set Variable    ${response.json()}
+    Should Be Equal    ${error}[id]    409
 
 ADIM API Delete In Use Allocation Returns 409
     [Documentation]    Check allocation cannot be deleted while used by a deployment.
