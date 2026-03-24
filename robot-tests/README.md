@@ -27,6 +27,10 @@ Required values:
 - `adim_endpoint`: Base URL of the ADIM instance (for example `https://adim.example.org`)
 - `oidc_access_token`: OIDC access token used as `Authorization: Bearer <token>`
 
+Optional values:
+
+- `allocation_to_create`: JSON payload used by tests to create an allocation. Default is `{"kind":"DummyEnvironment"}`.
+
 ## Running Tests
 
 Run the full suite:

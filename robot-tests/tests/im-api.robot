@@ -17,6 +17,7 @@ Resource    ../resources/resources.robot
 *** Variables ***
 
 ${ALLOCATION_ID}    None
+${ALLOCATION_KIND}    None
 ${ADIM_AUTH_HEADER}    None
 ${APPLICATION_ID}    None
 ${DEPLOYMENT_ID}    None
@@ -69,9 +70,11 @@ ADIM API List Allocations
     Dictionary Should Contain Key    ${payload}    limit
 
 ADIM API Create Allocation
-    [Documentation]    Create one Dummy allocation.
-    ${allocation_id}=    Create Dummy Allocation    ${ADIM_AUTH_HEADER}
+    [Documentation]    Create one configured allocation.
+    ${allocation_id}=    Create Configured Allocation    ${ADIM_AUTH_HEADER}
+    ${allocation_kind}=    Get Configured Allocation Kind
     Set Suite Variable    ${ALLOCATION_ID}    ${allocation_id}
+    Set Suite Variable    ${ALLOCATION_KIND}    ${allocation_kind}
     Should Not Be Empty    ${ALLOCATION_ID}
 
 ADIM API Get Allocation
@@ -79,7 +82,7 @@ ADIM API Get Allocation
     ${response}=    GET    ${ADIM_ENDPOINT}/allocation/${ALLOCATION_ID}    expected_status=200    headers=${ADIM_AUTH_HEADER}
     ${payload}=    Set Variable    ${response.json()}
     Should Be Equal    ${payload}[id]    ${ALLOCATION_ID}
-    Should Be Equal    ${payload}[kind]    DummyEnvironment
+    Should Be Equal    ${payload}[kind]    ${ALLOCATION_KIND}
 
 ADIM API List Applications
     [Documentation]    Check applications list endpoint and keep one id for follow-up get.

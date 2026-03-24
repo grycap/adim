@@ -8,6 +8,7 @@ Library    RequestsLibrary
 
 ${ADIM_ENDPOINT}=       %{adim_endpoint}
 ${OIDC_ACCESS_TOKEN}=   %{oidc_access_token}
+${ALLOCATION_TO_CREATE_RAW}=   %{allocation_to_create={"kind":"DummyEnvironment"}}
 
 *** Keywords ***
 
@@ -39,10 +40,21 @@ Generate ADIM Auth Header
     ...    Content-Type=application/json
     RETURN    ${headers}
 
-Create Dummy Allocation
-    [Documentation]    Create a Dummy allocation and return the allocation id.
+Get Configured Allocation Payload
+    [Documentation]    Parse allocation payload from environment variable allocation_to_create.
+    ${payload}=    Evaluate    __import__("json").loads(r'''${ALLOCATION_TO_CREATE_RAW}''')
+    RETURN    ${payload}
+
+Get Configured Allocation Kind
+    [Documentation]    Return the expected kind from the configured allocation payload.
+    ${payload}=    Get Configured Allocation Payload
+    ${kind}=    Get From Dictionary    ${payload}    kind
+    RETURN    ${kind}
+
+Create Configured Allocation
+    [Documentation]    Create an allocation using allocation_to_create payload and return the allocation id.
     [Arguments]    ${headers}
-    ${payload}=    Evaluate    {"kind": "DummyEnvironment"}
+    ${payload}=    Get Configured Allocation Payload
     ${response}=    POST    ${ADIM_ENDPOINT}/allocations    headers=${headers}    json=${payload}    expected_status=anything
     Should Be True    ${response.status_code} == 201 or ${response.status_code} == 303
 
