@@ -95,3 +95,17 @@ Assert Reference Payload
     Dictionary Should Contain Key    ${reference}    infoLink
     Should Not Be Empty    ${reference}[id]
     Should Not Be Empty    ${reference}[infoLink]
+
+Get One TOSCA Input For Deployment
+    [Documentation]    Extract one input from topology_template.inputs and return a safe sample value.
+    [Arguments]    ${blueprint}
+    ${blueprint_dict}=    Evaluate    __import__("yaml").safe_load($blueprint) if isinstance($blueprint, str) else {}
+    ${inputs_dict}=    Evaluate    $blueprint_dict.get("topology_template", {}).get("inputs", {}) if isinstance($blueprint_dict, dict) else {}
+    ${has_inputs}=    Evaluate    isinstance($inputs_dict, dict) and len($inputs_dict) > 0
+    IF    not ${has_inputs}
+        RETURN    ${None}    ${None}
+    END
+    ${input_name}=    Evaluate    next(iter($inputs_dict.keys()))
+    ${input_schema}=    Get From Dictionary    ${inputs_dict}    ${input_name}
+    ${input_value}=    Evaluate    str(($input_schema.get("default") if isinstance($input_schema, dict) else None) if (($input_schema.get("default") if isinstance($input_schema, dict) else None) is not None) else ("true" if (isinstance($input_schema, dict) and $input_schema.get("type") == "boolean") else ("1" if (isinstance($input_schema, dict) and $input_schema.get("type") in ["integer", "float", "number"]) else "robot-ci")))
+    RETURN    ${input_name}    ${input_value}

@@ -334,6 +334,13 @@ ADIM API Deploy Invalid Application Returns Error
 ADIM API Create Deployment
     [Documentation]    Create deployment using current allocation and one available application.
     Skip If    '${APPLICATION_ID}' == 'None'    No applications available in the configured backend.
+    ${application_response}=    GET    ${ADIM_ENDPOINT}/application/${APPLICATION_ID}    expected_status=200    headers=${ADIM_AUTH_HEADER}
+    ${application_payload}=    Set Variable    ${application_response.json()}
+    Dictionary Should Contain Key    ${application_payload}    blueprint
+    ${input_name}    ${input_value}=    Get One TOSCA Input For Deployment    ${application_payload}[blueprint]
+    Skip If    '${input_name}' == 'None'    Application blueprint does not expose topology_template.inputs.
+    ${deployment_input}=    Create Dictionary    name=${input_name}    value=${input_value}
+    ${deployment_inputs}=    Create List    ${deployment_input}
     ${allocation}=    Create Dictionary
     ...    kind=AllocationId
     ...    id=${ALLOCATION_ID}
@@ -346,6 +353,7 @@ ADIM API Create Deployment
     ${payload}=    Create Dictionary
     ...    allocation=${allocation}
     ...    application=${application}
+    ...    inputs=${deployment_inputs}
     ${response}=    POST    ${ADIM_ENDPOINT}/deployments    headers=${ADIM_AUTH_HEADER}    json=${payload}    expected_status=202
     ${dep}=    Set Variable    ${response.json()}
     Assert Reference Payload    ${dep}
@@ -366,11 +374,15 @@ ADIM API Get Deployment
     Dictionary Should Contain Key    ${payload}    status
     Dictionary Should Contain Key    ${payload}    self
     Should Be True    $payload["status"] in ["unknown", "pending", "running", "stopped", "off", "failed", "configured", "unconfigured", "deleting", "deleted"]
-    ${has_outputs}=    Run Keyword And Return Status    Dictionary Should Contain Key    ${payload}    outputs
-    IF    ${has_outputs}
-        ${outputs_are_list}=    Evaluate    isinstance($payload["outputs"], list)
-        Should Be True    ${outputs_are_list}
-    END
+    Dictionary Should Contain Key    ${payload}    outputs
+    ${outputs_are_list}=    Evaluate    isinstance($payload["outputs"], list)
+    Should Be True    ${outputs_are_list}
+    ${outputs_count}=    Get Length    ${payload}[outputs]
+    Should Be True    ${outputs_count} > 0    Deployment did not expose outputs.
+    ${first_output}=    Get From List    ${payload}[outputs]    0
+    Dictionary Should Contain Key    ${first_output}    name
+    Dictionary Should Contain Key    ${first_output}    value
+    Should Not Be Empty    ${first_output}[name]
     ${has_details}=    Run Keyword And Return Status    Dictionary Should Contain Key    ${payload}    details
     IF    ${has_details}
         ${details_are_string}=    Evaluate    isinstance($payload["details"], str)
