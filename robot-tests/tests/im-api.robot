@@ -86,6 +86,16 @@ ADIM API List Allocations Pagination
     ${page_size}=    Get Length    ${payload}[elements]
     Should Be True    ${page_size} <= 1
 
+ADIM API List Allocations All Nodes
+    [Documentation]    Check allocations list supports allNodes query parameter.
+    ${params}=    Create Dictionary    allNodes=true    from=0    limit=10
+    ${response}=    GET    ${ADIM_ENDPOINT}/allocations    params=${params}    expected_status=200    headers=${ADIM_AUTH_HEADER}
+    ${payload}=    Set Variable    ${response.json()}
+    Dictionary Should Contain Key    ${payload}    count
+    Dictionary Should Contain Key    ${payload}    elements
+    Dictionary Should Contain Key    ${payload}    from
+    Dictionary Should Contain Key    ${payload}    limit
+
 ADIM API List Allocations Invalid Limit Returns 400
     [Documentation]    Check allocations list rejects invalid limit values.
     ${params}=    Create Dictionary    limit=0
@@ -153,6 +163,46 @@ ADIM API List Applications
     Run Keyword If    ${has_elements}    Set Suite Variable    ${APPLICATION_ID}    ${payload}[elements][0][id]
     Run Keyword If    not ${has_elements}    Set Suite Variable    ${APPLICATION_ID}    None
 
+ADIM API List Applications IncludePublished
+    [Documentation]    Check applications list supports includePublished query parameter.
+    ${params}=    Create Dictionary    includePublished=true    includePersonal=false    from=0    limit=10
+    ${response}=    GET    ${ADIM_ENDPOINT}/applications    params=${params}    expected_status=200    headers=${ADIM_AUTH_HEADER}
+    ${payload}=    Set Variable    ${response.json()}
+    Dictionary Should Contain Key    ${payload}    count
+    Dictionary Should Contain Key    ${payload}    elements
+    Dictionary Should Contain Key    ${payload}    from
+    Dictionary Should Contain Key    ${payload}    limit
+
+ADIM API List Applications IncludePersonal
+    [Documentation]    Check applications list supports includePersonal query parameter.
+    ${params}=    Create Dictionary    includePersonal=true    includePublished=true    from=0    limit=10
+    ${response}=    GET    ${ADIM_ENDPOINT}/applications    params=${params}    expected_status=200    headers=${ADIM_AUTH_HEADER}
+    ${payload}=    Set Variable    ${response.json()}
+    Dictionary Should Contain Key    ${payload}    count
+    Dictionary Should Contain Key    ${payload}    elements
+    Dictionary Should Contain Key    ${payload}    from
+    Dictionary Should Contain Key    ${payload}    limit
+
+ADIM API List Applications OnlyFavorites
+    [Documentation]    Check applications list supports onlyFavorites query parameter.
+    ${params}=    Create Dictionary    onlyFavorites=true    from=0    limit=10
+    ${response}=    GET    ${ADIM_ENDPOINT}/applications    params=${params}    expected_status=200    headers=${ADIM_AUTH_HEADER}
+    ${payload}=    Set Variable    ${response.json()}
+    Dictionary Should Contain Key    ${payload}    count
+    Dictionary Should Contain Key    ${payload}    elements
+    Dictionary Should Contain Key    ${payload}    from
+    Dictionary Should Contain Key    ${payload}    limit
+
+ADIM API List Applications All Nodes
+    [Documentation]    Check applications list supports allNodes query parameter.
+    ${params}=    Create Dictionary    allNodes=true    from=0    limit=10
+    ${response}=    GET    ${ADIM_ENDPOINT}/applications    params=${params}    expected_status=200    headers=${ADIM_AUTH_HEADER}
+    ${payload}=    Set Variable    ${response.json()}
+    Dictionary Should Contain Key    ${payload}    count
+    Dictionary Should Contain Key    ${payload}    elements
+    Dictionary Should Contain Key    ${payload}    from
+    Dictionary Should Contain Key    ${payload}    limit
+
 ADIM API List Applications Pagination
     [Documentation]    Check applications list pagination parameters from and limit.
     ${params}=    Create Dictionary    from=0    limit=1
@@ -192,6 +242,16 @@ ADIM API Get Application
     Should Be True    $payload["type"] in ["vm", "container"]
     Should Be True    $payload["blueprintType"] in ["tosca", "ansible", "helm"]
 
+ADIM API Get Application Version Query Param
+    [Documentation]    Check get application supports version query parameter.
+    Skip If    '${APPLICATION_ID}' == 'None'    No applications available in the configured backend.
+    ${params}=    Create Dictionary    version=latest
+    ${response}=    GET    ${ADIM_ENDPOINT}/application/${APPLICATION_ID}    params=${params}    expected_status=200    headers=${ADIM_AUTH_HEADER}
+    ${payload}=    Set Variable    ${response.json()}
+    Should Be Equal    ${payload}[id]    ${APPLICATION_ID}
+    Dictionary Should Contain Key    ${payload}    blueprint
+    Dictionary Should Contain Key    ${payload}    blueprintType
+
 ADIM API List Deployments
     [Documentation]    Check deployments list endpoint.
     ${response}=    GET    ${ADIM_ENDPOINT}/deployments    expected_status=200    headers=${ADIM_AUTH_HEADER}
@@ -210,6 +270,16 @@ ADIM API List Deployments Pagination
     Dictionary Should Contain Key    ${payload}    elements
     ${page_size}=    Get Length    ${payload}[elements]
     Should Be True    ${page_size} <= 1
+
+ADIM API List Deployments All Nodes
+    [Documentation]    Check deployments list supports allNodes query parameter.
+    ${params}=    Create Dictionary    allNodes=true    from=0    limit=10
+    ${response}=    GET    ${ADIM_ENDPOINT}/deployments    params=${params}    expected_status=200    headers=${ADIM_AUTH_HEADER}
+    ${payload}=    Set Variable    ${response.json()}
+    Dictionary Should Contain Key    ${payload}    count
+    Dictionary Should Contain Key    ${payload}    elements
+    Dictionary Should Contain Key    ${payload}    from
+    Dictionary Should Contain Key    ${payload}    limit
 
 ADIM API List Deployments Invalid Limit Returns 400
     [Documentation]    Check deployments list rejects invalid limit values.
