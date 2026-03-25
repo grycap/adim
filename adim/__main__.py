@@ -15,9 +15,17 @@
 # limitations under the License.
 
 import os
+
 import yaml
 from fastapi import FastAPI
-from adim.routers import deployments, allocations, applications, service
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi.openapi.utils import get_openapi
+
+from adim.routers import allocations
+from adim.routers import applications
+from adim.routers import deployments
+from adim.routers import service
 
 
 def create_app():
@@ -50,6 +58,40 @@ def create_app():
         service.router,
         tags=["Service"]
     )
+
+    # Custom exception handler for FastAPI validation errors to return 400 instead of 422
+    @fapp.exception_handler(RequestValidationError)
+    async def validation_exception_handler(_request, exc):
+        details = {}
+        for error in exc.errors():
+            loc = ".".join(str(part) for part in error.get("loc", []))
+            details[loc] = error.get("msg", "")
+        return JSONResponse(
+            status_code=400,
+            content={
+                "id": "400",
+                "description": "Invalid parameters or configuration",
+                "details": details,
+            },
+        )
+
+    # Override the OpenAPI schema generation to remove the default 422 response from all endpoints
+    def custom_openapi():
+        if not fapp.openapi_schema:
+            schema = get_openapi(
+                title=fapp.title,
+                version=fapp.version,
+                description=fapp.description,
+                routes=fapp.routes,
+            )
+            for path in schema.get("paths", {}).values():
+                for operation in path.values():
+                    if isinstance(operation, dict):
+                        operation.get("responses", {}).pop("422", None)
+            fapp.openapi_schema = schema
+        return fapp.openapi_schema
+
+    fapp.openapi = custom_openapi
 
     return fapp
 

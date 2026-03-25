@@ -78,12 +78,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
     post:
       tags:
       - Deployments
@@ -151,12 +145,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DeploymentId'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /deployment/{deployment_id}:
     get:
       tags:
@@ -215,12 +203,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
     delete:
       tags:
       - Deployments
@@ -278,12 +260,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /allocations:
     get:
       tags:
@@ -357,12 +333,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
     post:
       tags:
       - Allocations
@@ -376,7 +346,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Allocation'
+              $ref: '#/components/schemas/Allocation-Input'
       responses:
         '201':
           description: Accepted
@@ -421,12 +391,6 @@ paths:
               description: URL of the existing resource
               schema:
                 type: string
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /allocation/{allocation_id}:
     get:
       tags:
@@ -485,12 +449,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
     put:
       tags:
       - Allocations
@@ -509,7 +467,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Allocation'
+              $ref: '#/components/schemas/Allocation-Input'
       responses:
         '200':
           description: Success
@@ -559,12 +517,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
     delete:
       tags:
       - Allocations
@@ -628,12 +580,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /applications:
     get:
       tags:
@@ -728,12 +674,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /application/{application_id}:
     get:
       tags:
@@ -802,12 +742,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /version:
     get:
       tags:
@@ -824,8 +758,9 @@ paths:
                 title: Response 200 Version Version Get
 components:
   schemas:
-    Allocation:
+    Allocation-Input:
       oneOf:
+      - $ref: '#/components/schemas/DummyEnvironment'
       - $ref: '#/components/schemas/OpenStackEnvironment'
       - $ref: '#/components/schemas/EGIComputeEnvironment'
       - $ref: '#/components/schemas/KubernetesEnvironment'
@@ -834,6 +769,23 @@ components:
       discriminator:
         propertyName: kind
         mapping:
+          DummyEnvironment: '#/components/schemas/DummyEnvironment'
+          EGIComputeEnvironment: '#/components/schemas/EGIComputeEnvironment'
+          EoscNodeEnvironment: '#/components/schemas/EoscNodeEnvironment'
+          KubernetesEnvironment: '#/components/schemas/KubernetesEnvironment'
+          OpenStackEnvironment: '#/components/schemas/OpenStackEnvironment'
+    Allocation-Output:
+      oneOf:
+      - $ref: '#/components/schemas/DummyEnvironment'
+      - $ref: '#/components/schemas/OpenStackEnvironment'
+      - $ref: '#/components/schemas/EGIComputeEnvironment'
+      - $ref: '#/components/schemas/KubernetesEnvironment'
+      - $ref: '#/components/schemas/EoscNodeEnvironment'
+      title: Allocation
+      discriminator:
+        propertyName: kind
+        mapping:
+          DummyEnvironment: '#/components/schemas/DummyEnvironment'
           EGIComputeEnvironment: '#/components/schemas/EGIComputeEnvironment'
           EoscNodeEnvironment: '#/components/schemas/EoscNodeEnvironment'
           KubernetesEnvironment: '#/components/schemas/KubernetesEnvironment'
@@ -865,7 +817,7 @@ components:
       title: AllocationId
     AllocationInfo:
       allOf:
-      - $ref: '#/components/schemas/Allocation'
+      - $ref: '#/components/schemas/Allocation-Output'
       - properties:
           id:
             type: string
@@ -1177,6 +1129,18 @@ components:
       - status
       - self
       title: DeploymentInfo
+    DummyEnvironment:
+      properties:
+        kind:
+          type: string
+          enum:
+          - DummyEnvironment
+          const: DummyEnvironment
+          title: Kind
+          default: DummyEnvironment
+      type: object
+      title: DummyEnvironment
+      description: Dummy environment for testing purposes
     EGIComputeEnvironment:
       properties:
         kind:
