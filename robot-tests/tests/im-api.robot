@@ -86,11 +86,28 @@ ADIM API List Allocations Pagination
     ${page_size}=    Get Length    ${payload}[elements]
     Should Be True    ${page_size} <= 1
 
+ADIM API List Allocations Invalid Limit Returns 400
+    [Documentation]    Check allocations list rejects invalid limit values.
+    ${params}=    Create Dictionary    limit=0
+    ${response}=    GET    ${ADIM_ENDPOINT}/allocations    params=${params}    expected_status=400    headers=${ADIM_AUTH_HEADER}
+    ${error}=    Set Variable    ${response.json()}
+    Assert Error Payload    ${error}
+    Should Be Equal As Strings    ${error}[id]    400
+
 ADIM API Get Nonexistent Allocation Returns 404
     [Documentation]    Check that GET request for nonexistent allocation returns 404.
     ${response}=    GET    ${ADIM_ENDPOINT}/allocation/__robot_nonexistent_allocation__    expected_status=404    headers=${ADIM_AUTH_HEADER}
     ${error}=    Set Variable    ${response.json()}
-    Dictionary Should Contain Key    ${error}    id
+    Assert Error Payload    ${error}
+    Should Be Equal As Strings    ${error}[id]    404
+
+ADIM API Create Invalid Allocation Returns 400
+    [Documentation]    Check allocation creation rejects a payload missing required fields.
+    ${invalid_payload}=    Create Dictionary
+    ${response}=    POST    ${ADIM_ENDPOINT}/allocations    headers=${ADIM_AUTH_HEADER}    json=${invalid_payload}    expected_status=400
+    ${error}=    Set Variable    ${response.json()}
+    Assert Error Payload    ${error}
+    Should Be Equal As Strings    ${error}[id]    400
 
 ADIM API Create Allocation
     [Documentation]    Create one configured allocation.
@@ -106,6 +123,8 @@ ADIM API Get Allocation
     ${payload}=    Set Variable    ${response.json()}
     Should Be Equal    ${payload}[id]    ${ALLOCATION_ID}
     Should Be Equal    ${payload}[kind]    ${ALLOCATION_KIND}
+    Dictionary Should Contain Key    ${payload}    self
+    Should Not Be Empty    ${payload}[self]
 
 ADIM API Update Allocation
     [Documentation]    Update created allocation using the configured payload.
@@ -115,6 +134,14 @@ ADIM API Update Allocation
     Should Be Equal    ${payload}[id]    ${ALLOCATION_ID}
     Should Be Equal    ${payload}[kind]    ${ALLOCATION_KIND}
     Dictionary Should Contain Key    ${payload}    self
+
+ADIM API Update Nonexistent Allocation Returns 404
+    [Documentation]    Check allocation update returns 404 for a nonexistent id.
+    ${update_payload}=    Get Configured Allocation Payload
+    ${response}=    PUT    ${ADIM_ENDPOINT}/allocation/__robot_nonexistent_allocation__    headers=${ADIM_AUTH_HEADER}    json=${update_payload}    expected_status=404
+    ${error}=    Set Variable    ${response.json()}
+    Assert Error Payload    ${error}
+    Should Be Equal As Strings    ${error}[id]    404
 
 ADIM API List Applications
     [Documentation]    Check applications list endpoint and keep one id for follow-up get.
@@ -138,11 +165,20 @@ ADIM API List Applications Pagination
     ${page_size}=    Get Length    ${payload}[elements]
     Should Be True    ${page_size} <= 1
 
+ADIM API List Applications Invalid From Returns 400
+    [Documentation]    Check applications list rejects invalid from values.
+    ${params}=    Create Dictionary    from=-1
+    ${response}=    GET    ${ADIM_ENDPOINT}/applications    params=${params}    expected_status=400    headers=${ADIM_AUTH_HEADER}
+    ${error}=    Set Variable    ${response.json()}
+    Assert Error Payload    ${error}
+    Should Be Equal As Strings    ${error}[id]    400
+
 ADIM API Get Nonexistent Application Returns 404
     [Documentation]    Check that GET request for nonexistent application returns 404.
     ${response}=    GET    ${ADIM_ENDPOINT}/application/__robot_nonexistent_application__    expected_status=404    headers=${ADIM_AUTH_HEADER}
     ${error}=    Set Variable    ${response.json()}
-    Dictionary Should Contain Key    ${error}    id
+    Assert Error Payload    ${error}
+    Should Be Equal As Strings    ${error}[id]    404
 
 ADIM API Get Application
     [Documentation]    Get one application when list endpoint returns elements.
@@ -150,8 +186,11 @@ ADIM API Get Application
     ${response}=    GET    ${ADIM_ENDPOINT}/application/${APPLICATION_ID}    expected_status=200    headers=${ADIM_AUTH_HEADER}
     ${payload}=    Set Variable    ${response.json()}
     Should Be Equal    ${payload}[id]    ${APPLICATION_ID}
+    Dictionary Should Contain Key    ${payload}    type
     Dictionary Should Contain Key    ${payload}    blueprint
     Dictionary Should Contain Key    ${payload}    blueprintType
+    Should Be True    $payload["type"] in ["vm", "container"]
+    Should Be True    $payload["blueprintType"] in ["tosca", "ansible", "helm"]
 
 ADIM API List Deployments
     [Documentation]    Check deployments list endpoint.
@@ -172,11 +211,35 @@ ADIM API List Deployments Pagination
     ${page_size}=    Get Length    ${payload}[elements]
     Should Be True    ${page_size} <= 1
 
+ADIM API List Deployments Invalid Limit Returns 400
+    [Documentation]    Check deployments list rejects invalid limit values.
+    ${params}=    Create Dictionary    limit=0
+    ${response}=    GET    ${ADIM_ENDPOINT}/deployments    params=${params}    expected_status=400    headers=${ADIM_AUTH_HEADER}
+    ${error}=    Set Variable    ${response.json()}
+    Assert Error Payload    ${error}
+    Should Be Equal As Strings    ${error}[id]    400
+
 ADIM API Get Nonexistent Deployment Returns 404
     [Documentation]    Check that GET request for nonexistent deployment returns 404.
     ${response}=    GET    ${ADIM_ENDPOINT}/deployment/__robot_nonexistent_deployment__    expected_status=404    headers=${ADIM_AUTH_HEADER}
     ${error}=    Set Variable    ${response.json()}
-    Dictionary Should Contain Key    ${error}    id
+    Assert Error Payload    ${error}
+    Should Be Equal As Strings    ${error}[id]    404
+
+ADIM API Delete Nonexistent Deployment Returns 404
+    [Documentation]    Check that DELETE request for nonexistent deployment returns 404.
+    ${response}=    DELETE    ${ADIM_ENDPOINT}/deployment/__robot_nonexistent_deployment__    expected_status=404    headers=${ADIM_AUTH_HEADER}
+    ${error}=    Set Variable    ${response.json()}
+    Assert Error Payload    ${error}
+    Should Be Equal As Strings    ${error}[id]    404
+
+ADIM API Deploy Invalid Payload Returns 400
+    [Documentation]    Deploy with a payload missing required fields and expect 400.
+    ${payload}=    Create Dictionary
+    ${response}=    POST    ${ADIM_ENDPOINT}/deployments    headers=${ADIM_AUTH_HEADER}    json=${payload}    expected_status=400
+    ${error}=    Set Variable    ${response.json()}
+    Assert Error Payload    ${error}
+    Should Be Equal As Strings    ${error}[id]    400
 
 ADIM API Deploy Invalid Application Returns Error
     [Documentation]    Deploy with a non-existing application id and expect 400.
@@ -195,7 +258,8 @@ ADIM API Deploy Invalid Application Returns Error
     ...    application=${application}
     ${response}=    POST    ${ADIM_ENDPOINT}/deployments    headers=${ADIM_AUTH_HEADER}    json=${payload}    expected_status=400
     ${error}=    Set Variable    ${response.json()}
-    Dictionary Should Contain Key    ${error}    id
+    Assert Error Payload    ${error}
+    Should Be Equal As Strings    ${error}[id]    400
 
 ADIM API Create Deployment
     [Documentation]    Create deployment using current allocation and one available application.
@@ -214,7 +278,7 @@ ADIM API Create Deployment
     ...    application=${application}
     ${response}=    POST    ${ADIM_ENDPOINT}/deployments    headers=${ADIM_AUTH_HEADER}    json=${payload}    expected_status=202
     ${dep}=    Set Variable    ${response.json()}
-    Dictionary Should Contain Key    ${dep}    id
+    Assert Reference Payload    ${dep}
     Set Suite Variable    ${DEPLOYMENT_ID}    ${dep}[id]
 
 ADIM API Get Deployment
@@ -222,10 +286,26 @@ ADIM API Get Deployment
     Skip If    '${DEPLOYMENT_ID}' == 'None'    Deployment was not created in previous test.
     ${response}=    GET    ${ADIM_ENDPOINT}/deployment/${DEPLOYMENT_ID}    expected_status=200    headers=${ADIM_AUTH_HEADER}
     ${payload}=    Set Variable    ${response.json()}
+    ${application_ref}=    Set Variable    ${payload}[application]
+    ${allocation_ref}=    Set Variable    ${payload}[allocation]
     Should Be Equal    ${payload}[id]    ${DEPLOYMENT_ID}
-    Should Be Equal    ${payload}[application][id]    ${APPLICATION_ID}
-    Should Be Equal    ${payload}[allocation][id]    ${ALLOCATION_ID}
+    Assert Reference Payload    ${application_ref}
+    Assert Reference Payload    ${allocation_ref}
+    Should Be Equal    ${application_ref}[id]    ${APPLICATION_ID}
+    Should Be Equal    ${allocation_ref}[id]    ${ALLOCATION_ID}
     Dictionary Should Contain Key    ${payload}    status
+    Dictionary Should Contain Key    ${payload}    self
+    Should Be True    $payload["status"] in ["unknown", "pending", "running", "stopped", "off", "failed", "configured", "unconfigured", "deleting", "deleted"]
+    ${has_outputs}=    Run Keyword And Return Status    Dictionary Should Contain Key    ${payload}    outputs
+    IF    ${has_outputs}
+        ${outputs_are_list}=    Evaluate    isinstance($payload["outputs"], list)
+        Should Be True    ${outputs_are_list}
+    END
+    ${has_details}=    Run Keyword And Return Status    Dictionary Should Contain Key    ${payload}    details
+    IF    ${has_details}
+        ${details_are_string}=    Evaluate    isinstance($payload["details"], str)
+        Should Be True    ${details_are_string}
+    END
 
 ADIM API Update In Use Allocation Returns 409
     [Documentation]    Check allocation cannot be updated while used by a deployment.
@@ -233,14 +313,16 @@ ADIM API Update In Use Allocation Returns 409
     ${update_payload}=    Get Configured Allocation Payload
     ${response}=    PUT    ${ADIM_ENDPOINT}/allocation/${ALLOCATION_ID}    headers=${ADIM_AUTH_HEADER}    json=${update_payload}    expected_status=409
     ${error}=    Set Variable    ${response.json()}
-    Should Be Equal    ${error}[id]    409
+    Assert Error Payload    ${error}
+    Should Be Equal As Strings    ${error}[id]    409
 
 ADIM API Delete In Use Allocation Returns 409
     [Documentation]    Check allocation cannot be deleted while used by a deployment.
     Skip If    '${DEPLOYMENT_ID}' == 'None'    Deployment was not created in previous test.
     ${response}=    DELETE    ${ADIM_ENDPOINT}/allocation/${ALLOCATION_ID}    expected_status=409    headers=${ADIM_AUTH_HEADER}
     ${error}=    Set Variable    ${response.json()}
-    Should Be Equal    ${error}[id]    409
+    Assert Error Payload    ${error}
+    Should Be Equal As Strings    ${error}[id]    409
 
 ADIM API Delete Deployment
     [Documentation]    Delete deployment so allocation can be cleaned up.
@@ -256,3 +338,10 @@ ADIM API Delete Allocation
     ${payload}=    Set Variable    ${response.json()}
     Should Be Equal    ${payload}[message]    Deleted
     Set Suite Variable    ${ALLOCATION_ID}    None
+
+ADIM API Delete Nonexistent Allocation Returns 404
+    [Documentation]    Check allocation deletion returns 404 for a nonexistent id.
+    ${response}=    DELETE    ${ADIM_ENDPOINT}/allocation/__robot_nonexistent_allocation__    expected_status=404    headers=${ADIM_AUTH_HEADER}
+    ${error}=    Set Variable    ${response.json()}
+    Assert Error Payload    ${error}
+    Should Be Equal As Strings    ${error}[id]    404

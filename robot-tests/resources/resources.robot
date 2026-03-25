@@ -3,6 +3,7 @@
 Library    Collections
 Library    DateTime
 Library    RequestsLibrary
+Library    String
 
 *** Variables *** 
 
@@ -75,3 +76,22 @@ Delete Allocation If Present
     Return From Keyword If    '${allocation_id}' == 'None'
     ${response}=    DELETE    ${ADIM_ENDPOINT}/allocation/${allocation_id}    headers=${headers}    expected_status=anything
     Should Be True    ${response.status_code} == 200 or ${response.status_code} == 404
+
+Assert Error Payload
+    [Documentation]    Validate a standard ADIM error payload.
+    [Arguments]    ${error}
+    Dictionary Should Contain Key    ${error}    id
+    Dictionary Should Contain Key    ${error}    description
+    ${has_details}=    Run Keyword And Return Status    Dictionary Should Contain Key    ${error}    details
+    IF    ${has_details}
+        ${details_are_dict}=    Evaluate    isinstance($error["details"], dict)
+        Should Be True    ${details_are_dict}
+    END
+
+Assert Reference Payload
+    [Documentation]    Validate a reference object returned by the ADIM API.
+    [Arguments]    ${reference}
+    Dictionary Should Contain Key    ${reference}    id
+    Dictionary Should Contain Key    ${reference}    infoLink
+    Should Not Be Empty    ${reference}[id]
+    Should Not Be Empty    ${reference}[infoLink]
