@@ -7,7 +7,7 @@ Library    String
 
 *** Variables *** 
 
-${ADIM_ENDPOINT}=       %{adim_endpoint}
+${ADM_ENDPOINT}=       %{adm_endpoint}
 ${OIDC_ACCESS_TOKEN}=   %{oidc_access_token}
 ${ALLOCATION_TO_CREATE_RAW}=   %{allocation_to_create={"kind":"DummyEnvironment"}}
 
@@ -34,8 +34,8 @@ Check JWT Expiration
     ${current_time}=    Get Current Date    result_format=epoch
     Should Be True    ${expiry_time} > ${current_time}    Token is expired
 
-Generate ADIM Auth Header
-    [Documentation]    Build Authorization header for ADIM OpenID Connect Bearer auth.
+Generate ADM Auth Header
+    [Documentation]    Build Authorization header for ADM OpenID Connect Bearer auth.
     ${headers}=    Create Dictionary
     ...    Authorization=Bearer ${OIDC_ACCESS_TOKEN}
     ...    Content-Type=application/json
@@ -56,7 +56,7 @@ Create Configured Allocation
     [Documentation]    Create an allocation using allocation_to_create payload and return the allocation id.
     [Arguments]    ${headers}
     ${payload}=    Get Configured Allocation Payload
-    ${response}=    POST    ${ADIM_ENDPOINT}/allocations    headers=${headers}    json=${payload}    expected_status=anything
+    ${response}=    POST    ${ADM_ENDPOINT}/allocations    headers=${headers}    json=${payload}    expected_status=anything
     Should Be True    ${response.status_code} == 201 or ${response.status_code} == 303
 
     IF    ${response.status_code} == 201
@@ -74,11 +74,11 @@ Delete Allocation If Present
     [Documentation]    Delete an allocation id if present and ignore 404 in cleanup.
     [Arguments]    ${headers}    ${allocation_id}
     Return From Keyword If    '${allocation_id}' == 'None'
-    ${response}=    DELETE    ${ADIM_ENDPOINT}/allocation/${allocation_id}    headers=${headers}    expected_status=anything
+    ${response}=    DELETE    ${ADM_ENDPOINT}/allocation/${allocation_id}    headers=${headers}    expected_status=anything
     Should Be True    ${response.status_code} == 200 or ${response.status_code} == 404
 
 Assert Error Payload
-    [Documentation]    Validate a standard ADIM error payload.
+    [Documentation]    Validate a standard ADM error payload.
     [Arguments]    ${error}
     Dictionary Should Contain Key    ${error}    id
     Dictionary Should Contain Key    ${error}    description
@@ -89,7 +89,7 @@ Assert Error Payload
     END
 
 Assert Reference Payload
-    [Documentation]    Validate a reference object returned by the ADIM API.
+    [Documentation]    Validate a reference object returned by the ADM API.
     [Arguments]    ${reference}
     Dictionary Should Contain Key    ${reference}    id
     Dictionary Should Contain Key    ${reference}    infoLink
