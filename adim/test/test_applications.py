@@ -291,3 +291,67 @@ def test_get_application_with_encoded_slash_id(client, check_oidc_mock, backend_
     assert response.status_code == 200
     assert response.json()["id"] == application_id_decoded
     assert response.json()["self"].endswith(f"/application/{application_id_encoded}?version=version")
+
+
+def test_list_applications_rc_skips_invalid_blueprint(client, check_oidc_mock, requests_get_mock,
+                                                      headers, seed_apps):
+    valid_blueprint = "description: DESC\nmetadata:\n  template_name: NAME"
+    invalid_blueprint = "This is not a YAML object"
+
+    resp_list = MagicMock(status_code=200)
+    resp_list.json.return_value = {
+        "results": [
+            {
+                "id": "bad-app",
+                "version": "v1",
+                "url": "http://catalog.url/bad-app"
+            },
+            {
+                "id": "good-app",
+                "version": "v1",
+                "url": "http://catalog.url/good-app"
+            }
+        ]
+    }
+
+    resp_bad = MagicMock(status_code=200)
+    resp_bad.text = invalid_blueprint
+
+    resp_good = MagicMock(status_code=200)
+    resp_good.text = valid_blueprint
+
+    # Use RC backend and return one invalid + one valid blueprint document.
+    with patch.dict('os.environ', {'APPLICATIONS_STORE': 'rc'}):
+        adim.application_store = ApplicationStore.get_application_store()
+        requests_get_mock.side_effect = [resp_list, resp_bad, resp_good]
+
+        response = client.get("/applications", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["count"] == 1
+    assert len(response.json()["elements"]) == 1
+    assert response.json()["elements"][0]["id"] == "good-app"
+
+
+def test_get_application_rc_invalid_blueprint_returns_503(client, check_oidc_mock, requests_get_mock,
+                                                          headers):
+    invalid_blueprint = "This is not a YAML object"
+
+    resp_catalog = MagicMock(status_code=200)
+    resp_catalog.json.return_value = {
+        "id": "app-invalid",
+        "version": "v1",
+        "url": "http://catalog.url/app-invalid"
+    }
+
+    resp_blueprint = MagicMock(status_code=200)
+    resp_blueprint.text = invalid_blueprint
+
+    with patch.dict('os.environ', {'APPLICATIONS_STORE': 'rc'}):
+        adim.application_store = ApplicationStore.get_application_store()
+        requests_get_mock.side_effect = [resp_catalog, resp_blueprint]
+
+        response = client.get("/application/app-invalid", headers=headers)
+
+    assert response.status_code == 503
+    assert "Invalid application blueprint" in response.json()["description"]

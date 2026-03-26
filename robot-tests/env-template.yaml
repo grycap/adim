@@ -1,0 +1,3 @@
+adm_endpoint: <COMPLETE>
+oidc_access_token: <COMPLETE>
+allocation_to_create: '{"kind":"DummyEnvironment"}'

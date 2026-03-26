@@ -81,7 +81,6 @@ class GitHubRepository(Repository):
         else:
             url = "%s/%s/%s/%s/%s" % (self.RAW_URL, owner, repo, branch, path)
         response = self.cache_session.get(url)
-        response.raise_for_status()
         return response
 
     def get_by_sha(self, element_path, sha, details=False):
@@ -91,5 +90,4 @@ class GitHubRepository(Repository):
         else:
             url = '%s/repos/%s/%s/%s/%s' % (self.RAW_URL, owner, repo, sha, element_path)
         response = self.cache_session.get(url)
-        response.raise_for_status()
         return response
