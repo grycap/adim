@@ -59,6 +59,70 @@ ADM API Request Without Auth Returns 401
     ${response}=    GET    ${ADM_ENDPOINT}/allocations    expected_status=401
     Should Be Equal As Integers    ${response.status_code}    401
 
+ADM API Get Allocation Without Auth Returns 401
+    [Documentation]    Check that GET allocation without Authorization header returns 401.
+    ${response}=    GET    ${ADM_ENDPOINT}/allocation/__robot_nonexistent_allocation__    expected_status=401
+    Assert Unauthorized Response    ${response}
+
+ADM API Create Allocation Without Auth Returns 401
+    [Documentation]    Check that POST allocations without Authorization header returns 401.
+    ${payload}=    Get Configured Allocation Payload
+    ${response}=    POST    ${ADM_ENDPOINT}/allocations    json=${payload}    expected_status=401
+    Assert Unauthorized Response    ${response}
+
+ADM API Update Allocation Without Auth Returns 401
+    [Documentation]    Check that PUT allocation without Authorization header returns 401.
+    ${payload}=    Get Configured Allocation Payload
+    ${response}=    PUT    ${ADM_ENDPOINT}/allocation/__robot_nonexistent_allocation__    json=${payload}    expected_status=401
+    Assert Unauthorized Response    ${response}
+
+ADM API Delete Allocation Without Auth Returns 401
+    [Documentation]    Check that DELETE allocation without Authorization header returns 401.
+    ${response}=    DELETE    ${ADM_ENDPOINT}/allocation/__robot_nonexistent_allocation__    expected_status=401
+    Assert Unauthorized Response    ${response}
+
+ADM API List Applications Without Auth Returns 401
+    [Documentation]    Check that GET applications without Authorization header returns 401.
+    ${response}=    GET    ${ADM_ENDPOINT}/applications    expected_status=401
+    Assert Unauthorized Response    ${response}
+
+ADM API Get Application Without Auth Returns 401
+    [Documentation]    Check that GET application without Authorization header returns 401.
+    ${response}=    GET    ${ADM_ENDPOINT}/application/__robot_nonexistent_application__    expected_status=401
+    Assert Unauthorized Response    ${response}
+
+ADM API List Deployments Without Auth Returns 401
+    [Documentation]    Check that GET deployments without Authorization header returns 401.
+    ${response}=    GET    ${ADM_ENDPOINT}/deployments    expected_status=401
+    Assert Unauthorized Response    ${response}
+
+ADM API Create Deployment Without Auth Returns 401
+    [Documentation]    Check that POST deployments without Authorization header returns 401.
+    ${allocation}=    Create Dictionary
+    ...    kind=AllocationId
+    ...    id=__robot_non_existing_allocation__
+    ...    infoLink=${ADM_ENDPOINT}/allocation/__robot_non_existing_allocation__
+    ${application}=    Create Dictionary
+    ...    kind=ApplicationId
+    ...    id=__robot_non_existing_application__
+    ...    version=latest
+    ...    infoLink=${ADM_ENDPOINT}/application/__robot_non_existing_application__
+    ${payload}=    Create Dictionary
+    ...    allocation=${allocation}
+    ...    application=${application}
+    ${response}=    POST    ${ADM_ENDPOINT}/deployments    json=${payload}    expected_status=401
+    Assert Unauthorized Response    ${response}
+
+ADM API Get Deployment Without Auth Returns 401
+    [Documentation]    Check that GET deployment without Authorization header returns 401.
+    ${response}=    GET    ${ADM_ENDPOINT}/deployment/__robot_nonexistent_deployment__    expected_status=401
+    Assert Unauthorized Response    ${response}
+
+ADM API Delete Deployment Without Auth Returns 401
+    [Documentation]    Check that DELETE deployment without Authorization header returns 401.
+    ${response}=    DELETE    ${ADM_ENDPOINT}/deployment/__robot_nonexistent_deployment__    expected_status=401
+    Assert Unauthorized Response    ${response}
+
 ADM API Version
     [Documentation]    Check API version endpoint.
     ${response}=    GET  ${ADM_ENDPOINT}/version  expected_status=200
@@ -135,6 +199,7 @@ ADM API Get Allocation
     Should Be Equal    ${payload}[kind]    ${ALLOCATION_KIND}
     Dictionary Should Contain Key    ${payload}    self
     Should Not Be Empty    ${payload}[self]
+    Assert Self Link Returns Object    ${ADM_AUTH_HEADER}    ${payload}
 
 ADM API Update Allocation
     [Documentation]    Update created allocation using the configured payload.
@@ -144,6 +209,7 @@ ADM API Update Allocation
     Should Be Equal    ${payload}[id]    ${ALLOCATION_ID}
     Should Be Equal    ${payload}[kind]    ${ALLOCATION_KIND}
     Dictionary Should Contain Key    ${payload}    self
+    Assert Self Link Returns Object    ${ADM_AUTH_HEADER}    ${payload}
 
 ADM API Update Nonexistent Allocation Returns 404
     [Documentation]    Check allocation update returns 404 for a nonexistent id.
@@ -357,6 +423,7 @@ ADM API Create Deployment
     ${response}=    POST    ${ADM_ENDPOINT}/deployments    headers=${ADM_AUTH_HEADER}    json=${payload}    expected_status=202
     ${dep}=    Set Variable    ${response.json()}
     Assert Reference Payload    ${dep}
+    Assert Link Returns Object    ${ADM_AUTH_HEADER}    ${dep}[infoLink]    ${dep}[id]
     Set Suite Variable    ${DEPLOYMENT_ID}    ${dep}[id]
 
 ADM API Get Deployment
@@ -369,10 +436,13 @@ ADM API Get Deployment
     Should Be Equal    ${payload}[id]    ${DEPLOYMENT_ID}
     Assert Reference Payload    ${application_ref}
     Assert Reference Payload    ${allocation_ref}
+    Assert Link Returns Object    ${ADM_AUTH_HEADER}    ${application_ref}[infoLink]    ${application_ref}[id]
+    Assert Link Returns Object    ${ADM_AUTH_HEADER}    ${allocation_ref}[infoLink]    ${allocation_ref}[id]
     Should Be Equal    ${application_ref}[id]    ${APPLICATION_ID}
     Should Be Equal    ${allocation_ref}[id]    ${ALLOCATION_ID}
     Dictionary Should Contain Key    ${payload}    status
     Dictionary Should Contain Key    ${payload}    self
+    Assert Self Link Returns Object    ${ADM_AUTH_HEADER}    ${payload}
     Should Be True    $payload["status"] in ["unknown", "pending", "running", "stopped", "off", "failed", "configured", "unconfigured", "deleting", "deleted"]
     Dictionary Should Contain Key    ${payload}    outputs
     ${outputs_are_list}=    Evaluate    isinstance($payload["outputs"], list)

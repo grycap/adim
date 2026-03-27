@@ -52,6 +52,25 @@ Get Configured Allocation Kind
     ${kind}=    Get From Dictionary    ${payload}    kind
     RETURN    ${kind}
 
+Assert Allocation Id Payload
+    [Documentation]    Validate AllocationId payload returned on successful allocation creation.
+    [Arguments]    ${payload}
+    Dictionary Should Contain Key    ${payload}    id
+    Dictionary Should Contain Key    ${payload}    infoLink
+    Should Not Be Empty    ${payload}[id]
+    Should Not Be Empty    ${payload}[infoLink]
+    ${id_is_string}=    Evaluate    isinstance($payload["id"], str)
+    Should Be True    ${id_is_string}
+    ${link_is_string}=    Evaluate    isinstance($payload["infoLink"], str)
+    Should Be True    ${link_is_string}
+    ${has_kind}=    Run Keyword And Return Status    Dictionary Should Contain Key    ${payload}    kind
+    IF    ${has_kind}
+        Should Be Equal As Strings    ${payload}[kind]    AllocationId
+    END
+    Should Match Regexp    ${payload}[infoLink]    ^https?://.+
+    Should Contain    ${payload}[infoLink]    /allocation/
+    Should Contain    ${payload}[infoLink]    ${payload}[id]
+
 Create Configured Allocation
     [Documentation]    Create an allocation using allocation_to_create payload and return the allocation id.
     [Arguments]    ${headers}
@@ -61,9 +80,13 @@ Create Configured Allocation
 
     IF    ${response.status_code} == 201
         ${json_payload}=    Set Variable    ${response.json()}
+        Assert Allocation Id Payload    ${json_payload}
+        Assert Link Returns Object    ${headers}    ${json_payload}[infoLink]    ${json_payload}[id]
         ${allocation_id}=    Set Variable    ${json_payload}[id]
     ELSE
         ${location}=    Get From Dictionary    ${response.headers}    Location
+        Should Not Be Empty    ${location}
+        Should Contain    ${location}    /allocation/
         ${parts}=    Split String    ${location}    /
         ${allocation_id}=    Get From List    ${parts}    -1
     END
@@ -87,6 +110,35 @@ Assert Error Payload
         ${details_are_dict}=    Evaluate    isinstance($error["details"], dict)
         Should Be True    ${details_are_dict}
     END
+
+Assert Unauthorized Response
+    [Documentation]    Validate a 401 response accepting ADM Error or FastAPI detail payload.
+    [Arguments]    ${response}
+    Should Be Equal As Integers    ${response.status_code}    401
+    ${payload}=    Set Variable    ${response.json()}
+    ${has_id}=    Run Keyword And Return Status    Dictionary Should Contain Key    ${payload}    id
+    IF    ${has_id}
+        Should Be Equal As Strings    ${payload}[id]    401
+    ELSE
+        Dictionary Should Contain Key    ${payload}    detail
+        Should Not Be Empty    ${payload}[detail]
+    END
+
+Assert Link Returns Object
+    [Documentation]    Validate that a hyperlink returns an object with the expected id.
+    [Arguments]    ${headers}    ${link}    ${expected_id}
+    ${response}=    GET    ${link}    headers=${headers}    expected_status=200
+    ${payload}=    Set Variable    ${response.json()}
+    Dictionary Should Contain Key    ${payload}    id
+    Should Be Equal    ${payload}[id]    ${expected_id}
+
+Assert Self Link Returns Object
+    [Documentation]    Validate that payload self link returns the same object.
+    [Arguments]    ${headers}    ${payload}
+    Dictionary Should Contain Key    ${payload}    id
+    Dictionary Should Contain Key    ${payload}    self
+    Should Not Be Empty    ${payload}[self]
+    Assert Link Returns Object    ${headers}    ${payload}[self]    ${payload}[id]
 
 Assert Reference Payload
     [Documentation]    Validate a reference object returned by the ADM API.
