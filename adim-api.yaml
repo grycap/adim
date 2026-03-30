@@ -1395,6 +1395,18 @@ components:
           minLength: 1
           format: uri
           title: Host
+        namespace:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Namespace
+          description: Kubernetes namespace where applications should be deployed
+        apps_dns:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Apps Dns
+          description: DNS domain for applications deployed in this Kubernetes environment
       type: object
       required:
       - host
