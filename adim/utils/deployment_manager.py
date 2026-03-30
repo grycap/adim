@@ -90,6 +90,10 @@ class DeploymentsManager:
                 cloud_auth_data["type"] = "Kubernetes"
                 cloud_auth_data["host"] = str(allocation.host)
                 cloud_auth_data["token"] = token
+                if allocation.namespace:
+                    cloud_auth_data["namespace"] = allocation.namespace
+                if allocation.apps_dns:
+                    cloud_auth_data["apps_dns"] = allocation.apps_dns
             elif allocation.kind == "DummyEnvironment":
                 cloud_auth_data["type"] = "Dummy"
             else:
