@@ -81,7 +81,8 @@ class KubernetesEnvironment(BaseModel):
     kind: Literal['KubernetesEnvironment'] = 'KubernetesEnvironment'
     host: HttpUrl
     namespace: str | None = Field(None, description="Kubernetes namespace where applications should be deployed")
-    apps_dns: str | None = Field(None, description="DNS domain for applications deployed in this Kubernetes environment")
+    apps_dns: str | None = Field(None, description="DNS domain for applications deployed "
+                                 "in this Kubernetes environment")
 
 
 class DummyEnvironment(BaseModel):
