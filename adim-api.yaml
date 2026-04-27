@@ -993,12 +993,12 @@ components:
           allOf:
           - $ref: '#/components/schemas/Quota'
           description: Number of instances quota
-        floating_ips:
+        floatingIps:
           anyOf:
           - $ref: '#/components/schemas/Quota'
           - type: 'null'
           description: Number of floating IPs quota
-        security_groups:
+        securityGroups:
           anyOf:
           - $ref: '#/components/schemas/Quota'
           - type: 'null'
@@ -1008,7 +1008,7 @@ components:
           - $ref: '#/components/schemas/Quota'
           - type: 'null'
           description: Number of volumes quota
-        volume_storage:
+        volumeStorage:
           anyOf:
           - $ref: '#/components/schemas/Quota'
           - type: 'null'
@@ -1661,12 +1661,12 @@ components:
           - type: 'null'
           title: Limit
           description: Maximum amount of the resource available
-        to_use:
+        needed:
           anyOf:
           - type: integer
           - type: number
           - type: 'null'
-          title: To Use
+          title: Needed
           description: Amount of the resources the user needs with the deployment
       type: object
       title: Quota

@@ -418,10 +418,10 @@ def test_deploy_workload_dry_run(
         "ram": {"used": 8192, "limit": 16384},
         "gpus": {"used": 1, "limit": 4},
         "instances": {"used": 2, "limit": 5},
-        "floating_ips": {"used": 1, "limit": 3},
-        "security_groups": {"used": 2, "limit": 10},
+        "floatingIps": {"used": 1, "limit": 3},
+        "securityGroups": {"used": 2, "limit": 10},
         "volumes": {"used": 3, "limit": 10},
-        "volume_storage": {"used": 300, "limit": 1000}
+        "volumeStorage": {"used": 300, "limit": 1000}
     }
 
     payload = ('{"application": {"kind": "ApplicationId", "id": "appid", "infoLink": "http://some.url/"}, '
@@ -435,5 +435,5 @@ def test_deploy_workload_dry_run(
     assert response.status_code == 200
     response_json = response.json()
     assert response_json["cores"]["used"] == 4
-    assert response_json["cores"]["to_use"] == 3
-    assert response_json["memory"]["to_use"] == 6144
+    assert response_json["cores"]["needed"] == 3
+    assert response_json["memory"]["needed"] == 6144

@@ -316,17 +316,17 @@ class DeploymentsManager:
         return yaml.safe_dump(template)
 
     @staticmethod
-    def _compute_resources_to_use(resources: dict, quotas: dict) -> CloudQuota:
-        """Compute the resources to use based on the deployment resources and the current quotas."""
+    def _compute_resources_needed(resources: dict, quotas: dict) -> CloudQuota:
+        """Compute the resources needed based on the deployment resources and the current quotas."""
         # Initialize totals
         totals = {
             "cores": 0,
             "ram": 0.0,
             "instances": 0,
-            "floating_ips": 0,
+            "floatingIps": 0,
             "volumes": 0,
-            "volume_storage": 0,
-            "security_groups": 2  # default IM value per infrastructure
+            "volumeStorage": 0,
+            "securityGroups": 2  # default IM value per infrastructure
         }
 
         # Compute totals for VMs
@@ -334,18 +334,18 @@ class DeploymentsManager:
             totals["instances"] += 1
             totals["cores"] += vm.get("cpuCores", 0)
             totals["ram"] += vm.get("memoryInMegabytes", 0)
-            totals["floating_ips"] += vm.get("publicIP", 0)
+            totals["floatingIps"] += vm.get("publicIP", 0)
 
         # Compute totals for storage
         for disk in resources.get("storage", []):
             totals["volumes"] += 1
-            totals["volume_storage"] += disk.get("sizeInGigabytes", 0)
+            totals["volumeStorage"] += disk.get("sizeInGigabytes", 0)
 
         # Update quotas with computed totals
         for key, value in totals.items():
             if key not in quotas:
                 quotas[key] = {}
-            quotas[key]["to_use"] = value
+            quotas[key]["needed"] = value
 
         # Validate the CloudQuota model
         return CloudQuota.model_validate(quotas)
@@ -368,7 +368,7 @@ class DeploymentsManager:
             if not success:
                 adim.logger.error("Could not get cloud quotas: %s", quotas)
                 quotas = {}
-            return self._compute_resources_to_use(list(deployment_id.values())[0], quotas)
+            return self._compute_resources_needed(list(deployment_id.values())[0], quotas)
         else:
             if self.db.connect():
                 deployment_info = DeploymentInfo(id=deployment_id,
