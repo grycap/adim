@@ -20,7 +20,7 @@ from adim.utils.deployment_manager import DeploymentsManager
 from adim.utils.application.app_store import ApplicationStore
 from adim.utils.allocation.allocation_store import AllocationStore
 
-__version__ = "0.7.0"
+__version__ = "0.7.1"
 
 load_dotenv()
 

@@ -3,7 +3,7 @@ info:
   title: ADIM API
   description: Application Deployment with Infrastructure Manager implements EOSC
     Application Deployment Management API
-  version: 1.0.50
+  version: 1.0.51
 paths:
   /deployments:
     get:
@@ -794,8 +794,6 @@ components:
       properties:
         kind:
           type: string
-          enum:
-          - AllocationId
           const: AllocationId
           title: Kind
           default: AllocationId
@@ -839,8 +837,6 @@ components:
       properties:
         kind:
           type: string
-          enum:
-          - ApplicationId
           const: ApplicationId
           title: Kind
           default: ApplicationId
@@ -868,8 +864,6 @@ components:
       properties:
         kind:
           type: string
-          enum:
-          - ApplicationInfo
           const: ApplicationInfo
           title: Kind
           default: ApplicationInfo
@@ -977,12 +971,10 @@ components:
     CloudQuota:
       properties:
         cores:
-          allOf:
-          - $ref: '#/components/schemas/Quota'
+          $ref: '#/components/schemas/Quota'
           description: CPU cores quota
         ram:
-          allOf:
-          - $ref: '#/components/schemas/Quota'
+          $ref: '#/components/schemas/Quota'
           description: Memory quota in megabytes
         gpus:
           anyOf:
@@ -990,8 +982,7 @@ components:
           - type: 'null'
           description: GPU units quota
         instances:
-          allOf:
-          - $ref: '#/components/schemas/Quota'
+          $ref: '#/components/schemas/Quota'
           description: Number of instances quota
         floatingIps:
           anyOf:
@@ -1046,8 +1037,6 @@ components:
           description: Unique identifier for this deployment
         kind:
           type: string
-          enum:
-          - DeploymentId
           const: DeploymentId
           title: Kind
           default: DeploymentId
@@ -1079,8 +1068,6 @@ components:
           description: Input values for the template
         kind:
           type: string
-          enum:
-          - DeploymentInfo
           const: DeploymentInfo
           title: Kind
           default: DeploymentInfo
@@ -1133,8 +1120,6 @@ components:
       properties:
         kind:
           type: string
-          enum:
-          - DummyEnvironment
           const: DummyEnvironment
           title: Kind
           default: DummyEnvironment
@@ -1145,15 +1130,11 @@ components:
       properties:
         kind:
           type: string
-          enum:
-          - EGIComputeEnvironment
           const: EGIComputeEnvironment
           title: Kind
           default: EGIComputeEnvironment
         userName:
           type: string
-          enum:
-          - egi.eu
           const: egi.eu
           title: Username
           default: egi.eu
@@ -1168,8 +1149,6 @@ components:
           title: Domainid
         tenant:
           type: string
-          enum:
-          - openid
           const: openid
           title: Tenant
           default: openid
@@ -1191,8 +1170,6 @@ components:
           title: Host
         authVersion:
           type: string
-          enum:
-          - 3.x-oidc
           const: 3.x-oidc
           title: Authversion
           default: 3.x-oidc
@@ -1211,8 +1188,6 @@ components:
       properties:
         kind:
           type: string
-          enum:
-          - EoscNodeEnvironment
           const: EoscNodeEnvironment
           title: Kind
           default: EoscNodeEnvironment
@@ -1365,7 +1340,8 @@ components:
           default: Error
         details:
           anyOf:
-          - type: object
+          - additionalProperties: true
+            type: object
           - type: 'null'
           title: Details
           description: Additional details about the error
@@ -1384,8 +1360,6 @@ components:
       properties:
         kind:
           type: string
-          enum:
-          - KubernetesEnvironment
           const: KubernetesEnvironment
           title: Kind
           default: KubernetesEnvironment
@@ -1401,12 +1375,13 @@ components:
           - type: 'null'
           title: Namespace
           description: Kubernetes namespace where applications should be deployed
-        apps_dns:
+        appsDns:
           anyOf:
           - type: string
           - type: 'null'
-          title: Apps Dns
-          description: DNS domain for applications deployed in this Kubernetes environment
+          title: Appsdns
+          description: DNS domain where the applications deployed in this environment
+            are accessible
       type: object
       required:
       - host
@@ -1416,8 +1391,6 @@ components:
       properties:
         kind:
           type: string
-          enum:
-          - OpenStackEnvironment
           const: OpenStackEnvironment
           title: Kind
           default: OpenStackEnvironment
@@ -1453,8 +1426,6 @@ components:
           title: Host
         authVersion:
           type: string
-          enum:
-          - 3.x-oidc
           const: 3.x-oidc
           title: Authversion
           default: 3.x-oidc
