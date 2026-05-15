@@ -82,7 +82,7 @@ class KubernetesEnvironment(BaseModel):
     host: HttpUrl
     namespace: str | None = Field(None, description="Kubernetes namespace where applications should be deployed")
     appsDns: str | None = Field(None, description="DNS domain where the applications deployed "
-                                 "in this environment are accessible")
+                                "in this environment are accessible")
 
 
 class DummyEnvironment(BaseModel):
