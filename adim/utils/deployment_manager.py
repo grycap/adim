@@ -92,8 +92,8 @@ class DeploymentsManager:
                 cloud_auth_data["token"] = token
                 if allocation.namespace:
                     cloud_auth_data["namespace"] = allocation.namespace
-                if allocation.apps_dns:
-                    cloud_auth_data["apps_dns"] = allocation.apps_dns
+                if allocation.appsDns:
+                    cloud_auth_data["apps_dns"] = allocation.appsDns
             elif allocation.kind == "DummyEnvironment":
                 cloud_auth_data["type"] = "Dummy"
             else:
