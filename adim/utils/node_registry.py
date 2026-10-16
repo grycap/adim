@@ -51,16 +51,16 @@ class EOSCNode(BaseModel):
 
     def list_items(self, item: str, from_: int, limit: int, count: int, token: str) -> Tuple[int, List[ItemInfo]]:
         """Return the list of Items of type 'item' of this node"""
-        init = max(0, from_ - count)
-        elems = limit - (count - from_)
-        url = f"{self.admAPI}{item}?from=0&limit={elems}"
+        offset = max(0, from_ - count)
+        elems = limit
+        url = f"{self.admAPI}{item}?from={offset}&limit={elems}"
         try:
             headers = {"Authorization": f"Bearer {token}"}
             response = requests.get(url, headers=headers, timeout=30)
             response.raise_for_status()
             if response.status_code == 200:
                 page = PageOfItems.model_validate(response.json())
-                items = page.elements[init:] if len(page.elements) > init else []
+                items = page.elements[:limit]
                 return page.count, items
         except Exception:
             logger.exception(f"Error getting {item} from node: %s", self.nodeId)
@@ -110,7 +110,7 @@ class EOSCNodeRegistry():
     def list_items(item: str, from_: int, limit: int, count: int, user_info) -> Tuple[int, List[ItemInfo]]:
         """Return the list of remote items"""
         total = 0
-        num_items = 0
+        offset = max(0, from_ - count)
         items = []
         try:
             nodes = EOSCNodeRegistry.list_nodes()
@@ -126,10 +126,15 @@ class EOSCNodeRegistry():
             if node.admAPI is None:
                 logger.debug(f"Node {node.nodeName} does not have an ADM API, skipping")
                 continue
-            node_total, node_items = node.list_items(item, from_, limit, count + num_items, user_info["token"])
-            num_items += len(node_items) if node_items else node_total
+            node_offset = offset
+            remaining = max(0, limit - len(items))
+            node_total, node_items = node.list_items(
+                item, node_offset, remaining, 0, user_info["token"]
+            )
+            offset = max(0, offset - node_total)
+            if len(items) < limit:
+                items.extend(node_items[:limit - len(items)])
             total += node_total
-            items.extend(node_items)
         return total, items
 
     @staticmethod

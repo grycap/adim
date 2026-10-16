@@ -86,20 +86,21 @@ def test_get_node_by_id_keeps_node_when_local_info_fails(mocker):
 
 
 def test_eosc_node_list_items_applies_pagination_and_token(mocker):
-    page = {"from": 0, "limit": 5, "count": 8, "elements": [
-        {"id": f"app-{i}", "name": f"App {i}", "version": "1.0", "description": "test",
-         "licenses": [], "inputs": [], "outputs": []}
-        for i in range(5)
+    page = {"from": 2, "limit": 2, "count": 8, "elements": [
+        {"kind": "ApplicationInfo", "id": f"app-{i}", "type": "container",
+         "blueprint": "{}", "blueprintType": "helm", "name": f"App {i}",
+         "version": "1.0", "description": "test"}
+        for i in range(2, 4)
     ]}
     get = mocker.patch("adim.utils.node_registry.requests.get", return_value=_response(page))
-    node = EOSCNode(nodeId="node-1", nodeName="Node One", admAPI="https://node.example/adm/")
+    node = EOSCNode(nodeId="node-1", nodeName="Node One", admAPI=HttpUrl("https://node.example/adm/"))
 
-    count, items = node.list_applications(from_=3, limit=4, count=2, token="secret")
+    count, items = node.list_applications(from_=3, limit=2, count=1, token="secret")
 
     assert count == 8
-    assert [item.id for item in items] == ["app-1", "app-2"]
+    assert [item.id for item in items] == ["app-2", "app-3"]
     get.assert_called_once_with(
-        "https://node.example/adm/applications?from=0&limit=3",
+        "https://node.example/adm/applications?from=2&limit=2",
         headers={"Authorization": "Bearer secret"},
         timeout=30,
     )
@@ -107,7 +108,7 @@ def test_eosc_node_list_items_applies_pagination_and_token(mocker):
 
 def test_eosc_node_list_items_returns_empty_on_request_error(mocker):
     get = mocker.patch("adim.utils.node_registry.requests.get", side_effect=RuntimeError("offline"))
-    node = EOSCNode(nodeId="node-1", nodeName="Node One", admAPI="https://node.example/adm/")
+    node = EOSCNode(nodeId="node-1", nodeName="Node One", admAPI=HttpUrl("https://node.example/adm/"))
 
     assert node.list_items("deployments", 0, 10, 0, "secret") == (0, [])
     get.assert_called_once()
@@ -126,25 +127,49 @@ def test_registry_list_methods_select_item(mocker, method, item):
     list_items.assert_called_once_with(item, 1, 5, 0, user_info)
 
 
-def test_registry_list_items_aggregates_nodes_and_advances_count(mocker):
+def test_registry_list_items_paginates_across_nodes_and_aggregates_total(mocker):
     mocker.patch.object(EOSCNodeRegistry, "list_nodes", return_value=["node-1", "node-2", "node-3"])
-    node1 = EOSCNode(nodeId="node-1", nodeName="Node One", admAPI="https://node1.example/adm/")
-    node2 = EOSCNode(nodeId="node-2", nodeName="Node Two", admAPI=None)
-    node3 = EOSCNode(nodeId="node-3", nodeName="Node Three", admAPI="https://node3.example/adm/")
-    mocker.patch.object(EOSCNodeRegistry, "get_node_by_id", side_effect=[node1, node2, node3])
-    list_remote = mocker.patch.object(EOSCNode, "list_items", side_effect=[(8, ["item-1", "item-2"]), (4, ["item-3"])])
+    mocker.patch.object(EOSCNodeRegistry, "get_node_by_id", side_effect=[
+        EOSCNode(nodeId="node-1", nodeName="Node One", admAPI=HttpUrl("https://node1.example/adm/")),
+        EOSCNode(nodeId="node-2", nodeName="Node Two", admAPI=None),
+        EOSCNode(nodeId="node-3", nodeName="Node Three", admAPI=HttpUrl("https://node3.example/adm/"))
+    ])
+    list_remote = mocker.patch.object(
+        EOSCNode, "list_items", side_effect=[(5, ["item-1", "item-2", "item-3"]), (4, [])]
+    )
 
-    result = EOSCNodeRegistry.list_items("applications", 3, 4, 1, {"token": "secret"})
+    result = EOSCNodeRegistry.list_items("applications", 3, 3, 2, {"token": "secret"})
 
-    assert result == (12, ["item-1", "item-2", "item-3"])
-    assert list_remote.call_args_list[0].args == ("applications", 3, 4, 1, "secret")
-    assert list_remote.call_args_list[1].args == ("applications", 3, 4, 3, "secret")
+    assert result == (9, ["item-1", "item-2", "item-3"])
+    assert list_remote.call_args_list[0].args == ("applications", 1, 3, 0, "secret")
+    assert list_remote.call_args_list[1].args == ("applications", 0, 0, 0, "secret")
+
+
+def test_registry_list_items_fills_page_from_next_node(mocker):
+    mocker.patch.object(EOSCNodeRegistry, "list_nodes", return_value=["node-1", "node-2"])
+    mocker.patch.object(EOSCNodeRegistry, "get_node_by_id", side_effect=[
+        EOSCNode(nodeId="node-1", nodeName="Node One", admAPI=HttpUrl("https://node1.example/adm/")),
+        EOSCNode(nodeId="node-2", nodeName="Node Two", admAPI=HttpUrl("https://node2.example/adm/"))
+    ])
+    list_remote = mocker.patch.object(
+        EOSCNode,
+        "list_items",
+        side_effect=[(2, ["item-1"]), (3, ["item-2", "item-3"])],
+    )
+
+    result = EOSCNodeRegistry.list_items("applications", 1, 3, 0, {"token": "secret"})
+
+    assert result == (5, ["item-1", "item-2", "item-3"])
+    assert list_remote.call_args_list[0].args == ("applications", 1, 3, 0, "secret")
+    assert list_remote.call_args_list[1].args == ("applications", 0, 2, 0, "secret")
 
 
 def test_registry_list_items_skips_failed_nodes_and_handles_registry_error(mocker):
     mocker.patch.object(EOSCNodeRegistry, "list_nodes", return_value=["bad-node", "good-node"])
-    good_node = EOSCNode(nodeId="good-node", nodeName="Good Node", admAPI="https://good.example/adm/")
-    mocker.patch.object(EOSCNodeRegistry, "get_node_by_id", side_effect=[RuntimeError("bad node"), good_node])
+    mocker.patch.object(EOSCNodeRegistry, "get_node_by_id", side_effect=[
+        RuntimeError("bad node"),
+        EOSCNode(nodeId="good-node", nodeName="Good Node", admAPI=HttpUrl("https://good.example/adm/"))
+    ])
     mocker.patch.object(EOSCNode, "list_items", return_value=(2, []))
 
     assert EOSCNodeRegistry.list_items("allocations", 0, 10, 0, {"token": "secret"}) == (2, [])
