@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 import requests
 import logging
 from pydantic import BaseModel, HttpUrl
@@ -32,8 +34,8 @@ ItemInfo = Union[AllocationInfo, ApplicationInfo, DeploymentInfo]
 class EOSCNode(BaseModel):
     """Class that represents an EOSC Node"""
     nodeId: str
-    nodeName: str = None
-    admAPI: HttpUrl
+    nodeName: str
+    admAPI: HttpUrl | None = None
 
     def list_applications(self, from_: int, limit: int, count: int, token: str) -> Tuple[int, List[ApplicationInfo]]:
         """Return the list of applications of this node"""
@@ -68,17 +70,41 @@ class EOSCNode(BaseModel):
 class EOSCNodeRegistry():
     """Class to interact with the central EOSC Node Registry"""
 
+    EOSC_NODE_REGISTRY_URL = os.getenv("EOSC_NODE_REGISTRY_URL", "https://node-devel.eosc.grnet.gr/federation-backend/tenants/eosc-beyond")
+
     @staticmethod
-    def list_nodes() -> List[EOSCNode]:
+    def list_nodes() -> List[str]:
         """Return the list of available nodes"""
-        # @TODO(list): Complete
-        return []
+        url = f"{EOSCNodeRegistry.EOSC_NODE_REGISTRY_URL}/services"
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        nodes = response.json()
+        return [str(node["id"]) for node in nodes]
 
     @staticmethod
     def get_node_by_id(node_id: str) -> EOSCNode:
         """Retun the node with ID `node_id`"""
-        # @TODO(get): Complete
-        return None
+        url = f"{EOSCNodeRegistry.EOSC_NODE_REGISTRY_URL}/nodes/{node_id}"
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        node_info = response.json()
+
+        admAPI = None
+        try:
+            response = requests.get(node_info["service"]["endpoint"], timeout=30)
+            response.raise_for_status()
+            local_node_info = response.json()
+
+            for cap in local_node_info["capabilities"]:
+                if cap["capability_type"] == "Application Deployment Management":
+                    admAPI = HttpUrl(cap["endpoint"])
+                    break
+        except Exception as ex:
+            logger.error(f"Error getting information for node {node_id}. Ignoring... ({ex})")
+
+        return EOSCNode(nodeId=node_id,
+                        nodeName=node_info["service"]["service_name"],
+                        admAPI=admAPI)
 
     @staticmethod
     def list_items(item: str, from_: int, limit: int, count: int, user_info) -> Tuple[int, List[ItemInfo]]:
@@ -86,7 +112,20 @@ class EOSCNodeRegistry():
         total = 0
         num_items = 0
         items = []
-        for node in EOSCNodeRegistry.list_nodes():
+        try:
+            nodes = EOSCNodeRegistry.list_nodes()
+        except Exception as ex:
+            logger.error(f"Error listing nodes: {ex}")
+            return 0, []
+        for node_id in nodes:
+            try:
+                node = EOSCNodeRegistry.get_node_by_id(node_id)
+            except Exception as ex:
+                logger.error(f"Error getting node {node_id}: {ex}")
+                continue
+            if node.admAPI is None:
+                logger.debug(f"Node {node.nodeName} does not have an ADM API, skipping")
+                continue
             node_total, node_items = node.list_items(item, from_, limit, count + num_items, user_info["token"])
             num_items += len(node_items) if node_items else node_total
             total += node_total
