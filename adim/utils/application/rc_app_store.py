@@ -86,7 +86,7 @@ class ApplicationStoreRC(ApplicationStore):
         # application_id was provided with underscores; convert back path
         repo_application_id = application_id.replace("%2F", "/")
         try:
-            response = requests.get(f"{self.url}/deployableService/{repo_application_id}", timeout=10)
+            response = requests.get(f"{self.url}/deployableApplication/{repo_application_id}", timeout=10)
         except Exception as e:
             adim.logger.error("Failed to get application info: %s", e)
             raise ConnectionException(f"Failed to get application info: {e}")
@@ -108,7 +108,7 @@ class ApplicationStoreRC(ApplicationStore):
         return app, 200
 
     def _list(self, request: Request, from_: int, limit: int, user_info: dict) -> List[ApplicationInfo]:
-        response = requests.get(f"{self.url}/deployableService/all", timeout=10)
+        response = requests.get(f"{self.url}/deployableApplication/all", timeout=10)
         response.raise_for_status()
         res = []
         for elem in response.json().get("results", []):
