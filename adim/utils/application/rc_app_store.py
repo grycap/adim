@@ -27,7 +27,7 @@ from .app_store import ApplicationStore
 
 class ApplicationStoreRC(ApplicationStore):
 
-    def __init__(self, url: str = "https://providers.sandbox.eosc-beyond.eu/api"):
+    def __init__(self, url: str = "https://providers.sandbox.eosc-beyond.eu/api/public"):
         super().__init__(url)
 
     @staticmethod
@@ -46,7 +46,7 @@ class ApplicationStoreRC(ApplicationStore):
 
     @staticmethod
     def get_application_info(elem: dict, request: Request) -> ApplicationInfo:
-        blueprint_text = requests.get(ApplicationStoreRC._convert_url_to_raw(elem['url']), timeout=10).text
+        blueprint_text = requests.get(ApplicationStoreRC._convert_url_to_raw(elem['urls'][0]), timeout=10).text
         tosca = yaml.safe_load(blueprint_text)
         if not isinstance(tosca, dict):
             raise ValueError("Blueprint document is not a YAML object")
