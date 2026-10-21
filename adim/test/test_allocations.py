@@ -258,13 +258,17 @@ def test_list_allocations_mongo(check_oidc_mock, client, db_mock, headers, seed_
 
 @pytest.mark.parametrize("backend_type", ["db"], indirect=True)
 def test_list_allocations_remote(
-    client, check_oidc_mock, db_mock, list_nodes_mock, requests_get_mock, seed_allocations
+    client, mocker, check_oidc_mock, db_mock, list_nodes_mock, requests_get_mock, seed_allocations
 ):
     seed_allocations([ALLOC_1, ALLOC_2, ALLOC_2, ALLOC_2])
 
-    node1 = EOSCNode(admAPI=HttpUrl("http://server1.com"), nodeId="n1")
-    node2 = EOSCNode(admAPI=HttpUrl("http://server2.com"), nodeId="n2")
-    list_nodes_mock.return_value = [node1, node2]
+    node1 = EOSCNode(admAPI=HttpUrl("http://server1.com"), nodeId="n1", nodeName="Node 1")
+    node2 = EOSCNode(admAPI=HttpUrl("http://server2.com"), nodeId="n2", nodeName="Node 2")
+    list_nodes_mock.return_value = ["n1", "n2"]
+    mocker.patch(
+        "adim.utils.node_registry.EOSCNodeRegistry.get_node_by_id",
+        side_effect=[node1, node2] * 4,
+    )
     resp1 = MagicMock()
     resp1.status_code = 200
     resp1.json.return_value = {'count': 1,
@@ -285,7 +289,10 @@ def test_list_allocations_remote(
                                'elements': [_allocation_data()],
                                'from': 0,
                                'limit': 100}
-    requests_get_mock.side_effect = [resp1, resp2, resp1, resp1, resp1, resp2, resp1, resp3]
+    resp_empty = MagicMock()
+    resp_empty.status_code = 200
+    resp_empty.json.return_value = {'count': 1, 'elements': [], 'from': 2, 'limit': 2}
+    requests_get_mock.side_effect = [resp1, resp2, resp1, resp1, resp_empty, resp3, resp1, resp3]
 
     headers = {"Authorization": "Bearer you-very-secret-token"}
     response = client.get("/allocations?allNodes=true", headers=headers)

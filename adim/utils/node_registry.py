@@ -111,6 +111,7 @@ class EOSCNodeRegistry():
         """Return the list of remote items"""
         total = 0
         offset = max(0, from_ - count)
+        local_page_count = max(0, min(limit, count - from_))
         items = []
         try:
             nodes = EOSCNodeRegistry.list_nodes()
@@ -127,13 +128,17 @@ class EOSCNodeRegistry():
                 logger.debug(f"Node {node.nodeName} does not have an ADM API, skipping")
                 continue
             node_offset = offset
-            remaining = max(0, limit - len(items))
+            remaining = max(0, limit - local_page_count - len(items))
             node_total, node_items = node.list_items(
                 item, node_offset, remaining, 0, user_info["token"]
             )
+            if item == "applications":
+                for application in node_items:
+                    if isinstance(application, ApplicationInfo):
+                        application.nodeId = node.nodeId
             offset = max(0, offset - node_total)
-            if len(items) < limit:
-                items.extend(node_items[:limit - len(items)])
+            if len(items) < limit - local_page_count:
+                items.extend(node_items[:limit - local_page_count - len(items)])
             total += node_total
         return total, items
 

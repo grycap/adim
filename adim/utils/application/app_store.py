@@ -42,7 +42,7 @@ class ApplicationStore:
         raise NotImplementedError()
 
     def list_applications(self, request: Request, from_: int = 0, limit: int = 100,
-                          user_info: dict = None) -> Tuple[int, int, List[ApplicationInfo]]:
+                          user_info: dict = None, nodeId: str = None) -> Tuple[int, int, List[ApplicationInfo]]:
         applications = []
         try:
             applications_list = self._list(request, from_, limit, user_info)
@@ -56,6 +56,8 @@ class ApplicationStore:
             if from_ > count - 1:
                 continue
             try:
+                if nodeId:
+                    application.nodeId = nodeId
                 applications.append(application)
                 if len(applications) >= limit:
                     break

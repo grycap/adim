@@ -18,6 +18,7 @@ from unittest.mock import Mock
 import pytest
 from pydantic import HttpUrl
 
+from adim.models.apps import ApplicationInfo
 from adim.utils.node_registry import EOSCNode, EOSCNodeRegistry
 
 
@@ -162,6 +163,24 @@ def test_registry_list_items_fills_page_from_next_node(mocker):
     assert result == (5, ["item-1", "item-2", "item-3"])
     assert list_remote.call_args_list[0].args == ("applications", 1, 3, 0, "secret")
     assert list_remote.call_args_list[1].args == ("applications", 0, 2, 0, "secret")
+
+
+def test_registry_list_applications_adds_node_id(mocker):
+    node = EOSCNode(
+        nodeId="node-1", nodeName="Node One", admAPI=HttpUrl("https://node1.example/adm/")
+    )
+    application = ApplicationInfo(
+        id="app-1", type="vm", blueprint="{}", blueprintType="tosca"
+    )
+    mocker.patch.object(EOSCNodeRegistry, "list_nodes", return_value=["node-1"])
+    mocker.patch.object(EOSCNodeRegistry, "get_node_by_id", return_value=node)
+    mocker.patch.object(EOSCNode, "list_items", return_value=(1, [application]))
+
+    count, applications = EOSCNodeRegistry.list_applications(0, 10, 0, {"token": "secret"})
+
+    assert count == 1
+    assert applications == [application]
+    assert applications[0].nodeId == "node-1"
 
 
 def test_registry_list_items_skips_failed_nodes_and_handles_registry_error(mocker):
