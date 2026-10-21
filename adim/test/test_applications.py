@@ -112,7 +112,7 @@ def test_list_applications(client, check_oidc_mock, backend_type, repo_mock, req
                 {
                     "id": "app1",
                     "version": "version",
-                    "url": "http://catalog.url/app1"
+                    "urls": ["http://catalog.url/app1"]
                 }
             ]
         }
@@ -244,7 +244,7 @@ def test_get_application(client, check_oidc_mock, backend_type, repo_mock, reque
         resp.json.return_value = {
             "id": "app1",
             "version": "version",
-            "url": "http://catalog.url/app1"
+            "urls": ["http://catalog.url/app1"]
         }
         resp_get = MagicMock(status_code=200)
         resp_get.text = blueprint
@@ -281,7 +281,7 @@ def test_get_application_with_encoded_slash_id(client, check_oidc_mock, backend_
         resp.json.return_value = {
             "id": application_id_decoded,
             "version": "version",
-            "url": "http://catalog.url/tool1"
+            "urls": ["http://catalog.url/tool1"]
         }
         resp_get = MagicMock(status_code=200)
         resp_get.text = blueprint
@@ -304,12 +304,12 @@ def test_list_applications_rc_skips_invalid_blueprint(client, check_oidc_mock, r
             {
                 "id": "bad-app",
                 "version": "v1",
-                "url": "http://catalog.url/bad-app"
+                "urls": ["http://catalog.url/bad-app"]
             },
             {
                 "id": "good-app",
                 "version": "v1",
-                "url": "http://catalog.url/good-app"
+                "urls": ["http://catalog.url/good-app"]
             }
         ]
     }
@@ -341,7 +341,7 @@ def test_get_application_rc_invalid_blueprint_returns_503(client, check_oidc_moc
     resp_catalog.json.return_value = {
         "id": "app-invalid",
         "version": "v1",
-        "url": "http://catalog.url/app-invalid"
+        "urls": ["http://catalog.url/app-invalid"]
     }
 
     resp_blueprint = MagicMock(status_code=200)
