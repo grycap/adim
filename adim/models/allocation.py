@@ -125,15 +125,11 @@ class Allocation(RootModel[AllocationValue]):
     def model_dump(self, *args, **kwargs):
         return self.root.model_dump(*args, **kwargs)
 
-    def redact_sensitive_info(self) -> Allocation:
-        """Return a copy of the allocation with sensitive information redacted."""
-        return Allocation(self.root.redact_sensitive_info())
-
     @staticmethod
     def model_validate_redacted(data: Any, *args, **kwargs) -> "Allocation":
         """Return a copy of the allocation with sensitive information redacted."""
         allocation = Allocation.model_validate(data, *args, **kwargs)
-        return allocation.redact_sensitive_info()
+        return Allocation(allocation.root.redact_sensitive_info())
 
 
 class AllocationId(BaseModel):
