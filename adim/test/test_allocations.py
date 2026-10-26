@@ -448,3 +448,21 @@ def test_update_allocation_sql(check_oidc_mock, list_deployments_mock, db_mock, 
         "update allocations set data = %s where id = %s",
         ('{"host": "http://k8s.io/", "kind": "KubernetesEnvironment"}', 'id1')
     )
+
+
+def test_allocation_redact_sensitive_info_removes_openstack_password():
+    from adim.models.allocation import Allocation
+
+    allocation = Allocation.model_validate({
+        "kind": "OpenStackEnvironment",
+        "userName": "user",
+        "domain": "domain",
+        "tenant": "tenant",
+        "host": "https://openstack.example.org",
+        "password": "secret",
+    })
+
+    redacted = allocation.redact_sensitive_info()
+
+    assert redacted.password is None
+    assert allocation.password == "secret"

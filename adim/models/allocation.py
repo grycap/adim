@@ -21,7 +21,16 @@ from pydantic_core import CoreSchema
 from pydantic.json_schema import GetJsonSchemaHandler, JsonSchemaValue
 
 
-class EoscNodeEnvironment_offer(BaseModel):
+class BaseEnvironment(BaseModel):
+    """Base class for all environment types"""
+    public: bool = Field(False, description="Whether this environment is public or private")
+
+    def redact_sensitive_info(self) -> BaseEnvironment:
+        """Return a copy of the environment withou sensitive information redacted."""
+        return self.model_copy()
+
+
+class EoscNodeEnvironment_offer(BaseEnvironment):
     offerId: str
     offerName: str | None = None
     offerType: Literal["openstack", "kubernetes"]
@@ -35,7 +44,7 @@ class EoscNodeEnvironment_offer(BaseModel):
     creditsPerDay: int = Field(..., ge=1, description=("Credits per day"))
 
 
-class EoscNodeEnvironment(BaseModel):
+class EoscNodeEnvironment(BaseEnvironment):
     """Environment variables for EOSC node"""
     kind: Literal['EoscNodeEnvironment'] = 'EoscNodeEnvironment'
     offer: EoscNodeEnvironment_offer
@@ -53,7 +62,7 @@ class EoscNodeEnvironment(BaseModel):
                                               "private to the calling user that accessed via explicit credentials"))
 
 
-class OpenStackEnvironment(BaseModel):
+class OpenStackEnvironment(BaseEnvironment):
     """Credentials for OpenStack"""
     kind: Literal['OpenStackEnvironment'] = 'OpenStackEnvironment'
     userName: str
@@ -63,8 +72,13 @@ class OpenStackEnvironment(BaseModel):
     tenantId: str | None = None
     region: str | None = None
     host: HttpUrl
-    authVersion: Literal['3.x-oidc'] = '3.x-oidc'
+    authVersion: str = Field('3.x-oidc', description="OpenStack authentication version")
     apiVersion: str | None = None
+    password: str | None = None
+
+    def redact_sensitive_info(self) -> OpenStackEnvironment:
+        """Return a copy of the environment withou sensitive information redacted."""
+        return self.model_copy(update={"password": None})
 
 
 class EGIComputeEnvironment(OpenStackEnvironment):
@@ -76,7 +90,7 @@ class EGIComputeEnvironment(OpenStackEnvironment):
     authVersion: Literal['3.x-oidc'] = '3.x-oidc'
 
 
-class KubernetesEnvironment(BaseModel):
+class KubernetesEnvironment(BaseEnvironment):
     """Credentials for Kubernetes"""
     kind: Literal['KubernetesEnvironment'] = 'KubernetesEnvironment'
     host: HttpUrl
@@ -85,7 +99,7 @@ class KubernetesEnvironment(BaseModel):
                                 "in this environment are accessible")
 
 
-class DummyEnvironment(BaseModel):
+class DummyEnvironment(BaseEnvironment):
     """Dummy environment for testing purposes"""
     kind: Literal['DummyEnvironment'] = 'DummyEnvironment'
 
@@ -110,6 +124,16 @@ class Allocation(RootModel[AllocationValue]):
 
     def model_dump(self, *args, **kwargs):
         return self.root.model_dump(*args, **kwargs)
+
+    def redact_sensitive_info(self) -> Allocation:
+        """Return a copy of the allocation with sensitive information redacted."""
+        return Allocation(self.root.redact_sensitive_info())
+
+    @staticmethod
+    def model_validate_redacted(data: Any, *args, **kwargs) -> "Allocation":
+        """Return a copy of the allocation with sensitive information redacted."""
+        allocation = Allocation.model_validate(data, *args, **kwargs)
+        return allocation.redact_sensitive_info()
 
 
 class AllocationId(BaseModel):
