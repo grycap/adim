@@ -38,15 +38,15 @@ class AllocationStore():
     @staticmethod
     def get_allocation_store() -> 'AllocationStore':
         store_type = os.getenv("ALLOCATION_STORE", "db")
+        encrypt_key = os.getenv("ENCRYPT_KEY", None)
         if store_type == "db":
             from adim.utils.allocation.allocation_store_db import AllocationStoreDB
             db_url = os.getenv("DB_URL", AllocationStoreDB.DEFAULT_URL)
-            allocation_store = AllocationStoreDB(db_url)
+            allocation_store = AllocationStoreDB(db_url, key=encrypt_key)
             adim.logger.info(f"Using AllocationStoreDB with URL: {db_url}")
         elif store_type == "vault":
             from adim.utils.allocation.allocation_store_vault import AllocationStoreVault
             vault_url = os.getenv("VAULT_URL", AllocationStoreVault.DEFAULT_URL)
-            encrypt_key = os.getenv("ENCRYPT_KEY", None)
             allocation_store = AllocationStoreVault(vault_url, key=encrypt_key)
             adim.logger.info(f"Using AllocationStoreVault with URL: {vault_url}")
         else:

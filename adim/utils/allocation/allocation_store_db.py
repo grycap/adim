@@ -18,6 +18,7 @@ import json
 import time
 import uuid
 from typing import List, Tuple
+from cryptography.fernet import Fernet
 from adim.utils.db import DataBase
 from .allocation_store import AllocationStore
 from adim.utils import DBConnectionException
@@ -27,13 +28,30 @@ class AllocationStoreDB(AllocationStore):
 
     DEFAULT_URL = "file:///tmp/adim.db"
 
-    def __init__(self, db_url):
+    def __init__(self, db_url, key: str | None = None):
+        self.key = None
+        if key:
+            self.key = Fernet(key)
         self.db = DataBase(db_url)
         if self.db.connect():
             self._init_table(self.db)
             self.db.close()
         else:
             raise DBConnectionException()
+
+    def _encrypt(self, message):
+        if self.key:
+            return self.key.encrypt(message.encode()).decode()
+        else:
+            return message
+
+    def _decrypt(self, message):
+        if self.key:
+            if isinstance(message, str):
+                message = message.encode()
+            return self.key.decrypt(message).decode()
+        else:
+            return message
 
     @staticmethod
     def _init_table(db: DataBase) -> bool:
@@ -61,7 +79,7 @@ class AllocationStoreDB(AllocationStore):
                 for count, elem in enumerate(res):
                     if from_ > count:
                         continue
-                    allocations.append(elem)
+                    allocations.append({"id": elem["id"], "data": json.loads(self._decrypt(elem["data"]))})
                     if len(allocations) >= limit:
                         break
                 count = len(res)
@@ -69,7 +87,7 @@ class AllocationStoreDB(AllocationStore):
                 sql = "SELECT id, data FROM allocations WHERE owner = %s order by created LIMIT %s OFFSET %s"
                 res = self.db.select(sql, (user_info['sub'], limit, from_))
                 for elem in res:
-                    allocations.append({"id": elem[0], "data": json.loads(elem[1])})
+                    allocations.append({"id": elem[0], "data": json.loads(self._decrypt(elem[1]))})
                 res = self.db.select("SELECT count(id) from allocations WHERE owner = %s", (user_info['sub'],))
                 count = res[0][0] if res else 0
             self.db.close()
@@ -88,9 +106,9 @@ class AllocationStoreDB(AllocationStore):
             self.db.close()
             if res:
                 if self.db.db_type == DataBase.MONGO:
-                    return res[0]["data"]
+                    return json.loads(self._decrypt(res[0]["data"]))
                 else:
-                    return json.loads(res[0][1])
+                    return json.loads(self._decrypt(res[0][1]))
             else:
                 return None
 
@@ -109,16 +127,14 @@ class AllocationStoreDB(AllocationStore):
     def check_allocation_exists(self, data: dict, user_info: dict) -> str:
         if self.db.connect():
             if self.db.db_type == DataBase.MONGO:
-                res = self.db.find("allocations", {"data": data, "owner": user_info['sub']}, {"id": True})
+                res = self.db.find("allocations", {"owner": user_info['sub']}, {"id": True, "data": True})
+                matches = [elem for elem in res if json.loads(self._decrypt(elem["data"])) == data]
             else:
-                res = self.db.select("SELECT id FROM allocations WHERE data = %s and owner = %s",
-                                     (json.dumps(data, sort_keys=True), user_info['sub']))
+                res = self.db.select("SELECT id, data FROM allocations WHERE owner = %s", (user_info['sub'],))
+                matches = [elem for elem in res if json.loads(self._decrypt(elem[1])) == data]
             self.db.close()
-            if res:
-                if self.db.db_type == DataBase.MONGO:
-                    return res[0]["id"]
-                else:
-                    return res[0][0]
+            if matches:
+                return matches[0]["id"] if self.db.db_type == DataBase.MONGO else matches[0][0]
             else:
                 return ""
 
@@ -129,21 +145,21 @@ class AllocationStoreDB(AllocationStore):
             if self.db.db_type == DataBase.MONGO:
                 if allocation_id is None:  # new allocation
                     allocation_id = str(uuid.uuid4())
-                    replace = {"id": allocation_id, "data": data,
+                    replace = {"id": allocation_id, "data": self._encrypt(json.dumps(data, sort_keys=True)),
                                "owner": user_info['sub'],
                                "created": time.time()}
                 else:  # update existing allocation
-                    replace = {"id": allocation_id, "data": data,
+                    replace = {"id": allocation_id, "data": self._encrypt(json.dumps(data, sort_keys=True)),
                                "owner": user_info['sub']}
                 self.db.replace("allocations", {"id": allocation_id}, replace)
             else:
                 if allocation_id is None:  # new allocation
                     allocation_id = str(uuid.uuid4())
                     sql = "replace into allocations (id, data, owner, created) values (%s, %s, %s, now())"
-                    values = (allocation_id, json.dumps(data, sort_keys=True), user_info['sub'])
+                    values = (allocation_id, self._encrypt(json.dumps(data, sort_keys=True)), user_info['sub'])
                 else:  # update existing allocation
                     sql = "update allocations set data = %s where id = %s"
-                    values = (json.dumps(data, sort_keys=True), allocation_id)
+                    values = (self._encrypt(json.dumps(data, sort_keys=True)), allocation_id)
                 self.db.execute(sql, values)
             self.db.close()
             return allocation_id

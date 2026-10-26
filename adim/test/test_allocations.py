@@ -466,3 +466,23 @@ def test_allocation_redact_sensitive_info_removes_openstack_password():
 
     assert redacted.password is None
     assert allocation.password == "secret"
+
+
+def test_allocation_store_db_encrypts_persisted_data_and_decrypts_reads(db_mock, mocker):
+    from adim.utils.allocation.allocation_store_db import AllocationStoreDB
+
+    key = Fernet.generate_key().decode()
+    store = AllocationStoreDB.__new__(AllocationStoreDB)
+    store.key = Fernet(key)
+    store.db = db_mock
+    data = {"kind": "OpenStackEnvironment", "password": "secret"}
+    user = {"sub": "user123"}
+
+    mocker.patch("adim.utils.allocation.allocation_store_db.uuid.uuid4", return_value="allocation-id")
+    assert store.replace_allocation(data, user) == "allocation-id"
+    persisted = db_mock.execute.call_args.args[1][1]
+    assert "secret" not in persisted
+    assert json.loads(store._decrypt(persisted)) == data
+
+    db_mock.select.return_value = [["allocation-id", persisted]]
+    assert store.get_allocation("allocation-id", user) == data
