@@ -2,6 +2,7 @@
 
 [![Test ADIM](https://github.com/grycap/adim/actions/workflows/main.yaml/badge.svg)](https://github.com/grycap/adim/actions/workflows/main.yaml)
 [![SQAaaS badge shields.io](https://github.com/EOSC-synergy/adim.assess.sqaaas/raw/v0.6.0/.badge/status_shields.svg)](https://sqaaas.eosc-synergy.eu/#/full-assessment/report/https://raw.githubusercontent.com/eosc-synergy/adim.assess.sqaaas/v0.6.0/.report/assessment_output.json)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20596323.svg)](https://doi.org/10.5281/zenodo.20596323)
 
 ## Overview
 
@@ -36,7 +37,7 @@ APPLICATIONS_STORE=git
 # In case of git, the repository where to store the applications
 APPLICATIONS_REPO="https://github.com/grycap/tosca/blob/eosc_lot1/templates/"
 # In case of RC, the URL of the Resource Catalog API
-RESOURCE_CATALOG="https://providers.sandbox.eosc-beyond.eu/api"
+RESOURCE_CATALOG="https://providers.sandbox.eosc-beyond.eu/api/public"
 # Comma separated list of OIDC issuers to accept tokens from
 OIDC_ISSUERS="https://aai.egi.eu/auth/realms/egi,https://aai-demo.egi.eu/auth/realms/egi,https://proxy.aai.open-science-cloud.ec.europa.eu"
 # Audience to check in the token, if not specified, no audience check will be performed
