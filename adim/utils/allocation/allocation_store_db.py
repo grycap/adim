@@ -53,6 +53,18 @@ class AllocationStoreDB(AllocationStore):
         else:
             return message
 
+    def _encode_data(self, data):
+        """Keep Mongo documents as dictionaries unless encryption is enabled."""
+        if self.key:
+            return self._encrypt(json.dumps(data, sort_keys=True))
+        return data
+
+    def _decode_data(self, data):
+        """Decode either a legacy Mongo dictionary or encrypted JSON."""
+        if isinstance(data, dict):
+            return data
+        return json.loads(self._decrypt(data))
+
     @staticmethod
     def _init_table(db: DataBase) -> bool:
         """Creates de database."""
@@ -79,7 +91,7 @@ class AllocationStoreDB(AllocationStore):
                 for count, elem in enumerate(res):
                     if from_ > count:
                         continue
-                    allocations.append({"id": elem["id"], "data": json.loads(self._decrypt(elem["data"]))})
+                    allocations.append({"id": elem["id"], "data": self._decode_data(elem["data"])})
                     if len(allocations) >= limit:
                         break
                 count = len(res)
@@ -106,7 +118,7 @@ class AllocationStoreDB(AllocationStore):
             self.db.close()
             if res:
                 if self.db.db_type == DataBase.MONGO:
-                    return json.loads(self._decrypt(res[0]["data"]))
+                    return self._decode_data(res[0]["data"])
                 else:
                     return json.loads(self._decrypt(res[0][1]))
             else:
@@ -128,7 +140,7 @@ class AllocationStoreDB(AllocationStore):
         if self.db.connect():
             if self.db.db_type == DataBase.MONGO:
                 res = self.db.find("allocations", {"owner": user_info['sub']}, {"id": True, "data": True})
-                matches = [elem for elem in res if json.loads(self._decrypt(elem["data"])) == data]
+                matches = [elem for elem in res if self._decode_data(elem["data"]) == data]
             else:
                 res = self.db.select("SELECT id, data FROM allocations WHERE owner = %s", (user_info['sub'],))
                 matches = [elem for elem in res if json.loads(self._decrypt(elem[1])) == data]
@@ -145,11 +157,11 @@ class AllocationStoreDB(AllocationStore):
             if self.db.db_type == DataBase.MONGO:
                 if allocation_id is None:  # new allocation
                     allocation_id = str(uuid.uuid4())
-                    replace = {"id": allocation_id, "data": self._encrypt(json.dumps(data, sort_keys=True)),
+                    replace = {"id": allocation_id, "data": self._encode_data(data),
                                "owner": user_info['sub'],
                                "created": time.time()}
                 else:  # update existing allocation
-                    replace = {"id": allocation_id, "data": self._encrypt(json.dumps(data, sort_keys=True)),
+                    replace = {"id": allocation_id, "data": self._encode_data(data),
                                "owner": user_info['sub']}
                 self.db.replace("allocations", {"id": allocation_id}, replace)
             else:
