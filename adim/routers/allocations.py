@@ -27,10 +27,10 @@ from . import return_error, STANDARD_RESPONSES, GET_RESPONSES, DELETE_RESPONSES,
 router = APIRouter()
 
 
-def _allocation_for_response(data: dict, user_info: dict) -> Allocation:
+def _allocation_for_response(data: dict, user_info: dict, is_public: bool = False) -> Allocation:
     allocation = Allocation.model_validate(data)
     is_admin = getattr(adim.allocation_store, "is_public_admin", lambda _user: False)(user_info)
-    if allocation.public and not is_admin:
+    if is_public and not is_admin:
         return Allocation.model_validate_redacted(data)
     return allocation
 
@@ -58,7 +58,7 @@ def list_allocations(
     for elem in allocations:
         allocation_info = AllocationInfo(
             id=elem['id'],
-            allocation=_allocation_for_response(elem['data'], user_info),
+            allocation=_allocation_for_response(elem['data'], user_info, elem.get("scope") == "public"),
             self=str(request.url_for("get_allocation", allocation_id=elem['id']))
         )
         res.append(allocation_info)
@@ -88,7 +88,9 @@ def _get_allocation_info(allocation_id: str, user_info: dict, request: Request) 
 
     return AllocationInfo(
         id=allocation_id,
-        allocation=_allocation_for_response(allocation_data, user_info),
+        allocation=_allocation_for_response(
+            allocation_data, user_info,
+            getattr(adim.allocation_store, "is_public_allocation", lambda _id, _user: False)(allocation_id, user_info)),
         self=str(request.url_for("get_allocation", allocation_id=allocation_id))
     )
 
@@ -193,13 +195,15 @@ def delete_allocation(allocation_id,
              status_code=201)
 def create_allocation(allocation: Allocation,
                       request: Request,
+                      scope: str = Query("private", pattern="^(private|public)$",
+                                          description="Storage visibility scope; public allocations require admin privileges"),
                       user_info=Depends(authenticate)):
     """Record an environment of the user"""
     adim.logger.debug(f"Create allocation from user '{user_info.get('sub')}'")
     data = allocation.model_dump(exclude_unset=True, mode="json")
 
     try:
-        found_id = adim.allocation_store.check_allocation_exists(data, user_info)
+        found_id = adim.allocation_store.check_allocation_exists(data, user_info, scope)
     except PermissionError as ex:
         return return_error(str(ex), 403)
     if found_id:
@@ -208,7 +212,7 @@ def create_allocation(allocation: Allocation,
                         headers={"Location": url})
 
     try:
-        allocation_id = adim.allocation_store.replace_allocation(data, user_info)
+        allocation_id = adim.allocation_store.replace_allocation(data, user_info, scope=scope)
     except PermissionError as ex:
         return return_error(str(ex), 403)
     except Exception as ex:

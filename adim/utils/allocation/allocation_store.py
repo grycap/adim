@@ -29,10 +29,11 @@ class AllocationStore():
     def delete_allocation(self, allocation_id: str, user_info: dict):
         raise NotImplementedError()
 
-    def replace_allocation(self, data: dict, user_info: dict, allocation_id: str | None = None) -> str:
+    def replace_allocation(self, data: dict, user_info: dict, allocation_id: str | None = None,
+                           scope: str = "private") -> str:
         raise NotImplementedError()
 
-    def check_allocation_exists(self, data: dict, user_info: dict) -> str:
+    def check_allocation_exists(self, data: dict, user_info: dict, scope: str = "private") -> str:
         raise NotImplementedError()
 
     @staticmethod
@@ -85,7 +86,8 @@ class CompositeAllocationStore(AllocationStore):
     def list_allocations(self, user_info, from_, limit):
         private_count, private = self.private_store.list_allocations(user_info, 0, 1000000)
         public_count, public = self.public_store.list_allocations(self._public_user(), 0, 1000000)
-        combined = private + public
+        combined = ([{**item, "scope": "private"} for item in private]
+                    + [{**item, "scope": "public"} for item in public])
         return len(combined), combined[from_:from_ + limit]
 
     def get_allocation(self, allocation_id, user_info):
@@ -94,6 +96,9 @@ class CompositeAllocationStore(AllocationStore):
             return private
         return self.public_store.get_allocation(allocation_id, self._public_user())
 
+    def is_public_allocation(self, allocation_id, user_info):
+        return self.public_store.get_allocation(allocation_id, self._public_user()) is not None
+
     def delete_allocation(self, allocation_id, user_info):
         if self.private_store.get_allocation(allocation_id, user_info) is not None:
             return self.private_store.delete_allocation(allocation_id, user_info)
@@ -101,32 +106,26 @@ class CompositeAllocationStore(AllocationStore):
             raise PermissionError("Only configured public allocation administrators may delete public allocations")
         return self.public_store.delete_allocation(allocation_id, self._public_user())
 
-    def replace_allocation(self, data, user_info, allocation_id=None):
-        is_public = bool(data.get("public", False))
+    def replace_allocation(self, data, user_info, allocation_id=None, scope="private"):
         if allocation_id is None:
-            if is_public:
+            if scope == "public":
                 if not self._is_admin(user_info):
                     raise PermissionError("Only configured public allocation administrators may publish allocations")
-                public_data = dict(data)
-                return self.public_store.replace_allocation(public_data, self._public_user())
+                return self.public_store.replace_allocation(data, self._public_user())
             return self.private_store.replace_allocation(data, user_info)
 
         private = self.private_store.get_allocation(allocation_id, user_info)
         if private is not None:
-            if is_public:
-                raise PermissionError("Allocation visibility cannot be changed")
             return self.private_store.replace_allocation(data, user_info, allocation_id)
         public = self.public_store.get_allocation(allocation_id, self._public_user())
         if public is None:
             raise KeyError("Allocation not found")
         if not self._is_admin(user_info):
             raise PermissionError("Only configured public allocation administrators may update public allocations")
-        if not is_public:
-            raise PermissionError("Allocation visibility cannot be changed")
         return self.public_store.replace_allocation(data, self._public_user(), allocation_id)
 
-    def check_allocation_exists(self, data, user_info):
-        if data.get("public", False):
+    def check_allocation_exists(self, data, user_info, scope="private"):
+        if scope == "public":
             if not self._is_admin(user_info):
                 raise PermissionError("Only configured public allocation administrators may publish allocations")
             return self.public_store.check_allocation_exists(data, self._public_user())

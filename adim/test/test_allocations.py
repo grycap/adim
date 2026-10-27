@@ -450,15 +450,32 @@ def test_update_allocation_sql(check_oidc_mock, list_deployments_mock, db_mock, 
     )
 
 
+def test_create_public_allocation_uses_scope_query(check_oidc_mock, uuid_mock, client, headers, mocker,
+                                                  allocation_payload):
+    store = MagicMock()
+    store.check_allocation_exists.return_value = None
+    store.replace_allocation.return_value = "public-id"
+    mocker.patch.object(adim, "allocation_store", store)
+
+    response = client.post("/allocations?scope=public", headers=headers, json=allocation_payload)
+
+    assert response.status_code == 201
+    store.check_allocation_exists.assert_called_once()
+    assert store.check_allocation_exists.call_args.args[2] == "public"
+    assert store.replace_allocation.call_args.kwargs["scope"] == "public"
+
+
+
 def test_public_allocation_responses_redact_for_non_admin(check_oidc_mock, client, headers, mocker):
     public_data = {
-        "kind": "OpenStackEnvironment", "public": True, "userName": "user",
+        "kind": "OpenStackEnvironment", "userName": "user",
         "domain": "domain", "tenant": "tenant", "host": "https://openstack.example.org",
         "password": "secret",
     }
     store = MagicMock()
-    store.list_allocations.return_value = (1, [{"id": "public1", "data": public_data}])
+    store.list_allocations.return_value = (1, [{"id": "public1", "data": public_data, "scope": "public"}])
     store.get_allocation.return_value = public_data
+    store.is_public_allocation.return_value = True
     store.is_public_admin.return_value = False
     mocker.patch.object(adim, "allocation_store", store)
 
@@ -473,13 +490,14 @@ def test_public_allocation_responses_redact_for_non_admin(check_oidc_mock, clien
 
 def test_public_allocation_responses_keep_admin_credentials(check_oidc_mock, client, headers, mocker):
     public_data = {
-        "kind": "OpenStackEnvironment", "public": True, "userName": "user",
+        "kind": "OpenStackEnvironment", "userName": "user",
         "domain": "domain", "tenant": "tenant", "host": "https://openstack.example.org",
         "password": "secret",
     }
     store = MagicMock()
-    store.list_allocations.return_value = (1, [{"id": "public1", "data": public_data}])
+    store.list_allocations.return_value = (1, [{"id": "public1", "data": public_data, "scope": "public"}])
     store.get_allocation.return_value = public_data
+    store.is_public_allocation.return_value = True
     store.is_public_admin.return_value = True
     mocker.patch.object(adim, "allocation_store", store)
 

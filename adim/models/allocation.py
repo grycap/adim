@@ -25,7 +25,6 @@ from pydantic.json_schema import GetJsonSchemaHandler, JsonSchemaValue
 
 class BaseEnvironment(BaseModel):
     """Base class for all environment types"""
-    public: bool = Field(False, description="Whether this environment is public or private")
 
     def redact_sensitive_info(self) -> BaseEnvironment:
         """Return a copy of the environment withou sensitive information redacted."""
