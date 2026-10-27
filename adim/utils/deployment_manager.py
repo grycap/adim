@@ -71,10 +71,14 @@ class DeploymentsManager:
             if allocation.kind in ["OpenStackEnvironment", "EGIComputeEnvironment"]:
                 cloud_auth_data["type"] = "OpenStack"
                 cloud_auth_data["auth_version"] = "3.x_password"
+                if allocation.password:
+                    cloud_auth_data["password"] = allocation.password
                 if allocation.authVersion == '3.x-oidc':
                     cloud_auth_data["auth_version"] = "3.x_oidc_access_token"
+                    cloud_auth_data["password"] = token
+                elif allocation.authVersion == '3.x-appcred':
+                    cloud_auth_data["auth_version"] = "3.x_appcred"
                 cloud_auth_data["username"] = allocation.userName
-                cloud_auth_data["password"] = token
                 cloud_auth_data["tenant"] = allocation.tenant
                 cloud_auth_data["host"] = str(allocation.host)
                 cloud_auth_data["domain"] = allocation.domain

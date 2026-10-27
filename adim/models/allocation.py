@@ -73,7 +73,7 @@ class OpenStackEnvironment(BaseEnvironment):
     tenantId: str | None = None
     region: str | None = None
     host: HttpUrl
-    authVersion: str = Field('3.x-oidc', description="OpenStack authentication version")
+    authVersion: Literal["3.x-oidc", "3.x-appcred", "3.x-password"] = "3.x-oidc"
     apiVersion: str | None = None
     password: str | None = None
 

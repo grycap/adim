@@ -84,8 +84,8 @@ class CompositeAllocationStore(AllocationStore):
         return {"sub": cls.PUBLIC_OWNER}
 
     def list_allocations(self, user_info, from_, limit):
-        private_count, private = self.private_store.list_allocations(user_info, 0, 1000000)
-        public_count, public = self.public_store.list_allocations(self._public_user(), 0, 1000000)
+        _, private = self.private_store.list_allocations(user_info, 0, 1000000)
+        _, public = self.public_store.list_allocations(self._public_user(), 0, 1000000)
         combined = ([{**item, "scope": "private"} for item in private]
                     + [{**item, "scope": "public"} for item in public])
         return len(combined), combined[from_:from_ + limit]

@@ -1445,8 +1445,11 @@ components:
           title: Host
         authVersion:
           type: string
+          enum:
+          - 3.x-oidc
+          - 3.x-appcred
+          - 3.x-password
           title: Authversion
-          description: OpenStack authentication version
           default: 3.x-oidc
         apiVersion:
           anyOf:
