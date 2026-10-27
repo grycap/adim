@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Literal
+
 import adim
 from fastapi import APIRouter, Query, Depends, Request, Response
 from adim.authorization import authenticate
@@ -195,8 +197,9 @@ def delete_allocation(allocation_id,
              status_code=201)
 def create_allocation(allocation: Allocation,
                       request: Request,
-                      scope: str = Query("private", pattern="^(private|public)$",
-                                          description="Storage visibility scope; public allocations require admin privileges"),
+                      scope: Literal["private", "public"] = Query(
+                          "private",
+                          description="Storage visibility scope; public allocations require admin privileges"),
                       user_info=Depends(authenticate)):
     """Record an environment of the user"""
     adim.logger.debug(f"Create allocation from user '{user_info.get('sub')}'")

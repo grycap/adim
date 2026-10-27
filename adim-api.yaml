@@ -341,6 +341,20 @@ paths:
       operationId: create_allocation_allocations_post
       security:
       - OIDC: []
+      parameters:
+      - name: scope
+        in: query
+        required: false
+        schema:
+          enum:
+          - private
+          - public
+          type: string
+          description: Storage visibility scope; public allocations require admin
+            privileges
+          default: private
+          title: Scope
+        description: Storage visibility scope; public allocations require admin privileges
       requestBody:
         required: true
         content:
@@ -1118,11 +1132,6 @@ components:
       title: DeploymentInfo
     DummyEnvironment:
       properties:
-        public:
-          type: boolean
-          title: Public
-          description: Whether this environment is public or private
-          default: false
         kind:
           type: string
           const: DummyEnvironment
@@ -1133,11 +1142,6 @@ components:
       description: Dummy environment for testing purposes
     EGIComputeEnvironment:
       properties:
-        public:
-          type: boolean
-          title: Public
-          description: Whether this environment is public or private
-          default: false
         kind:
           type: string
           const: EGIComputeEnvironment
@@ -1201,11 +1205,6 @@ components:
       description: Credentials for EGI
     EoscNodeEnvironment:
       properties:
-        public:
-          type: boolean
-          title: Public
-          description: Whether this environment is public or private
-          default: false
         kind:
           type: string
           const: EoscNodeEnvironment
@@ -1276,11 +1275,6 @@ components:
       description: Environment variables for EOSC node
     EoscNodeEnvironment_offer:
       properties:
-        public:
-          type: boolean
-          title: Public
-          description: Whether this environment is public or private
-          default: false
         offerId:
           type: string
           title: Offerid
@@ -1383,11 +1377,6 @@ components:
       title: HTTPValidationError
     KubernetesEnvironment:
       properties:
-        public:
-          type: boolean
-          title: Public
-          description: Whether this environment is public or private
-          default: false
         kind:
           type: string
           const: KubernetesEnvironment
@@ -1419,11 +1408,6 @@ components:
       description: Credentials for Kubernetes
     OpenStackEnvironment:
       properties:
-        public:
-          type: boolean
-          title: Public
-          description: Whether this environment is public or private
-          default: false
         kind:
           type: string
           const: OpenStackEnvironment
