@@ -98,6 +98,11 @@ class KubernetesEnvironment(BaseEnvironment):
     namespace: str | None = Field(None, description="Kubernetes namespace where applications should be deployed")
     appsDns: str | None = Field(None, description="DNS domain where the applications deployed "
                                 "in this environment are accessible")
+    token: str | None = None
+
+    def redact_sensitive_info(self) -> KubernetesEnvironment:
+        """Return a copy of the environment withou sensitive information redacted."""
+        return self.model_copy(update={"token": None})
 
 
 class DummyEnvironment(BaseEnvironment):

@@ -1401,6 +1401,11 @@ components:
           title: Appsdns
           description: DNS domain where the applications deployed in this environment
             are accessible
+        token:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Token
       type: object
       required:
       - host
