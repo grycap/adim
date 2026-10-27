@@ -158,10 +158,10 @@ def seed_allocations(backend_type, db_mock, vault_mock, monkeypatch):
         elif backend_type in ["vault", "enc_vault"]:
             monkeypatch.setenv("ALLOCATION_STORE", "vault")
             if backend_type == "enc_vault":
-                monkeypatch.setenv("ENCRYPT_KEY", AllocationStoreVault.DEFAULT_KEY)
+                monkeypatch.setenv("VAULT_ENCRYPT_KEY", AllocationStoreVault.DEFAULT_KEY)
             else:
-                # For vault without encryption, ensure ENCRYPT_KEY is not set
-                monkeypatch.delenv("ENCRYPT_KEY", raising=False)
+                # For vault without encryption, ensure VAULT_ENCRYPT_KEY is not set
+                monkeypatch.delenv("VAULT_ENCRYPT_KEY", raising=False)
 
         # Use the factory method to create the allocation store
         from adim.utils.allocation.allocation_store import AllocationStore
@@ -448,6 +448,46 @@ def test_update_allocation_sql(check_oidc_mock, list_deployments_mock, db_mock, 
         "update allocations set data = %s where id = %s",
         ('{"host": "http://k8s.io/", "kind": "KubernetesEnvironment"}', 'id1')
     )
+
+
+def test_public_allocation_responses_redact_for_non_admin(check_oidc_mock, client, headers, mocker):
+    public_data = {
+        "kind": "OpenStackEnvironment", "public": True, "userName": "user",
+        "domain": "domain", "tenant": "tenant", "host": "https://openstack.example.org",
+        "password": "secret",
+    }
+    store = MagicMock()
+    store.list_allocations.return_value = (1, [{"id": "public1", "data": public_data}])
+    store.get_allocation.return_value = public_data
+    store.is_public_admin.return_value = False
+    mocker.patch.object(adim, "allocation_store", store)
+
+    listed = client.get("/allocations/", headers=headers)
+    fetched = client.get("/allocation/public1", headers=headers)
+
+    assert listed.status_code == fetched.status_code == 200
+    assert "password" not in listed.json()["elements"][0]
+    assert "password" not in fetched.json()
+    assert public_data["password"] == "secret"
+
+
+def test_public_allocation_responses_keep_admin_credentials(check_oidc_mock, client, headers, mocker):
+    public_data = {
+        "kind": "OpenStackEnvironment", "public": True, "userName": "user",
+        "domain": "domain", "tenant": "tenant", "host": "https://openstack.example.org",
+        "password": "secret",
+    }
+    store = MagicMock()
+    store.list_allocations.return_value = (1, [{"id": "public1", "data": public_data}])
+    store.get_allocation.return_value = public_data
+    store.is_public_admin.return_value = True
+    mocker.patch.object(adim, "allocation_store", store)
+
+    listed = client.get("/allocations/", headers=headers)
+    fetched = client.get("/allocation/public1", headers=headers)
+
+    assert listed.json()["elements"][0]["password"] == "secret"
+    assert fetched.json()["password"] == "secret"
 
 
 def test_allocation_redact_sensitive_info_removes_openstack_password():
