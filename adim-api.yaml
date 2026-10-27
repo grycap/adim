@@ -1118,6 +1118,11 @@ components:
       title: DeploymentInfo
     DummyEnvironment:
       properties:
+        public:
+          type: boolean
+          title: Public
+          description: Whether this environment is public or private
+          default: false
         kind:
           type: string
           const: DummyEnvironment
@@ -1128,6 +1133,11 @@ components:
       description: Dummy environment for testing purposes
     EGIComputeEnvironment:
       properties:
+        public:
+          type: boolean
+          title: Public
+          description: Whether this environment is public or private
+          default: false
         kind:
           type: string
           const: EGIComputeEnvironment
@@ -1178,6 +1188,11 @@ components:
           - type: string
           - type: 'null'
           title: Apiversion
+        password:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Password
       type: object
       required:
       - domain
@@ -1186,6 +1201,11 @@ components:
       description: Credentials for EGI
     EoscNodeEnvironment:
       properties:
+        public:
+          type: boolean
+          title: Public
+          description: Whether this environment is public or private
+          default: false
         kind:
           type: string
           const: EoscNodeEnvironment
@@ -1256,6 +1276,11 @@ components:
       description: Environment variables for EOSC node
     EoscNodeEnvironment_offer:
       properties:
+        public:
+          type: boolean
+          title: Public
+          description: Whether this environment is public or private
+          default: false
         offerId:
           type: string
           title: Offerid
@@ -1358,6 +1383,11 @@ components:
       title: HTTPValidationError
     KubernetesEnvironment:
       properties:
+        public:
+          type: boolean
+          title: Public
+          description: Whether this environment is public or private
+          default: false
         kind:
           type: string
           const: KubernetesEnvironment
@@ -1389,6 +1419,11 @@ components:
       description: Credentials for Kubernetes
     OpenStackEnvironment:
       properties:
+        public:
+          type: boolean
+          title: Public
+          description: Whether this environment is public or private
+          default: false
         kind:
           type: string
           const: OpenStackEnvironment
@@ -1426,14 +1461,19 @@ components:
           title: Host
         authVersion:
           type: string
-          const: 3.x-oidc
           title: Authversion
+          description: OpenStack authentication version
           default: 3.x-oidc
         apiVersion:
           anyOf:
           - type: string
           - type: 'null'
           title: Apiversion
+        password:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Password
       type: object
       required:
       - userName
