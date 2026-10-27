@@ -203,6 +203,7 @@ def seed_allocations(backend_type, db_mock, vault_mock, monkeypatch):
             else:
                 results = iter(selects)
                 last_result = selects[-1] if selects else []
+
                 def select_side_effect(query, params=(), *args, **kwargs):
                     if "FROM allocations " not in query:
                         return [[0]]
@@ -211,6 +212,7 @@ def seed_allocations(backend_type, db_mock, vault_mock, monkeypatch):
                     if "id = %s and owner" in query:
                         return [row for row in (selects[0] if selects else []) if row[0] == params[0]]
                     return next(results, last_result)
+
                 db_mock.select.side_effect = select_side_effect
 
         elif backend_type in ["vault", "enc_vault"]:
@@ -418,8 +420,8 @@ def test_create_allocation_mongo(check_oidc_mock, time_mock, uuid_mock, db_mock,
     client.post('/allocations', headers=headers, json=allocation_payload)
     db_mock.replace.assert_called_with(
         "allocations", {"id": "new-id", "owner": "user123"}, {"id": "new-id", "data": {"kind": "KubernetesEnvironment",
-                                                                   "host": "http://k8s.io/"},
-                                          "owner": "user123", "created": 1000}
+                                                                                       "host": "http://k8s.io/"},
+                                                              "owner": "user123", "created": 1000}
     )
 
 
@@ -470,8 +472,8 @@ def test_update_allocation_sql(check_oidc_mock, list_deployments_mock, db_mock, 
     )
 
 
-def test_create_public_allocation_uses_scope_query(check_oidc_mock, uuid_mock, client, headers, mocker,
-                                                  allocation_payload):
+def test_create_public_allocation_uses_scope_query(check_oidc_mock, uuid_mock, client, headers,
+                                                   mocker, allocation_payload):
     store = MagicMock()
     store.check_allocation_exists.return_value = None
     store.replace_allocation.return_value = "public-id"
@@ -483,7 +485,6 @@ def test_create_public_allocation_uses_scope_query(check_oidc_mock, uuid_mock, c
     store.check_allocation_exists.assert_called_once()
     assert store.check_allocation_exists.call_args.args[2] == "public"
     assert store.replace_allocation.call_args.kwargs["scope"] == "public"
-
 
 
 def test_public_allocation_responses_redact_for_non_admin(check_oidc_mock, client, headers, mocker):

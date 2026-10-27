@@ -70,7 +70,8 @@ class EOSCNode(BaseModel):
 class EOSCNodeRegistry():
     """Class to interact with the central EOSC Node Registry"""
 
-    EOSC_NODE_REGISTRY_URL = os.getenv("EOSC_NODE_REGISTRY_URL", "https://node-devel.eosc.grnet.gr/federation-backend/tenants/eosc-beyond")
+    EOSC_NODE_REGISTRY_URL = os.getenv("EOSC_NODE_REGISTRY_URL",
+                                       "https://node-devel.eosc.grnet.gr/federation-backend/tenants/eosc-beyond")
 
     @staticmethod
     def list_nodes() -> List[str]:
