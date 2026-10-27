@@ -83,7 +83,7 @@ class ApplicationStore:
             from adim.utils.application.git_app_store import ApplicationStoreGit
             application_store = ApplicationStoreGit(app_repo)
         elif app_type == "rc":
-            resource_catalog = os.getenv("RESOURCE_CATALOG", "https://providers.sandbox.eosc-beyond.eu/api")
+            resource_catalog = os.getenv("RESOURCE_CATALOG", "https://providers.sandbox.eosc-beyond.eu/api/public")
             from adim.utils.application.rc_app_store import ApplicationStoreRC
             application_store = ApplicationStoreRC(resource_catalog)
         else:

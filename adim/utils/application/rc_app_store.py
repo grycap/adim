@@ -27,7 +27,7 @@ from .app_store import ApplicationStore
 
 class ApplicationStoreRC(ApplicationStore):
 
-    def __init__(self, url: str = "https://providers.sandbox.eosc-beyond.eu/api"):
+    def __init__(self, url: str = "https://providers.sandbox.eosc-beyond.eu/api/public"):
         super().__init__(url)
 
     @staticmethod
@@ -46,7 +46,7 @@ class ApplicationStoreRC(ApplicationStore):
 
     @staticmethod
     def get_application_info(elem: dict, request: Request) -> ApplicationInfo:
-        blueprint_text = requests.get(ApplicationStoreRC._convert_url_to_raw(elem['url']), timeout=10).text
+        blueprint_text = requests.get(ApplicationStoreRC._convert_url_to_raw(elem['urls'][0]), timeout=10).text
         tosca = yaml.safe_load(blueprint_text)
         if not isinstance(tosca, dict):
             raise ValueError("Blueprint document is not a YAML object")
@@ -86,7 +86,7 @@ class ApplicationStoreRC(ApplicationStore):
         # application_id was provided with underscores; convert back path
         repo_application_id = application_id.replace("%2F", "/")
         try:
-            response = requests.get(f"{self.url}/deployableService/{repo_application_id}", timeout=10)
+            response = requests.get(f"{self.url}/deployableApplication/{repo_application_id}", timeout=10)
         except Exception as e:
             adim.logger.error("Failed to get application info: %s", e)
             raise ConnectionException(f"Failed to get application info: {e}")
@@ -108,7 +108,7 @@ class ApplicationStoreRC(ApplicationStore):
         return app, 200
 
     def _list(self, request: Request, from_: int, limit: int, user_info: dict) -> List[ApplicationInfo]:
-        response = requests.get(f"{self.url}/deployableService/all", timeout=10)
+        response = requests.get(f"{self.url}/deployableApplication/all", timeout=10)
         response.raise_for_status()
         res = []
         for elem in response.json().get("results", []):
