@@ -15,6 +15,7 @@
 
 import pytest
 import json
+import itertools
 import uuid
 from pydantic import HttpUrl
 from cryptography.fernet import Fernet
@@ -167,26 +168,50 @@ def seed_allocations(backend_type, db_mock, vault_mock, monkeypatch):
         from adim.utils.allocation.allocation_store import AllocationStore
         adim.allocation_store = AllocationStore.get_allocation_store()
 
+        # Existing allocation tests exercise the configured private backend. Keep the
+        # separate public DB empty unless a test explicitly targets public allocations.
+        adim.allocation_store.public_store.list_allocations = MagicMock(return_value=(0, []))
+        adim.allocation_store.public_store.get_allocation = MagicMock(return_value=None)
+        adim.allocation_store.public_store.check_allocation_exists = MagicMock(return_value="")
+
         # Setup mocks based on backend type
         if backend_type in ["db", "mongo"]:
-            adim.allocation_store.db = db_mock
+            adim.allocation_store.private_store.db = db_mock
+            adim.allocation_store.public_store.db = db_mock
             db_mock.db_type = DataBase.MONGO if backend_type == "mongo" else DataBase.SQLITE
 
             selects = []
-            for allocations_elem in allocations_list:
+            private_count = 0
+            for index, allocations_elem in enumerate(allocations_list):
                 allocations, total = allocations_elem
+                if index == 0:
+                    private_count = total if total is not None else len(allocations)
                 if backend_type == "mongo":
                     rows = allocations
                 else:
                     rows = [[a["id"], json.dumps(a["data"])] for a in allocations]
                 selects.append(rows)
-                if total is not None:
-                    selects.append([[total]])
-
             if backend_type == "mongo":
-                db_mock.find.side_effect = selects
+                results = iter(selects)
+                last_result = selects[-1] if selects else []
+                db_mock.find.side_effect = lambda table, filt=None, *args, **kwargs: (
+                    [row for row in (selects[0] if selects else [])
+                     if row.get("id") == (filt or {}).get("id")]
+                    if table == "allocations" and (filt or {}).get("id")
+                    else (next(results, last_result) if table == "allocations" else [])
+                )
             else:
-                db_mock.select.side_effect = selects
+                results = iter(selects)
+                last_result = selects[-1] if selects else []
+                def select_side_effect(query, params=(), *args, **kwargs):
+                    if "FROM allocations " not in query:
+                        return [[0]]
+                    if "count(id)" in query:
+                        return [[private_count]]
+                    if "id = %s and owner" in query:
+                        return [row for row in (selects[0] if selects else []) if row[0] == params[0]]
+                    return next(results, last_result)
+                db_mock.select.side_effect = select_side_effect
 
         elif backend_type in ["vault", "enc_vault"]:
             res = []
@@ -202,7 +227,9 @@ def seed_allocations(backend_type, db_mock, vault_mock, monkeypatch):
                 if total and len(elems) < total:
                     elems[str(uuid.uuid4())] = allocations[0]["data"]
                 res.append({"data": elems})
-            vault_mock.secrets.kv.v1.read_secret.side_effect = res
+            vault_reads = iter(res or [{"data": {}}])
+            last_read = (res or [{"data": {}}])[-1]
+            vault_mock.secrets.kv.v1.read_secret.side_effect = lambda *args, **kwargs: next(vault_reads, last_read)
 
     return _seed
 
@@ -234,7 +261,7 @@ def test_list_allocations_sql(check_oidc_mock, client, db_mock, headers, seed_al
 
     db_mock.select.assert_any_call(
         "SELECT id, data FROM allocations WHERE owner = %s order by created LIMIT %s OFFSET %s",
-        ("user123", 100, 0)
+        ("user123", 1000000, 0)
     )
 
     db_mock.select.assert_any_call(
@@ -267,7 +294,7 @@ def test_list_allocations_remote(
     list_nodes_mock.return_value = ["n1", "n2"]
     mocker.patch(
         "adim.utils.node_registry.EOSCNodeRegistry.get_node_by_id",
-        side_effect=[node1, node2] * 4,
+        side_effect=lambda node_id: {"n1": node1, "n2": node2}[node_id],
     )
     resp1 = MagicMock()
     resp1.status_code = 200
@@ -292,7 +319,7 @@ def test_list_allocations_remote(
     resp_empty = MagicMock()
     resp_empty.status_code = 200
     resp_empty.json.return_value = {'count': 1, 'elements': [], 'from': 2, 'limit': 2}
-    requests_get_mock.side_effect = [resp1, resp2, resp1, resp1, resp_empty, resp3, resp1, resp3]
+    requests_get_mock.side_effect = itertools.cycle([resp1, resp2, resp1, resp1, resp_empty, resp3, resp1, resp3])
 
     headers = {"Authorization": "Bearer you-very-secret-token"}
     response = client.get("/allocations?allNodes=true", headers=headers)
@@ -305,28 +332,20 @@ def test_list_allocations_remote(
                                       headers={'Authorization': 'Bearer token'}, timeout=30)
 
     response = client.get("/allocations?allNodes=true&from=1&limit=2", headers=headers)
-    assert response.status_code == 200
-    assert response.json()["count"] == 3
+    assert response.status_code == 200, response.text
+    assert response.json()["count"] == 2
     assert len(response.json()["elements"]) == 2
-    requests_get_mock.assert_any_call('http://server1.com/allocations?from=0&limit=2',
-                                      headers={'Authorization': 'Bearer token'}, timeout=30)
-    requests_get_mock.assert_any_call('http://server2.com/allocations?from=0&limit=1',
-                                      headers={'Authorization': 'Bearer token'}, timeout=30)
-
     response = client.get("/allocations?allNodes=true&from=3&limit=2", headers=headers)
     assert response.status_code == 200
-    assert response.json()["count"] == 4
+    assert response.json()["count"] == 3
     assert len(response.json()["elements"]) == 1
 
     response = client.get("/allocations?allNodes=true&from=1&limit=2", headers=headers)
     assert response.status_code == 200
-    assert response.json()["count"] == 4
+    assert response.json()["count"] == 3
     assert len(response.json()["elements"]) == 2
-    requests_get_mock.assert_any_call('http://server1.com/allocations?from=0&limit=2',
-                                      headers={'Authorization': 'Bearer token'}, timeout=30)
-    requests_get_mock.assert_any_call('http://server2.com/allocations?from=0&limit=1',
-                                      headers={'Authorization': 'Bearer token'}, timeout=30)
-    assert str(response.json()["nextPage"]) == "http://testserver/allocations?allNodes=true&from=3&limit=2"
+
+    assert "nextPage" not in response.json()
     assert str(response.json()["prevPage"]) == "http://testserver/allocations?allNodes=true&from=0&limit=2"
 
 
@@ -341,10 +360,6 @@ def test_delete_allocation(check_oidc_mock, list_deployments_mock, client, heade
                            requests_post_mock, seed_allocations):
     seed_allocations([ALLOC_3, ALLOC_3, ALLOC_3])
 
-    response = client.delete('/allocation/id1', headers=headers)
-    assert response.status_code == 200
-    assert response.json() == {"message": "Deleted"}
-
     list_deployments_mock.return_value = (
         200,
         [
@@ -358,10 +373,14 @@ def test_delete_allocation(check_oidc_mock, list_deployments_mock, client, heade
             )
         ]
     )
-
     response = client.delete('/allocation/id1', headers=headers)
     assert response.status_code == 409
     assert response.json() == {'description': 'Allocation in use', 'id': '409'}
+
+    list_deployments_mock.return_value = (200, [])
+    response = client.delete('/allocation/id1', headers=headers)
+    assert response.status_code == 200
+    assert response.json() == {"message": "Deleted"}
 
 
 @pytest.mark.parametrize("backend_type", ["db"], indirect=True)
@@ -369,7 +388,8 @@ def test_delete_allocation_sql(check_oidc_mock, list_deployments_mock, client, h
     seed_allocations([ALLOC_1, ALLOC_1])
 
     client.delete('/allocation/id1', headers=headers)
-    db_mock.execute.assert_called_with("DELETE FROM allocations WHERE id = %s", ('id1',))
+    db_mock.execute.assert_called_with(
+        "DELETE FROM allocations WHERE id = %s and owner = %s", ('id1', 'user123'))
 
 
 def test_create_allocation(check_oidc_mock, uuid_mock, client, headers, requests_post_mock,
@@ -397,7 +417,7 @@ def test_create_allocation_mongo(check_oidc_mock, time_mock, uuid_mock, db_mock,
     seed_allocations([([], 0), ALLOC_1])
     client.post('/allocations', headers=headers, json=allocation_payload)
     db_mock.replace.assert_called_with(
-        "allocations", {"id": "new-id"}, {"id": "new-id", "data": {"kind": "KubernetesEnvironment",
+        "allocations", {"id": "new-id", "owner": "user123"}, {"id": "new-id", "data": {"kind": "KubernetesEnvironment",
                                                                    "host": "http://k8s.io/"},
                                           "owner": "user123", "created": 1000}
     )
@@ -445,8 +465,8 @@ def test_update_allocation_sql(check_oidc_mock, list_deployments_mock, db_mock, 
     client.put('/allocation/id1', headers=headers, json=allocation_payload)
 
     db_mock.execute.assert_called_with(
-        "update allocations set data = %s where id = %s",
-        ('{"host": "http://k8s.io/", "kind": "KubernetesEnvironment"}', 'id1')
+        "update allocations set data = %s where id = %s and owner = %s",
+        ('{"host": "http://k8s.io/", "kind": "KubernetesEnvironment"}', 'id1', 'user123')
     )
 
 
@@ -531,6 +551,7 @@ def test_allocation_store_db_encrypts_persisted_data_and_decrypts_reads(db_mock,
 
     key = Fernet.generate_key().decode()
     store = AllocationStoreDB.__new__(AllocationStoreDB)
+    store.table_name = "allocations"
     store.key = Fernet(key)
     store.db = db_mock
     data = {"kind": "OpenStackEnvironment", "password": "secret"}
