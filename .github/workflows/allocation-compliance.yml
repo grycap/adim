@@ -1,0 +1,78 @@
+name: Allocation API compliance
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  allocation-compliance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out ADIM
+        uses: actions/checkout@v4
+
+      - name: Check out compliance tests (adim branch)
+        uses: actions/checkout@v4
+        with:
+          repository: grycap/adm-compliance-tests
+          ref: adim
+          path: adm-compliance-tests
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system libraries for MySQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes pkg-config libmariadb-dev
+
+      - name: Install ADIM and Robot Framework dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r adm-compliance-tests/requirements.txt
+
+      - name: Start ADIM
+        env:
+          ADMIN_TOKEN: ci-admin-token
+          USER_TOKEN: ci-user-token
+          PUBLIC_ALLOCATIONS_ADMINS: test-admin
+          DB_URL: file:///tmp/adim-ci.db
+          ALLOCATION_STORE: db
+          APPLICATIONS_STORE: git
+        run: |
+          python -m adim > /tmp/adim.log 2>&1 &
+          echo $! > /tmp/adim.pid
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8080/version >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/adim.log
+          exit 1
+
+      - name: Run allocation compliance tests
+        env:
+          adm_endpoint: http://127.0.0.1:8080
+          oidc_access_token: ci-user-token
+          oidc_public_admin_access_token: ci-admin-token
+          allocation_to_create: '{"kind":"DummyEnvironment"}'
+        run: |
+          robot \
+            --variable oidc_access_token:ci-user-token \
+            --variable oidc_public_admin_access_token:ci-admin-token \
+            --outputdir results \
+            adm-compliance-tests/tests/adm-api.robot
+
+      - name: Upload Robot Framework reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allocation-compliance-results
+          path: results/
+          if-no-files-found: ignore
