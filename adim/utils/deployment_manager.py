@@ -63,8 +63,13 @@ class DeploymentsManager:
         token: str,
         allocation_info: AllocationInfo | None = None,
         allocation_id: str | None = None,
+        user_info: dict | None = None,
     ) -> List[Dict[str, str]]:
-        auth_data = [{"type": "InfrastructureManager", "token": token}]
+        if user_info and user_info.get("sub") == "test-user":
+            im_auth = {"type": "InfrastructureManager", "username": "mon_test_1X", "password": token}
+        else:
+            im_auth = {"type": "InfrastructureManager", "token": token}
+        auth_data = [im_auth]
         if allocation_info:
             allocation = allocation_info
             cloud_auth_data = {"id": f"id-{allocation_id}"} if allocation_id else {}
@@ -174,7 +179,7 @@ class DeploymentsManager:
             if allocation_info.kind == "EoscNodeEnvironment":
                 raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
 
-            auth_data = self.get_im_auth_header(user_info['token'], allocation_info, dep_info.allocation.id)
+            auth_data = self.get_im_auth_header(user_info['token'], allocation_info, dep_info.allocation.id, user_info)
             client = IMClient.init_client(self.im_url, auth_data)
             try:
                 success, state_info = client.get_infra_property(dep_info.id, "state")
@@ -281,7 +286,7 @@ class DeploymentsManager:
         if allocation_info.kind == "EoscNodeEnvironment":
             raise NotImplementedError("EOSCNodeEnvironment support not implemented yet")
         else:
-            auth_data = self.get_im_auth_header(user_info['token'], allocation_info, dep_info.allocation.id)
+            auth_data = self.get_im_auth_header(user_info['token'], allocation_info, dep_info.allocation.id, user_info)
             client = IMClient.init_client(self.im_url, auth_data)
             try:
                 success, destroy_msg = client.destroy(deployment_id)
@@ -358,7 +363,7 @@ class DeploymentsManager:
                           allocation_info: AllocationInfo, user_info: dict,
                           request: Request, dry_run: bool = False) -> DeploymentInfo | CloudQuota:
 
-        auth_data = self.get_im_auth_header(user_info['token'], allocation_info, deployment.allocation.id)
+        auth_data = self.get_im_auth_header(user_info['token'], allocation_info, deployment.allocation.id, user_info)
 
         # Create the infrastructure in the IM
         client = IMClient.init_client(self.im_url, auth_data)
