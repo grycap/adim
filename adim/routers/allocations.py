@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Literal
+
 import adim
 from fastapi import APIRouter, Query, Depends, Request, Response
 from adim.authorization import authenticate
@@ -25,6 +27,13 @@ from . import return_error, STANDARD_RESPONSES, GET_RESPONSES, DELETE_RESPONSES,
 
 
 router = APIRouter()
+
+
+def _allocation_for_response(data: dict, user_info: dict, is_public: bool = False) -> Allocation:
+    allocation = Allocation.model_validate(data)
+    if is_public and not user_info.get("admin", False):
+        return Allocation.model_validate_redacted(data)
+    return allocation
 
 
 # GET /allocations
@@ -50,7 +59,7 @@ def list_allocations(
     for elem in allocations:
         allocation_info = AllocationInfo(
             id=elem['id'],
-            allocation=Allocation.model_validate(elem['data']),
+            allocation=_allocation_for_response(elem['data'], user_info, elem.get("scope") == "public"),
             self=str(request.url_for("get_allocation", allocation_id=elem['id']))
         )
         res.append(allocation_info)
@@ -70,6 +79,8 @@ def list_allocations(
 def _get_allocation_info(allocation_id: str, user_info: dict, request: Request) -> AllocationInfo | None:
     try:
         allocation_data = adim.allocation_store.get_allocation(allocation_id, user_info)
+    except PermissionError as ex:
+        return return_error(str(ex), 403)
     except ConnectionException as ex:
         return return_error(str(ex), 503)
 
@@ -78,7 +89,9 @@ def _get_allocation_info(allocation_id: str, user_info: dict, request: Request) 
 
     return AllocationInfo(
         id=allocation_id,
-        allocation=Allocation.model_validate(allocation_data),
+        allocation=_allocation_for_response(
+            allocation_data, user_info,
+            getattr(adim.allocation_store, "is_public_allocation", lambda _id, _user: False)(allocation_id, user_info)),
         self=str(request.url_for("get_allocation", allocation_id=allocation_id))
     )
 
@@ -135,6 +148,8 @@ def update_allocation(allocation_id,
     data = allocation.model_dump(exclude_unset=True, mode="json")
     try:
         adim.allocation_store.replace_allocation(data, user_info, allocation_id)
+    except PermissionError as ex:
+        return return_error(str(ex), 403)
     except Exception as ex:
         return return_error(str(ex), 503)
 
@@ -162,6 +177,8 @@ def delete_allocation(allocation_id,
 
     try:
         adim.allocation_store.delete_allocation(allocation_id, user_info)
+    except PermissionError as ex:
+        return return_error(str(ex), 403)
     except ConnectionException as ex:
         return return_error(str(ex), 503)
 
@@ -179,20 +196,27 @@ def delete_allocation(allocation_id,
              status_code=201)
 def create_allocation(allocation: Allocation,
                       request: Request,
+                      scope: Literal["private", "public"] = Query(
+                          "private",
+                          description="Storage visibility scope; public allocations require admin privileges"),
                       user_info=Depends(authenticate)):
     """Record an environment of the user"""
     adim.logger.debug(f"Create allocation from user '{user_info.get('sub')}'")
     data = allocation.model_dump(exclude_unset=True, mode="json")
-    adim.logger.debug(f"Allocation data: {allocation.model_dump()}")
 
-    found_id = adim.allocation_store.check_allocation_exists(data, user_info)
+    try:
+        found_id = adim.allocation_store.check_allocation_exists(data, user_info, scope)
+    except PermissionError as ex:
+        return return_error(str(ex), 403)
     if found_id:
         url = str(request.url_for("get_allocation", allocation_id=found_id))
         return Response(status_code=303, media_type="application/json",
                         headers={"Location": url})
 
     try:
-        allocation_id = adim.allocation_store.replace_allocation(data, user_info)
+        allocation_id = adim.allocation_store.replace_allocation(data, user_info, scope=scope)
+    except PermissionError as ex:
+        return return_error(str(ex), 403)
     except Exception as ex:
         return return_error(str(ex), 503)
 

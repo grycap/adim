@@ -305,3 +305,42 @@ def test_auth_check_oidc_groups(requests_mock, jwt_mock, time_mock, token):
         res = check_OIDC(token)
 
     adim.authorization.OIDC_GROUPS = ""
+
+
+def test_authenticate_static_test_tokens(monkeypatch):
+    from fastapi.security import HTTPAuthorizationCredentials
+
+    monkeypatch.setattr(adim.authorization, "ADMIN_TOKEN", "admin-test-secret")
+    monkeypatch.setattr(adim.authorization, "USER_TOKEN", "user-test-secret")
+    monkeypatch.setattr(adim.authorization, "check_OIDC", lambda _token: pytest.fail("OIDC must not be called"))
+
+    admin = adim.authorization.authenticate(
+        HTTPAuthorizationCredentials(scheme="Bearer", credentials="admin-test-secret"))
+    user = adim.authorization.authenticate(
+        HTTPAuthorizationCredentials(scheme="Bearer", credentials="user-test-secret"))
+
+    assert admin["admin"] is True
+    assert admin["sub"] == "test-admin"
+    assert user["admin"] is False
+    assert user["sub"] == "test-user"
+
+
+def test_authenticate_unrecognized_static_token_falls_back_to_oidc(monkeypatch):
+    from fastapi.security import HTTPAuthorizationCredentials
+
+    monkeypatch.setattr(adim.authorization, "ADMIN_TOKEN", "admin-test-secret")
+    monkeypatch.setattr(adim.authorization, "USER_TOKEN", "user-test-secret")
+    monkeypatch.setattr(adim.authorization, "check_OIDC", lambda _token: None)
+
+    with pytest.raises(HTTPException) as exc:
+        adim.authorization.authenticate(
+            HTTPAuthorizationCredentials(scheme="Bearer", credentials="other-token"))
+    assert exc.value.status_code == 401
+
+
+def test_is_admin_uses_configured_subjects(monkeypatch):
+    adim.authorization.ADMIN_USERS = {"admin-sub"}
+
+    assert adim.authorization.is_admin({"sub": "admin-sub"}) is True
+    assert adim.authorization.is_admin({"sub": "ordinary-sub"}) is False
+    assert adim.authorization.is_admin({}) is False
