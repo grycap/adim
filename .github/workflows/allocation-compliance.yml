@@ -36,6 +36,18 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install -r adm-compliance-tests/requirements.txt
 
+      - name: Start local IM
+        run: |
+          docker run --detach --name im --publish 8800:8800 ghcr.io/grycap/im:2.0.0
+          for attempt in $(seq 1 90); do
+            if curl --fail --silent http://127.0.0.1:8800/version >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs im
+          exit 1
+
       - name: Start ADIM
         env:
           ADMIN_TOKEN: ci-admin-token
@@ -44,7 +56,7 @@ jobs:
           DB_URL: file:///tmp/adim-ci.db
           ALLOCATION_STORE: db
           APPLICATIONS_STORE: git
-          IM_URL: https://appsgrycap.i3m.upv.es/im-dev/
+          IM_URL: http://127.0.0.1:8800
         run: |
           python -m adim > /tmp/adim.log 2>&1 &
           echo $! > /tmp/adim.pid
