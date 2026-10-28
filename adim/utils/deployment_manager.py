@@ -66,6 +66,7 @@ class DeploymentsManager:
         user_info: dict | None = None,
     ) -> List[Dict[str, str]]:
         if user_info and user_info.get("sub") == "test-user":
+            # Use username/password for test user to avoid token expiration issues
             im_auth = {"type": "InfrastructureManager", "username": "mon_test_1X", "password": token}
         else:
             im_auth = {"type": "InfrastructureManager", "token": token}
