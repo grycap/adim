@@ -44,6 +44,7 @@ jobs:
           DB_URL: file:///tmp/adim-ci.db
           ALLOCATION_STORE: db
           APPLICATIONS_STORE: git
+          IM_URL: https://appsgrycap.i3m.upv.es/im-dev/
         run: |
           python -m adim > /tmp/adim.log 2>&1 &
           echo $! > /tmp/adim.pid
@@ -64,14 +65,13 @@ jobs:
           allocation_to_create: '{"kind":"DummyEnvironment"}'
         run: |
           robot \
-            --variable im_url:https://appsgrycap.i3m.upv.es/im-dev/ \
             --variable oidc_access_token:ci-user-token \
             --variable oidc_public_admin_access_token:ci-admin-token \
             --outputdir results \
             adm-compliance-tests/tests/adm-api.robot
 
       - name: Upload Robot Framework reports
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: allocation-compliance-results
