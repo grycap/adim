@@ -49,7 +49,8 @@ def check_oidc_mock():
             "sub": "user123",
             "name": "User DN",
             "eduperson_entitlement": ["vos1", "vos2"],
-            "token": "token"
+            "token": "token",
+            "admin": False,
         }
         yield mock_func
 
@@ -510,6 +511,7 @@ def test_public_allocation_responses_redact_for_non_admin(check_oidc_mock, clien
 
 
 def test_public_allocation_responses_keep_admin_credentials(check_oidc_mock, client, headers, mocker):
+    check_oidc_mock.return_value["admin"] = True
     public_data = {
         "kind": "OpenStackEnvironment", "userName": "user",
         "domain": "domain", "tenant": "tenant", "host": "https://openstack.example.org",

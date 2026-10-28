@@ -72,8 +72,7 @@ class CompositeAllocationStore(AllocationStore):
 
     @classmethod
     def is_public_admin(cls, user_info: dict) -> bool:
-        admins = {item.strip() for item in os.getenv("PUBLIC_ALLOCATIONS_ADMINS", "").split(",") if item.strip()}
-        return user_info.get("sub") in admins
+        return bool(user_info.get("admin", False))
 
     @classmethod
     def _is_admin(cls, user_info: dict) -> bool:

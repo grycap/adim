@@ -31,8 +31,7 @@ router = APIRouter()
 
 def _allocation_for_response(data: dict, user_info: dict, is_public: bool = False) -> Allocation:
     allocation = Allocation.model_validate(data)
-    is_admin = getattr(adim.allocation_store, "is_public_admin", lambda _user: False)(user_info)
-    if is_public and not is_admin:
+    if is_public and not user_info.get("admin", False):
         return Allocation.model_validate_redacted(data)
     return allocation
 

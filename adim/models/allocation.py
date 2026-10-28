@@ -27,7 +27,7 @@ class BaseEnvironment(BaseModel):
     """Base class for all environment types"""
 
     def redact_sensitive_info(self) -> BaseEnvironment:
-        """Return a copy of the environment withou sensitive information redacted."""
+        """Return a copy of the environment without sensitive information redacted."""
         return self.model_copy()
 
 
@@ -78,7 +78,7 @@ class OpenStackEnvironment(BaseEnvironment):
     password: str | None = None
 
     def redact_sensitive_info(self) -> OpenStackEnvironment:
-        """Return a copy of the environment withou sensitive information redacted."""
+        """Return a copy of the environment without sensitive information redacted."""
         return self.model_copy(update={"password": None})
 
 
@@ -101,7 +101,7 @@ class KubernetesEnvironment(BaseEnvironment):
     token: str | None = None
 
     def redact_sensitive_info(self) -> KubernetesEnvironment:
-        """Return a copy of the environment withou sensitive information redacted."""
+        """Return a copy of the environment without sensitive information redacted."""
         return self.model_copy(update={"token": None})
 
 

@@ -38,6 +38,9 @@ APPLICATIONS_STORE=git
 APPLICATIONS_REPO="https://github.com/grycap/tosca/blob/eosc_lot1/templates/"
 # In case of RC, the URL of the Resource Catalog API
 RESOURCE_CATALOG="https://providers.sandbox.eosc-beyond.eu/api/public"
+# Optional static test Bearer tokens (never enable in production).
+#ADMIN_TOKEN=<long random admin test token>
+#USER_TOKEN=<long random user test token>
 # Comma separated list of OIDC issuers to accept tokens from
 OIDC_ISSUERS="https://aai.egi.eu/auth/realms/egi,https://aai-demo.egi.eu/auth/realms/egi,https://proxy.aai.open-science-cloud.ec.europa.eu"
 # Audience to check in the token, if not specified, no audience check will be performed
