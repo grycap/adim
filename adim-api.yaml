@@ -3,7 +3,7 @@ info:
   title: ADIM API
   description: Application Deployment with Infrastructure Manager implements EOSC
     Application Deployment Management API
-  version: 1.0.51
+  version: 1.1.0
 paths:
   /deployments:
     get:
