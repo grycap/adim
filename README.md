@@ -47,6 +47,9 @@ OIDC_ISSUERS="https://aai.egi.eu/auth/realms/egi,https://aai-demo.egi.eu/auth/re
 #OIDC_AUDIENCE=adim
 # Comma separated list of groups to check in the token, if not specified, no group check will be performed
 #OIDC_GROUPS="eos-beyond.eu"
+# Comma separated list of user subs that will be admin of this instance
+# (for public allocation creation)
+#ADMIN_USERS=""
 ```
 
 Or you can set an `.env` file as the `.env.example` provided.
