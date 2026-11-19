@@ -15,6 +15,7 @@
 
 import logging
 import os
+import hmac
 from typing import List
 from fastapi import HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -34,12 +35,25 @@ OIDC_AUDIENCE = os.getenv("OIDC_AUDIENCE", None)
 OIDC_GROUPS = os.getenv("OIDC_GROUPS", "")
 OIDC_CLIENT_ID = os.getenv("OIDC_CLIENT_ID", None)
 OIDC_CLIENT_SECRET = os.getenv("OIDC_CLIENT_SECRET", None)
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")
+USER_TOKEN = os.getenv("USER_TOKEN", "")
+ADMIN_USERS = {item.strip() for item in os.getenv("PUBLIC_ALLOCATIONS_ADMINS", "").split(",") if item.strip()}
+
+
+def is_admin(user_info: dict) -> bool:
+    """Return whether an authenticated user is configured as an ADIM admin."""
+    return user_info.get("sub") in ADMIN_USERS
 
 
 def authenticate(
     credentials: HTTPAuthorizationCredentials = Security(security)
 ) -> dict:
     token = credentials.credentials
+    # Static tokens are intended only for controlled testing environments.
+    if ADMIN_TOKEN and hmac.compare_digest(token, ADMIN_TOKEN):
+        return {"sub": "test-admin", "token": token, "admin": True}
+    if USER_TOKEN and hmac.compare_digest(token, USER_TOKEN):
+        return {"sub": "test-user", "token": token, "admin": False}
     user_info = check_OIDC(token)
     if user_info is None:
         raise HTTPException(status_code=401, detail="Authorization required")
@@ -113,6 +127,7 @@ def check_OIDC(token: str) -> dict | None:
         return None
 
     user_info["token"] = token
+    user_info["admin"] = is_admin(user_info)
     return user_info
 
 

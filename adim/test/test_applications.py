@@ -149,44 +149,48 @@ def test_list_applications_remote(
         mock_get,
     ]
 
-    node1 = EOSCNode(admAPI=HttpUrl("http://server1.com"), nodeId="n1")
-    node2 = EOSCNode(admAPI=HttpUrl("http://server2.com"), nodeId="n2")
-    list_nodes_mock.return_value = [node1, node2]
+    node1 = EOSCNode(admAPI=HttpUrl("http://server1.com"), nodeId="n1", nodeName="Node 1")
+    node2 = EOSCNode(admAPI=HttpUrl("http://server2.com"), nodeId="n2", nodeName="Node 2")
+    list_nodes_mock.return_value = ["n1", "n2"]
+    mocker.patch(
+        "adim.utils.node_registry.EOSCNodeRegistry.get_node_by_id",
+        side_effect=[node1, node2] * 3,
+    )
 
     # Mock remotos
-    resp1 = mocker.MagicMock()
-    resp1.status_code = 200
-    resp1.json.return_value = {
-        "count": 1,
-        "elements": [{
-            "blueprint": blueprint,
-            "blueprintType": "tosca",
-            "id": "app1",
-            "type": "vm",
-        }],
-        "from": 0,
-        "limit": 100,
-    }
+    def remote_page(count, applications, from_=0, limit=100):
+        response = mocker.MagicMock(status_code=200)
+        response.json.return_value = {
+            "count": count,
+            "elements": [
+                {"blueprint": blueprint, "blueprintType": "tosca", "id": app_id, "type": "vm"}
+                for app_id in applications
+            ],
+            "from": from_,
+            "limit": limit,
+        }
+        return response
 
-    resp2 = mocker.MagicMock()
-    resp2.status_code = 200
-    resp2.json.return_value = {
-        "count": 2,
-        "elements": [
-            {"blueprint": blueprint, "blueprintType": "tosca", "id": "app2", "type": "vm"},
-            {"blueprint": blueprint, "blueprintType": "tosca", "id": "app3", "type": "vm"},
-        ],
-        "from": 0,
-        "limit": 100,
-    }
-
-    requests_get_mock.side_effect = [resp1, resp2, resp1, resp1, resp1, resp2]
+    requests_get_mock.side_effect = [
+        remote_page(1, ["app1"]),
+        remote_page(2, ["app2", "app3"]),
+        remote_page(1, ["app1"], limit=2),
+        remote_page(2, ["app2"], limit=1),
+        remote_page(1, [], from_=2, limit=2),
+        remote_page(2, ["app3"], from_=1, limit=2),
+    ]
 
     # 1) Sin paginación
     response = client.get("/applications?allNodes=true", headers=headers)
     assert response.status_code == 200
     assert response.json()["count"] == 4
     assert len(response.json()["elements"]) == 4
+    remote_apps = {
+        app["id"]: app["nodeId"]
+        for app in response.json()["elements"]
+        if app["id"] != "templates/tosca.yaml"
+    }
+    assert remote_apps == {"app1": "n1", "app2": "n2", "app3": "n2"}
 
     requests_get_mock.assert_any_call(
         "http://server1.com/applications?from=0&limit=99",
@@ -202,8 +206,9 @@ def test_list_applications_remote(
     # 2) from=1 limit=2
     response = client.get("/applications?allNodes=true&from=1&limit=2", headers=headers)
     assert response.status_code == 200
-    assert response.json()["count"] == 3
+    assert response.json()["count"] == 4
     assert len(response.json()["elements"]) == 2
+    assert [app["nodeId"] for app in response.json()["elements"]] == ["n1", "n2"]
 
     requests_get_mock.assert_any_call(
         "http://server1.com/applications?from=0&limit=2",

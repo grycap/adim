@@ -44,7 +44,9 @@ def list_applications(
 ):
     try:
         adim.logger.debug(f"Listing applications from user '{user_info.get('sub')}'")
-        total, count, applications = adim.application_store.list_applications(request, from_, limit, user_info)
+        total, count, applications = adim.application_store.list_applications(
+            request, from_, limit, user_info, nodeId=None
+        )
     except ConnectionException as ex:
         return return_error("Repository connection failed: %s" % ex, 503)
 

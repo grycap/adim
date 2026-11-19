@@ -24,7 +24,13 @@ DB_URL=file:///tmp/adim.db
 # db or vault
 ALLOCATION_STORE=db
 VAULT_URL=https://secrets.egi.eu
-ENCRYPT_KEY=3JSvUdOsAlvSNVYvBwHWE-iKdWkhq4C_LmjRcpuycT0=
+# Optional Fernet keys; configure outside the repository.
+# DB_ENCRYPT_KEY encrypts DB allocations (including public allocations).
+# VAULT_ENCRYPT_KEY encrypts private allocations before writing them to Vault.
+# DB_ENCRYPT_KEY=<Fernet key>
+# VAULT_ENCRYPT_KEY=<Fernet key>
+# Public allocations can be managed only by these OIDC subjects.
+#PUBLIC_ALLOCATIONS_ADMINS="admin-subject-1,admin-subject-2"
 #ROOT_PATH=/adim
 # git or rc
 APPLICATIONS_STORE=git
@@ -32,6 +38,9 @@ APPLICATIONS_STORE=git
 APPLICATIONS_REPO="https://github.com/grycap/tosca/blob/eosc_lot1/templates/"
 # In case of RC, the URL of the Resource Catalog API
 RESOURCE_CATALOG="https://providers.sandbox.eosc-beyond.eu/api/public"
+# Optional static test Bearer tokens (never enable in production).
+#ADMIN_TOKEN=<long random admin test token>
+#USER_TOKEN=<long random user test token>
 # Comma separated list of OIDC issuers to accept tokens from
 OIDC_ISSUERS="https://aai.egi.eu/auth/realms/egi,https://aai-demo.egi.eu/auth/realms/egi,https://proxy.aai.open-science-cloud.ec.europa.eu"
 # Audience to check in the token, if not specified, no audience check will be performed
@@ -41,6 +50,12 @@ OIDC_ISSUERS="https://aai.egi.eu/auth/realms/egi,https://aai-demo.egi.eu/auth/re
 ```
 
 Or you can set an `.env` file as the `.env.example` provided.
+
+Public allocations are stored separately in the `public_allocations` DB table/collection,
+regardless of `ALLOCATION_STORE`. Without `DB_ENCRYPT_KEY`, DB data remains unencrypted.
+When private allocations use Vault, they continue to use that backend; `VAULT_ENCRYPT_KEY`
+is optional and encrypts the payload before it reaches Vault. Existing data must be migrated
+before changing encryption mode or key.
 
 ## Usage
 

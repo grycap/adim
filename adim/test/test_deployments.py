@@ -146,7 +146,7 @@ def test_list_deployments_mongo(client, db_mock, check_oidc_mock, seed_deploymen
     )
 
 
-def test_list_deployments_remote(client, db_mock, check_oidc_mock, list_nodes_mock,
+def test_list_deployments_remote(client, mocker, db_mock, check_oidc_mock, list_nodes_mock,
                                  requests_get_mock, seed_deployments):
     selects = [
         [[_get_deployment_info()]],
@@ -160,9 +160,13 @@ def test_list_deployments_remote(client, db_mock, check_oidc_mock, list_nodes_mo
     ]
     seed_deployments(selects)
 
-    node1 = EOSCNode(admAPI=HttpUrl("http://server1.com"), nodeId="n1")
-    node2 = EOSCNode(admAPI=HttpUrl("http://server2.com"), nodeId="n2")
-    list_nodes_mock.return_value = [node1, node2]
+    node1 = EOSCNode(admAPI=HttpUrl("http://server1.com"), nodeId="n1", nodeName="Node 1")
+    node2 = EOSCNode(admAPI=HttpUrl("http://server2.com"), nodeId="n2", nodeName="Node 2")
+    list_nodes_mock.return_value = ["n1", "n2"]
+    mocker.patch(
+        "adim.utils.node_registry.EOSCNodeRegistry.get_node_by_id",
+        side_effect={"n1": node1, "n2": node2}.get,
+    )
     resp1 = MagicMock()
     resp1.status_code = 200
     resp1.json.return_value = {'count': 1,
@@ -183,7 +187,10 @@ def test_list_deployments_remote(client, db_mock, check_oidc_mock, list_nodes_mo
                                'elements': [json.loads(_get_deployment_info('dep_id1'))],
                                'from': 0,
                                'limit': 100}
-    requests_get_mock.side_effect = [resp1, resp2, resp1, resp1, resp1, resp2, resp1, resp3]
+    resp_empty = MagicMock()
+    resp_empty.status_code = 200
+    resp_empty.json.return_value = {'count': 1, 'elements': [], 'from': 2, 'limit': 2}
+    requests_get_mock.side_effect = [resp1, resp2, resp1, resp1, resp_empty, resp3, resp1, resp3]
 
     headers = {"Authorization": "Bearer you-very-secret-token"}
     response = client.get("/deployments?allNodes=true", headers=headers)
